@@ -65,7 +65,8 @@ class TestAddition:
         tree2 = rpn_to_tree(rpn2)
         total_tree = Addition(tree1, tree2)
         for variables in var_dicts_list:
-            assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) + tree2.evaluate(variables))
+            if total_tree.validate(variables)[0]:
+                assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) + tree2.evaluate(variables))
 
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
     def test_derivative(self, rpn1, rpn2):
@@ -77,10 +78,11 @@ class TestAddition:
             tree2_derivative = tree2.derivative(var)
             total_tree_derivative = total_tree.derivative(var)
             for variables in var_dicts_list:
-                ans_der1 = tree1_derivative.evaluate(variables)
-                ans_der2 = tree2_derivative.evaluate(variables)
-                assert isclose(total_tree_derivative.evaluate(variables),
-                               ans_der1 + ans_der2)
+                if total_tree.validate(variables)[0] and total_tree_derivative.validate(variables)[0]:
+                    ans_der1 = tree1_derivative.evaluate(variables)
+                    ans_der2 = tree2_derivative.evaluate(variables)
+                    assert isclose(total_tree_derivative.evaluate(variables),
+                                   ans_der1 + ans_der2)
 
 
 class TestSubtraction:
@@ -99,7 +101,8 @@ class TestSubtraction:
         tree2 = rpn_to_tree(rpn2)
         total_tree = Subtraction(tree1, tree2)
         for variables in var_dicts_list:
-            assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) - tree2.evaluate(variables))
+            if total_tree.validate(variables)[0]:
+                assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) - tree2.evaluate(variables))
 
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
     def test_derivative(self, rpn1, rpn2):
@@ -111,10 +114,11 @@ class TestSubtraction:
             tree2_derivative = tree2.derivative(var)
             total_tree_derivative = total_tree.derivative(var)
             for variables in var_dicts_list:
-                ans_der1 = tree1_derivative.evaluate(variables)
-                ans_der2 = tree2_derivative.evaluate(variables)
-                assert isclose(total_tree_derivative.evaluate(variables),
-                               ans_der1 - ans_der2)
+                if total_tree.validate(variables)[0] and total_tree_derivative.validate(variables)[0]:
+                    ans_der1 = tree1_derivative.evaluate(variables)
+                    ans_der2 = tree2_derivative.evaluate(variables)
+                    assert isclose(total_tree_derivative.evaluate(variables),
+                                   ans_der1 - ans_der2)
 
 
 class TestProduct:
@@ -129,7 +133,8 @@ class TestProduct:
         tree2 = rpn_to_tree(rpn2)
         total_tree = Product(tree1, tree2)
         for variables in var_dicts_list:
-            assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) * tree2.evaluate(variables))
+            if total_tree.validate(variables)[0]:
+                assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) * tree2.evaluate(variables))
 
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
     def test_derivative(self, rpn1, rpn2):
@@ -141,12 +146,13 @@ class TestProduct:
             tree2_derivative = tree2.derivative(var)
             total_tree_derivative = total_tree.derivative(var)
             for variables in var_dicts_list:
-                ans1 = tree1.evaluate(variables)
-                ans2 = tree2.evaluate(variables)
-                ans_der1 = tree1_derivative.evaluate(variables)
-                ans_der2 = tree2_derivative.evaluate(variables)
-                assert isclose(total_tree_derivative.evaluate(variables),
-                               ans_der1 * ans2 + ans1 * ans_der2)
+                if total_tree.validate(variables)[0] and total_tree_derivative.validate(variables)[0]:
+                    ans1 = tree1.evaluate(variables)
+                    ans2 = tree2.evaluate(variables)
+                    ans_der1 = tree1_derivative.evaluate(variables)
+                    ans_der2 = tree2_derivative.evaluate(variables)
+                    assert isclose(total_tree_derivative.evaluate(variables),
+                                   ans_der1 * ans2 + ans1 * ans_der2)
 
 
 class TestDivision:
@@ -161,7 +167,7 @@ class TestDivision:
         tree2 = rpn_to_tree(rpn2)
         total_tree = Division(tree1, tree2)
         for variables in var_dicts_list:
-            if total_tree.validate(variables):
+            if total_tree.validate(variables)[0]:
                 assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) / tree2.evaluate(variables))
 
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
@@ -174,7 +180,7 @@ class TestDivision:
             tree2_derivative = tree2.derivative(var)
             total_tree_derivative = total_tree.derivative(var)
             for variables in var_dicts_list:
-                if total_tree_derivative.validate(variables):
+                if total_tree.validate(variables)[0] and total_tree_derivative.validate(variables)[0]:
                     ans1 = tree1.evaluate(variables)
                     ans2 = tree2.evaluate(variables)
                     ans_der1 = tree1_derivative.evaluate(variables)
@@ -195,7 +201,7 @@ class TestExponent:
         tree2 = rpn_to_tree(rpn2)
         total_tree = Exponent(tree1, tree2)
         for variables in var_dicts_list:
-            if total_tree.validate(variables):
+            if total_tree.validate(variables)[0]:
                 assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) ** tree2.evaluate(variables))
 
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
@@ -208,7 +214,7 @@ class TestExponent:
             tree2_derivative = tree2.derivative(var)
             total_tree_derivative = total_tree.derivative(var)
             for variables in var_dicts_list:
-                if total_tree_derivative.validate(variables):
+                if total_tree.validate(variables)[0] and total_tree_derivative.validate(variables)[0]:
                     ans1 = tree1.evaluate(variables)
                     ans2 = tree2.evaluate(variables)
                     ans_der1 = tree1_derivative.evaluate(variables)
@@ -229,7 +235,7 @@ class TestLogarithm:
         tree2 = rpn_to_tree(rpn2)
         total_tree = Logarithm(tree1, tree2)
         for variables in var_dicts_list:
-            if total_tree.validate(variables):
+            if total_tree.validate(variables)[0]:
                 assert isclose(total_tree.evaluate(variables),
                                log(tree1.evaluate(variables), tree2.evaluate(variables)))
 
@@ -243,7 +249,7 @@ class TestLogarithm:
             tree2_derivative = tree2.derivative(var)
             total_tree_derivative = total_tree.derivative(var)
             for variables in var_dicts_list:
-                if total_tree_derivative.validate(variables):
+                if total_tree.validate(variables)[0] and total_tree_derivative.validate(variables)[0]:
                     ans1 = tree1.evaluate(variables)
                     ans2 = tree2.evaluate(variables)
                     ans_der1 = tree1_derivative.evaluate(variables)
