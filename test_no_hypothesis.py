@@ -6,55 +6,11 @@ import pytest
 from interpreter import *
 
 
-def random_expression(depth=0):
-    if random.randint(0, 2) == 0:
-        return random_term(depth), random_term(depth), random.choice(list(operator_2_in_classes.keys()))
-    else:
-        return random_term(depth), random.choice(list(operator_1_in_classes.keys()))
-
-
-def random_term(depth=0):
-    choice = random.randint(0, 8 - depth)
-    if choice == 0:
-        return random.randint(-100, 101)
-    elif choice == 1:
-        return random.random() * 200 - 100
-    elif choice == 2:
-        return random.choice('abcdefghijklmnopqrstuvwxyz')
-    else:
-        return random_expression(depth + 1)
-
-
-def tuple_to_rpn(tup):
-    out = ''
-    for item in tup:
-        out += ' '
-        if isinstance(item, str):
-            out += item
-        elif isinstance(item, (int, float)):
-            out += str(item)
-        elif isinstance(item, tuple):
-            out += tuple_to_rpn(item)
-    return out.strip()
-
-
-def check_overflow(tup):
-    tree = tuple_to_tree(tup)
-    try:
-        for variables in var_dicts_list:
-            float(tree.evaluate(variables))
-    except OverflowError:
-        return False
-    except:
-        pass
-    return True
-
-
-precalc_rpn = ['1 2 +',
-               '2 3 * 4 5 * +',
-               '5 x 2 ^ * 4 x * + 3 +',
-               '5 5 x + y 4 / + - 2 * 5 ^ x *',
-               '5 5 x + y 4 + + + 2 * 5 + x log 5 x 2 ^ * 4 x * + 3 + log']
+rpn_list = ['1 2 +',
+            '2 3 * 4 5 * +',
+            '5 x 2 ^ * 4 x * + 3 +',
+            '5 5 x + y 4 / + - 2 * 5 ^ x *',
+            '5 5 x + y 4 + + + 2 * 5 + x log 5 x 2 ^ * 4 x * + 3 + log']
 
 precalc_tuple = [(1, 2, '+'),
                  ((2, 3, '*'), (4, 5, '*'), '+'),
@@ -68,20 +24,11 @@ precalc_ans = [3, 26, 276, -19736543.53125, 0.1383251008242367]
 precalc_var_dict = {'x': 7,
                     'y': 11}
 
-var_dicts_list = [{letter: random.random() * 200 - 100 for letter in 'abcdefghijklmnopqrstuvwxyz'} for i in range(20)]
-tuples_list = list(filter(check_overflow, [random_expression() for j in range(10)]))
-unsafe_rpn_list = [tuple_to_rpn(tup) for tup in tuples_list]
-rpn_list = list(
-    filter(lambda x: all(rpn_to_tree(x).validate(variables) for variables in var_dicts_list), unsafe_rpn_list))
-
-while len(rpn_list) < 10:
-    item = random_expression()
-    if check_overflow(item) and all(tuple_to_tree(item).validate(variables) for variables in var_dicts_list):
-        rpn_list.append(tuple_to_rpn(item))
+var_dicts_list = [{letter: random.randint(-100, 100) for letter in 'abcdefghijklmnopqrstuvwxyz'}]
 
 
 class TestConversions:
-    @pytest.mark.parametrize(('entry', 'output'), zip(precalc_rpn, precalc_tuple))
+    @pytest.mark.parametrize(('entry', 'output'), zip(rpn_list, precalc_tuple))
     def test_rpn_to_tupletree(self, entry, output):
         assert rpn_to_tuple(entry) == output
 
@@ -89,7 +36,7 @@ class TestConversions:
     def test_tuptree_to_ans(self, entry, output):
         assert tuple_to_ans(entry, precalc_var_dict) == output
 
-    @pytest.mark.parametrize(('entry', 'output'), zip(precalc_rpn, precalc_ans))
+    @pytest.mark.parametrize(('entry', 'output'), zip(rpn_list, precalc_ans))
     def test_rpn_to_ans(self, entry, output):
         assert rpn_to_ans(entry, precalc_var_dict) == output
 
