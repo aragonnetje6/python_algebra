@@ -159,7 +159,7 @@ class TestDivision:
     def test_evaluate(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
         tree2 = rpn_to_tree(rpn2)
-        total_tree = Product(tree1, tree2)
+        total_tree = Division(tree1, tree2)
         for variables in var_dicts_list:
             if total_tree.validate(variables):
                 assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) / tree2.evaluate(variables))
@@ -168,7 +168,7 @@ class TestDivision:
     def test_derivative(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
         tree2 = rpn_to_tree(rpn2)
-        total_tree = Product(tree1, tree2)
+        total_tree = Division(tree1, tree2)
         for var in total_tree.dependencies():
             tree1_derivative = tree1.derivative(var)
             tree2_derivative = tree2.derivative(var)
@@ -193,7 +193,7 @@ class TestExponent:
     def test_evaluate(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
         tree2 = rpn_to_tree(rpn2)
-        total_tree = Product(tree1, tree2)
+        total_tree = Exponent(tree1, tree2)
         for variables in var_dicts_list:
             if total_tree.validate(variables):
                 assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) ** tree2.evaluate(variables))
@@ -202,7 +202,7 @@ class TestExponent:
     def test_derivative(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
         tree2 = rpn_to_tree(rpn2)
-        total_tree = Product(tree1, tree2)
+        total_tree = Exponent(tree1, tree2)
         for var in total_tree.dependencies():
             tree1_derivative = tree1.derivative(var)
             tree2_derivative = tree2.derivative(var)
@@ -227,7 +227,7 @@ class TestLogarithm:
     def test_evaluate(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
         tree2 = rpn_to_tree(rpn2)
-        total_tree = Product(tree1, tree2)
+        total_tree = Logarithm(tree1, tree2)
         for variables in var_dicts_list:
             if total_tree.validate(variables):
                 assert isclose(total_tree.evaluate(variables),
@@ -237,7 +237,7 @@ class TestLogarithm:
     def test_derivative(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
         tree2 = rpn_to_tree(rpn2)
-        total_tree = Product(tree1, tree2)
+        total_tree = Logarithm(tree1, tree2)
         for var in total_tree.dependencies():
             tree1_derivative = tree1.derivative(var)
             tree2_derivative = tree2.derivative(var)
