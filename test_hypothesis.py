@@ -1,10 +1,10 @@
 from hypothesis import given
 from hypothesis import strategies as st
-from math import isclose
+from math import isclose, e, pi
 
 import pytest
 
-from python_algebra.v5.interpreter import *
+from interpreter import *
 
 example_dict = {letter: st.one_of(st.integers(), st.floats(allow_nan=False, allow_infinity=False)) for letter in 'abcdefghijklmnopqrstuvwxyz'}
 var_dict = st.fixed_dictionaries(example_dict)
