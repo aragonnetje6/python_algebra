@@ -417,10 +417,17 @@ class Logarithm(Operator2In):
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the derivative to the passed variable of this tree"""
-        if isinstance(self.child2, Constant) and self.child2.value == e:
-            return Division(self.child1.derivative(variable), self.child1)
-        return Division(Logarithm(self.child1, Constant(e)),
-                        Logarithm(self.child2, Constant(e))).derivative(variable)
+        return Division(Subtraction(Division(Product(self.child1.derivative(variable),
+                                                     Logarithm(self.child2,
+                                                               Constant(e))),
+                                             self.child1),
+                                    Division(Product(self.child2.derivative(variable),
+                                                     Logarithm(self.child1,
+                                                               Constant(e)))
+                                             , self.child2)),
+                        Exponent(Logarithm(self.child2,
+                                           Constant(e)),
+                                 Constant(2)))
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
