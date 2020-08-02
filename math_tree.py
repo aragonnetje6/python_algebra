@@ -3,7 +3,7 @@ basic expression tree with evaluation and derivation
 """
 
 from abc import ABCMeta, abstractmethod
-from math import e, pi, log, sin, cos, tan, asin, acos, atan
+from math import e, log, sin, cos, tan, asin, acos, atan
 from typing import Optional, Dict, Union, Tuple, List, Set
 
 Number = Union[int, float]
@@ -46,10 +46,6 @@ class Node(metaclass=ABCMeta):
     @abstractmethod
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the derivative to the passed variable of this tree"""
-
-    @abstractmethod
-    def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
-        """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
 
     @abstractmethod
     def infix(self) -> str:
@@ -110,10 +106,6 @@ class Term(Node, metaclass=ABCMeta):
         """returns an expression tree representing the derivative to the passed variable of this tree"""
 
     @abstractmethod
-    def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
-        """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
-
-    @abstractmethod
     def infix(self) -> str:
         """returns infix representation of the tree"""
 
@@ -160,10 +152,6 @@ class Constant(Term):
     def copy(self) -> 'Node':
         """returns a copy of this tree"""
         return self.__class__(self.value)
-
-    def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
-        """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
-        return True, ''
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -215,15 +203,6 @@ class Variable(Term):
         """returns set of all variables present in the tree"""
         return {self.symbol}
 
-    def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
-        """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
-        if var_dict is None:
-            return False, 'No variables given'
-        if self.symbol in var_dict.keys():
-            return True, ''
-        else:
-            return False, f'Variable {self.symbol} not given'
-
     def infix(self) -> str:
         """returns infix representation of the tree"""
         return self.symbol
@@ -273,17 +252,6 @@ class Operator2In(Node, metaclass=ABCMeta):
     def dependencies(self) -> Set[str]:
         """returns set of all variables present in the tree"""
         return self.child1.dependencies().union(self.child2.dependencies())
-
-    def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
-        """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
-        validation1 = self.child1.validate(var_dict)
-        validation2 = self.child2.validate(var_dict)
-        if not validation1[0]:
-            return validation1
-        elif not validation2[0]:
-            return validation2
-        else:
-            return True, ''
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -341,24 +309,26 @@ class Product(Operator2In):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        if ((self.child1.validate(var_dict)[0] and self.child1.evaluate(var_dict) == 0)
-                or (self.child2.validate(var_dict)[0] and self.child2.evaluate(var_dict) == 0)):
-            return 0
-        return self.child1.evaluate(var_dict) * self.child2.evaluate(var_dict)
+        try:
+            return self.child1.evaluate(var_dict) * self.child2.evaluate(var_dict)
+        except (ArithmeticError, ValueError) as err:
+            try:
+                ans1 = self.child1.evaluate(var_dict)
+                if ans1 == 0:
+                    return 0
+                else:
+                    raise err
+            except (ArithmeticError, ValueError) as err:
+                ans2 = self.child2.evaluate(var_dict)
+                if ans2 == 0:
+                    return 0
+                else:
+                    raise err
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the derivative to the passed variable of this tree"""
         return Addition(Product(self.child1, self.child2.derivative(variable)),
                         Product(self.child1.derivative(variable), self.child2))
-
-    def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
-        """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
-        child1_valid = self.child1.validate(var_dict)
-        child2_valid = self.child2.validate(var_dict)
-        if (child1_valid[0] and (child2_valid[0] or self.child1.evaluate(var_dict))) or \
-                (child2_valid[0] and self.child2.evaluate(var_dict) == 0):
-            return True, ''
-        return next(filter(lambda x: not x[0], (child1_valid, child2_valid)))
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -383,16 +353,6 @@ class Division(Operator2In):
                                     Product(self.child1, self.child2.derivative(variable))),
                         Exponent(self.child2, Constant(2)))
 
-    def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
-        """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
-        childtrees = super().validate(var_dict)
-        if not childtrees[0]:
-            return childtrees
-        elif self.child2.evaluate(var_dict) == 0:
-            return False, 'Division by zero'
-        else:
-            return True, ''
-
     def infix(self) -> str:
         """returns infix representation of the tree"""
         if (isinstance(self.parent, Division) and self.parent.child2 is self) or isinstance(self.parent, Exponent):
@@ -408,20 +368,25 @@ class Exponent(Operator2In):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        child1_valid = self.child1.validate(var_dict)[0]
-        child2_valid = self.child2.validate(var_dict)[0]
-        if child1_valid:
-            child1_result = self.child1.evaluate(var_dict)
-            if child1_result == 0:
-                return 0
-            if child1_result == 1:
-                return 1
-        if child2_valid and self.child2.evaluate(var_dict) == 0:
-            return 1
-        result: Number = self.child1.evaluate(var_dict) ** self.child2.evaluate(var_dict)
-        if isinstance(result, complex):
-            raise ValueError('Complex values not allowed')
-        return result
+        try:
+            ans = self.child1.evaluate(var_dict) ** self.child2.evaluate(var_dict)
+            if isinstance(ans, complex):
+                raise ArithmeticError('Complex values not allowed')
+            else:
+                return ans
+        except (ArithmeticError, ValueError) as err:
+            try:
+                ans1 = self.child1.evaluate(var_dict)
+                if ans1 == 0 or ans1 == 1:
+                    return ans1
+                else:
+                    raise err
+            except (ArithmeticError, ValueError) as err:
+                ans2 = self.child2.evaluate(var_dict)
+                if ans2 == 0:
+                    return 1
+                else:
+                    raise err
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the derivative to the passed variable of this tree"""
@@ -432,26 +397,6 @@ class Exponent(Operator2In):
                                 Product(self.child2.derivative(variable),
                                         Logarithm(self.child1,
                                                   Constant(e)))))
-
-    def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
-        """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
-        child1_valid = self.child1.validate(var_dict)
-        child2_valid = self.child2.validate(var_dict)
-        if child1_valid[0]:
-            if child2_valid[0]:
-                child1_result = self.child1.evaluate(var_dict)
-                if child1_result in (0, 1):
-                    return True, ''
-                try:
-                    if isinstance(child1_result ** self.child2.evaluate(var_dict), complex):
-                        return False, 'Complex values not allowed'
-                    else:
-                        return True, ''
-                except OverflowError:
-                    return False, 'Overflow'
-        if child2_valid[0] and self.child2.evaluate(var_dict) == 0:
-            return True, ''
-        return False, (child1_valid[1] if not child1_valid[0] else child2_valid[1])
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -476,22 +421,6 @@ class Logarithm(Operator2In):
             return Division(self.child1.derivative(variable), self.child1)
         return Division(Logarithm(self.child1, Constant(e)),
                         Logarithm(self.child2, Constant(e))).derivative(variable)
-
-    def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
-        """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
-        children_ok = super().validate(var_dict)
-        if children_ok[0]:
-            child1_result = self.child1.evaluate(var_dict)
-            child2_result = self.child2.evaluate(var_dict)
-            if child1_result <= 0:
-                return False, 'Logarithm of negative number'
-            elif 0 >= child2_result:
-                return False, 'Logarithm with negative base'
-            elif child2_result == 1:
-                return False, 'Logarithm with base 1'
-            else:
-                return True, ''
-        return children_ok
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -540,10 +469,6 @@ class Operator1In(Node, metaclass=ABCMeta):
     def dependencies(self) -> Set[str]:
         """returns set of all variables present in the tree"""
         return self.child.dependencies()
-
-    def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
-        """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
-        return self.child.validate(var_dict)
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -596,16 +521,6 @@ class Tangent(Operator1In):
                         Exponent(Cosine(self.child),
                                  Constant(2)))
 
-    def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
-        """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
-        child_ok = super().validate(var_dict)
-        if child_ok[0]:
-            if self.child.evaluate(var_dict) % pi == pi / 2:
-                return False, 'Tangent of k*pi+pi/2 not defined'
-            else:
-                return True, ''
-        return child_ok
-
 
 class ArcSine(Operator1In):
     """Arcsine operator node in radians"""
@@ -623,16 +538,6 @@ class ArcSine(Operator1In):
                                              Exponent(self.child,
                                                       Constant(2))),
                                  Constant(1 / 2)))
-
-    def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
-        """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
-        child_ok = super().validate(var_dict)
-        if child_ok[0]:
-            if not -1 <= self.child.evaluate(var_dict) <= 1:
-                return False, 'ArcSine must have value between -1 and 1'
-            else:
-                return True, ''
-        return child_ok
 
 
 class ArcCosine(Operator1In):
@@ -652,16 +557,6 @@ class ArcCosine(Operator1In):
                                                          Exponent(self.child,
                                                                   Constant(2))),
                                              Constant(1 / 2))))
-
-    def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
-        """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
-        child_ok = super().validate(var_dict)
-        if child_ok[0]:
-            if not -1 <= self.child.evaluate(var_dict) <= 1:
-                return False, 'ArcCosine must have value between -1 and 1'
-            else:
-                return True, ''
-        return child_ok
 
 
 class ArcTangent(Operator1In):

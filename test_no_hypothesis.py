@@ -51,15 +51,6 @@ class TestConversions:
 
 class TestAddition:
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
-    def test_validate(self, rpn1, rpn2):
-        tree1 = rpn_to_tree(rpn1)
-        tree2 = rpn_to_tree(rpn2)
-        total_tree = Addition(tree1, tree2)
-        for variables in var_dicts_list:
-            assert total_tree.validate(variables) == tree1.validate(variables) or \
-                   total_tree.validate(variables) == tree2.validate(variables)
-
-    @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
     def test_evaluate(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
         tree2 = rpn_to_tree(rpn2)
@@ -87,15 +78,6 @@ class TestAddition:
 
 class TestSubtraction:
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
-    def test_validate(self, rpn1, rpn2):
-        tree1 = rpn_to_tree(rpn1)
-        tree2 = rpn_to_tree(rpn2)
-        total_tree = Subtraction(tree1, tree2)
-        for variables in var_dicts_list:
-            assert total_tree.validate(variables) == tree1.validate(variables) or \
-                   total_tree.validate(variables) == tree2.validate(variables)
-
-    @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
     def test_evaluate(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
         tree2 = rpn_to_tree(rpn2)
@@ -122,11 +104,6 @@ class TestSubtraction:
 
 
 class TestProduct:
-    @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
-    def test_validate(self, rpn1, rpn2):
-        # todo: add validation test
-        pass
-
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
     def test_evaluate(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
@@ -157,11 +134,6 @@ class TestProduct:
 
 class TestDivision:
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
-    def test_validate(self, rpn1, rpn2):
-        # todo: add validation test
-        pass
-
-    @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
     def test_evaluate(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
         tree2 = rpn_to_tree(rpn2)
@@ -191,11 +163,6 @@ class TestDivision:
 
 class TestExponent:
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
-    def test_validate(self, rpn1, rpn2):
-        # todo: add validation test
-        pass
-
-    @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
     def test_evaluate(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
         tree2 = rpn_to_tree(rpn2)
@@ -224,11 +191,6 @@ class TestExponent:
 
 
 class TestLogarithm:
-    @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
-    def test_validate(self, rpn1, rpn2):
-        # todo: add validation test
-        pass
-
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
     def test_evaluate(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
