@@ -628,7 +628,7 @@ class ArcSine(Operator1In):
         """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
         child_ok = super().validate(var_dict)
         if child_ok:
-            if not -1 < self.child.evaluate(var_dict) < 1:
+            if not -1 <= self.child.evaluate(var_dict) <= 1:
                 return False, 'ArcSine must have value between -1 and 1'
             else:
                 return True, ''
@@ -657,7 +657,7 @@ class ArcCosine(Operator1In):
         """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
         child_ok = super().validate(var_dict)
         if child_ok:
-            if not -1 < self.child.evaluate(var_dict) < 1:
+            if not -1 <= self.child.evaluate(var_dict) <= 1:
                 return False, 'ArcCosine must have value between -1 and 1'
             else:
                 return True, ''
