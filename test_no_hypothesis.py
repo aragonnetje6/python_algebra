@@ -255,7 +255,7 @@ class TestLogarithm:
                     ans_der1 = tree1_derivative.evaluate(variables)
                     ans_der2 = tree2_derivative.evaluate(variables)
                     assert isclose(total_tree_derivative.evaluate(variables),
-                                   ((ans_der1 * log(ans2) / ans1) - (ans_der2 * log(ans1) / ans2))) / log(ans2) ** 2
+                                   ((ans_der1 * log(ans2) / ans1) - (ans_der2 * log(ans1) / ans2)) / log(ans2) ** 2)
 
 
 @pytest.mark.parametrize('rpn', rpn_list)
