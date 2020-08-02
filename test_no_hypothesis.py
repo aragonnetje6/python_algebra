@@ -104,42 +104,34 @@ class TestConversions:
 
 class TestAddition:
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
-    def test_commutative(self, rpn1, rpn2):
+    def test_validate(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
         tree2 = rpn_to_tree(rpn2)
-        sum1 = Addition(tree1, tree2)
-        sum2 = Addition(tree2, tree1)
+        total_tree = Addition(tree1, tree2)
         for variables in var_dicts_list:
-            assert isclose(sum1.evaluate(variables), sum2.evaluate(variables))
+            assert total_tree.validate(variables) == tree1.validate(variables) or \
+                   total_tree.validate(variables) == tree2.validate(variables)
 
-    @pytest.mark.parametrize(('rpn1', 'rpn2', 'rpn3'),
-                             ((x, y, z) for x in rpn_list for y in rpn_list for z in rpn_list))
-    def test_associative(self, rpn1, rpn2, rpn3):
+    @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
+    def test_evaluate(self, rpn1, rpn2):
         tree1 = rpn_to_tree(rpn1)
         tree2 = rpn_to_tree(rpn2)
-        tree3 = rpn_to_tree(rpn3)
-        sum1 = Addition(tree1, Addition(tree2, tree3))
-        sum2 = Addition(tree3, Addition(tree1, tree2))
-        sum3 = Addition(tree2, Addition(tree1, tree3))
+        total_tree = Addition(tree1, tree2)
         for variables in var_dicts_list:
-            assert isclose(sum1.evaluate(variables), sum2.evaluate(variables)) and isclose(sum1.evaluate(variables),
-                                                                                           sum3.evaluate(variables))
+            assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) + tree2.evaluate(variables))
 
-    @pytest.mark.parametrize('rpn', rpn_list)
-    def test_identity(self, rpn):
-        tree = rpn_to_tree(rpn)
-        identity = Constant(0)
-        sum1 = Addition(tree, identity)
-        for variables in var_dicts_list:
-            assert isclose(sum1.evaluate(variables), tree.evaluate(variables))
-
-    @pytest.mark.parametrize('rpn', rpn_list)
-    def test_successor(self, rpn):
-        tree = rpn_to_tree(rpn)
-        sum1 = Addition(Addition(tree, Constant(1)), Constant(1))
-        sum2 = Addition(tree, Constant(2))
-        for variables in var_dicts_list:
-            assert isclose(sum1.evaluate(variables), sum2.evaluate(variables))
+    @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
+    def test_derivative(self, rpn1, rpn2):
+        tree1 = rpn_to_tree(rpn1)
+        tree2 = rpn_to_tree(rpn2)
+        total_tree = Addition(tree1, tree2)
+        for var in total_tree.dependencies():
+            tree1_derivative = tree1.derivative(var)
+            tree2_derivative = tree2.derivative(var)
+            total_tree_derivative = total_tree.derivative(var)
+            for variables in var_dicts_list:
+                assert isclose(total_tree_derivative.evaluate(variables),
+                               tree1_derivative.evaluate(variables) + tree2_derivative.evaluate(variables))
 
 
 class TestSubtraction:
