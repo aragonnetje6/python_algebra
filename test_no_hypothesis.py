@@ -1,10 +1,9 @@
 import random
-from hypothesis import strategies as st
-from math import isclose
+from math import isclose, e, pi
 
 import pytest
 
-from python_algebra.v5.interpreter import *
+from interpreter import *
 
 
 def random_expression(depth=0):
@@ -79,13 +78,6 @@ while len(rpn_list) < 10:
     item = random_expression()
     if check_overflow(item) and all(tuple_to_tree(item).validate(variables) for variables in var_dicts_list):
         rpn_list.append(tuple_to_rpn(item))
-
-expression = st.builds(tuple_to_rpn, st.recursive(
-    st.one_of(st.integers(), st.floats(), st.characters(min_codepoint=97, max_codepoint=122)),
-    lambda exp: st.one_of(
-        st.tuples(exp, exp, st.sampled_from(list(operator_2_in_classes.keys()))),
-        st.tuples(exp, st.sampled_from(list(operator_1_in_classes.keys())))))).filter(check_overflow).filter(
-    lambda x: all(rpn_to_tree(x).validate(variables) for variables in var_dicts_list))
 
 
 class TestConversions:
