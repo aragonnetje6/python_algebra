@@ -1,3 +1,3 @@
 # python_algebra
 
-simple expression tree implemented in python
+simple expression tree with derivatives implemented in python
