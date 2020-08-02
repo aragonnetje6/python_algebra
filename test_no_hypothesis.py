@@ -57,8 +57,8 @@ class TestAddition:
         for variables in var_dicts_list:
             try:
                 assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) + tree2.evaluate(variables))
-            except (ArithmeticError, OverflowError) as err:
-                with pytest.raises(err):
+            except (ArithmeticError, ValueError) as err:
+                with pytest.raises(err.__class__):
                     isclose(tree1.evaluate(variables) + tree2.evaluate(variables), 1)
 
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
@@ -76,8 +76,8 @@ class TestAddition:
                     ans_der1 = tree1_derivative.evaluate(variables)
                     ans_der2 = tree2_derivative.evaluate(variables)
                     assert isclose(ans_total, ans_der1 + ans_der2)
-                except (ArithmeticError, OverflowError) as err:
-                    with pytest.raises(err):
+                except (ArithmeticError, ValueError) as err:
+                    with pytest.raises(err.__class__):
                         isclose(tree1_derivative.evaluate(variables) + tree2_derivative.evaluate(variables), 1)
 
 
@@ -90,8 +90,8 @@ class TestSubtraction:
         for variables in var_dicts_list:
             try:
                 assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) - tree2.evaluate(variables))
-            except (ArithmeticError, OverflowError) as err:
-                with pytest.raises(err):
+            except (ArithmeticError, ValueError) as err:
+                with pytest.raises(err.__class__):
                     isclose(tree1.evaluate(variables) - tree2.evaluate(variables), 1)
 
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
@@ -109,8 +109,8 @@ class TestSubtraction:
                     ans_der1 = tree1_derivative.evaluate(variables)
                     ans_der2 = tree2_derivative.evaluate(variables)
                     assert isclose(ans_total, ans_der1 - ans_der2)
-                except (ArithmeticError, OverflowError) as err:
-                    with pytest.raises(err):
+                except (ArithmeticError, ValueError) as err:
+                    with pytest.raises(err.__class__):
                         isclose(tree1_derivative.evaluate(variables) - tree2_derivative.evaluate(variables), 1)
 
 
@@ -123,8 +123,8 @@ class TestProduct:
         for variables in var_dicts_list:
             try:
                 assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) * tree2.evaluate(variables))
-            except (ArithmeticError, OverflowError) as err:
-                with pytest.raises(err):
+            except (ArithmeticError, ValueError) as err:
+                with pytest.raises(err.__class__):
                     isclose(tree1.evaluate(variables) * tree2.evaluate(variables), 1)
 
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
@@ -144,8 +144,8 @@ class TestProduct:
                     ans_der1 = tree1_derivative.evaluate(variables)
                     ans_der2 = tree2_derivative.evaluate(variables)
                     assert isclose(ans_total, ans_der1 * ans2 + ans1 * ans_der2)
-                except (ArithmeticError, OverflowError) as err:
-                    with pytest.raises(err):
+                except (ArithmeticError, ValueError) as err:
+                    with pytest.raises(err.__class__):
                         ans1 = tree1.evaluate(variables)
                         ans2 = tree2.evaluate(variables)
                         ans_der1 = tree1_derivative.evaluate(variables)
@@ -162,8 +162,8 @@ class TestDivision:
         for variables in var_dicts_list:
             try:
                 assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) / tree2.evaluate(variables))
-            except (ArithmeticError, OverflowError) as err:
-                with pytest.raises(err):
+            except (ArithmeticError, ValueError) as err:
+                with pytest.raises(err.__class__):
                     isclose(tree1.evaluate(variables) / tree2.evaluate(variables), 1)
 
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
@@ -183,8 +183,8 @@ class TestDivision:
                     ans_der1 = tree1_derivative.evaluate(variables)
                     ans_der2 = tree2_derivative.evaluate(variables)
                     assert isclose(ans_total, (ans_der1 * ans2 + ans1 * ans_der2) / ans2 ** 2)
-                except (ArithmeticError, OverflowError) as err:
-                    with pytest.raises(err):
+                except (ArithmeticError, ValueError) as err:
+                    with pytest.raises(err.__class__):
                         ans1 = tree1.evaluate(variables)
                         ans2 = tree2.evaluate(variables)
                         ans_der1 = tree1_derivative.evaluate(variables)
@@ -201,8 +201,8 @@ class TestExponent:
         for variables in var_dicts_list:
             try:
                 assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) ** tree2.evaluate(variables))
-            except (ArithmeticError, OverflowError) as err:
-                with pytest.raises(err):
+            except (ArithmeticError, ValueError) as err:
+                with pytest.raises(err.__class__):
                     isclose(tree1.evaluate(variables) ** tree2.evaluate(variables), 1)
 
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
@@ -222,8 +222,8 @@ class TestExponent:
                     ans_der1 = tree1_derivative.evaluate(variables)
                     ans_der2 = tree2_derivative.evaluate(variables)
                     assert isclose(ans_total, ans1 ** (ans2 - 1) * (ans2 * ans_der1 + ans1 * log(ans1) * ans_der2))
-                except (ArithmeticError, OverflowError) as err:
-                    with pytest.raises(err):
+                except (ArithmeticError, ValueError) as err:
+                    with pytest.raises(err.__class__):
                         ans1 = tree1.evaluate(variables)
                         ans2 = tree2.evaluate(variables)
                         ans_der1 = tree1_derivative.evaluate(variables)
@@ -241,8 +241,8 @@ class TestLogarithm:
             try:
                 assert isclose(total_tree.evaluate(variables),
                                log(tree1.evaluate(variables), tree2.evaluate(variables)))
-            except (ArithmeticError, OverflowError) as err:
-                with pytest.raises(err):
+            except (ArithmeticError, ValueError) as err:
+                with pytest.raises(err.__class__):
                     isclose(log(tree1.evaluate(variables), tree2.evaluate(variables)), 1)
 
     @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
@@ -263,8 +263,8 @@ class TestLogarithm:
                     ans_der2 = tree2_derivative.evaluate(variables)
                     assert isclose(ans_total,
                                    ((ans_der1 * log(ans2) / ans1) - (ans_der2 * log(ans1) / ans2)) / log(ans2) ** 2)
-                except (ArithmeticError, OverflowError) as err:
-                    with pytest.raises(err):
+                except (ArithmeticError, ValueError) as err:
+                    with pytest.raises(err.__class__):
                         ans1 = tree1.evaluate(variables)
                         ans2 = tree2.evaluate(variables)
                         ans_der1 = tree1_derivative.evaluate(variables)
