@@ -437,8 +437,8 @@ class Exponent(Operator2In):
         """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
         child1_valid = self.child1.validate(var_dict)
         child2_valid = self.child2.validate(var_dict)
-        if child1_valid:
-            if child2_valid:
+        if child1_valid[0]:
+            if child2_valid[0]:
                 child1_result = self.child1.evaluate(var_dict)
                 if child1_result in (0, 1):
                     return True, ''
@@ -449,7 +449,7 @@ class Exponent(Operator2In):
                         return True, ''
                 except OverflowError:
                     return False, 'Overflow'
-        if child2_valid and self.child2.evaluate(var_dict) == 0:
+        if child2_valid[0] and self.child2.evaluate(var_dict) == 0:
             return True, ''
         return False, (child1_valid[1] if not child1_valid[0] else child2_valid[1])
 
@@ -480,7 +480,7 @@ class Logarithm(Operator2In):
     def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
         """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
         children_ok = super().validate(var_dict)
-        if children_ok:
+        if children_ok[0]:
             child1_result = self.child1.evaluate(var_dict)
             child2_result = self.child2.evaluate(var_dict)
             if child1_result <= 0:
@@ -599,7 +599,7 @@ class Tangent(Operator1In):
     def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
         """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
         child_ok = super().validate(var_dict)
-        if child_ok:
+        if child_ok[0]:
             if self.child.evaluate(var_dict) % pi == pi / 2:
                 return False, 'Tangent of k*pi+pi/2 not defined'
             else:
@@ -627,8 +627,8 @@ class ArcSine(Operator1In):
     def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
         """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
         child_ok = super().validate(var_dict)
-        if child_ok:
-            if not -1 < self.child.evaluate(var_dict) < 1:
+        if child_ok[0]:
+            if not -1 <= self.child.evaluate(var_dict) <= 1:
                 return False, 'ArcSine must have value between -1 and 1'
             else:
                 return True, ''
@@ -656,8 +656,8 @@ class ArcCosine(Operator1In):
     def validate(self, var_dict: Optional[Variables] = None) -> Tuple[bool, str]:
         """checks whether the tree represents a valid expression. returns a tuple with bool and str for reason"""
         child_ok = super().validate(var_dict)
-        if child_ok:
-            if not -1 < self.child.evaluate(var_dict) < 1:
+        if child_ok[0]:
+            if not -1 <= self.child.evaluate(var_dict) <= 1:
                 return False, 'ArcCosine must have value between -1 and 1'
             else:
                 return True, ''
