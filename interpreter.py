@@ -43,7 +43,7 @@ def rpn_to_tuple(rpn_string: str) -> tuple:
     stack: List[Union[Expression, Number, str]] = list()
     word_list = rpn_string.split()
     for word in word_list:
-        if word.isdecimal():
+        if word.isdecimal() or word[0] == '-' and word[1:].isdecimal():
             stack.append(int(word))
         elif word in operator_2_in_functions.keys():
             term2 = stack.pop()
