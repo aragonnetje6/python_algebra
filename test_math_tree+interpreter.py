@@ -368,3 +368,37 @@ class TestCosine:
                         ans_input_deriv = input_tree_derivative.evaluate(variables)
                         isclose(-sin(ans_input) * ans_input_deriv, 1., abs_tol=1e-09)
                     assert isinstance(err.value, (ValueError, ArithmeticError))
+
+
+class TestTangent:
+    @pytest.mark.parametrize('rpn1', (x for x in rpn_list))
+    def test_evaluate(self, rpn1):
+        input_tree = rpn_to_tree(rpn1)
+        total_tree = Tangent(input_tree)
+        for variables in var_dicts_list:
+            try:
+                assert isclose(total_tree.evaluate(variables), tan(input_tree.evaluate(variables)), abs_tol=1e-09)
+            except (ArithmeticError, ValueError):
+                with pytest.raises(Exception) as err:
+                    isclose(tan(input_tree.evaluate(variables)), 1., abs_tol=1e-09)
+                assert isinstance(err.value, (ValueError, ArithmeticError))
+
+    @pytest.mark.parametrize('rpn1', (x for x in rpn_list))
+    def test_derivative(self, rpn1):
+        input_tree = rpn_to_tree(rpn1)
+        total_tree = Tangent(input_tree)
+        for var in total_tree.dependencies():
+            input_tree_derivative = input_tree.derivative(var)
+            total_tree_derivative = total_tree.derivative(var)
+            for variables in var_dicts_list:
+                try:
+                    ans_total = total_tree_derivative.evaluate(variables)
+                    ans_input = input_tree.evaluate(variables)
+                    ans_input_deriv = input_tree_derivative.evaluate(variables)
+                    assert isclose(ans_total, ans_input_deriv / cos(ans_input) ** 2, abs_tol=1e-09)
+                except (ArithmeticError, ValueError):
+                    with pytest.raises(Exception) as err:
+                        ans_input = input_tree.evaluate(variables)
+                        ans_input_deriv = input_tree_derivative.evaluate(variables)
+                        isclose(ans_input_deriv / cos(ans_input) ** 2, 1., abs_tol=1e-09)
+                    assert isinstance(err.value, (ValueError, ArithmeticError))
