@@ -423,8 +423,8 @@ class Logarithm(Operator2In):
                                              self.child1),
                                     Division(Product(self.child2.derivative(variable),
                                                      Logarithm(self.child1,
-                                                               Constant(e)))
-                                             , self.child2)),
+                                                               Constant(e))),
+                                             self.child2)),
                         Exponent(Logarithm(self.child2,
                                            Constant(e)),
                                  Constant(2)))
