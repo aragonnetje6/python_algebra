@@ -6,23 +6,24 @@ import random
 from math import isclose
 
 import pytest
-
 from interpreter import *
 
 rpn_list = ['1 2 +',
+            '0 0 +',
             '2 3 * 4 5 * +',
             '5 x 2 ^ * 4 x * + 3 +',
             '5 5 x + y 4 / + - 2 * 5 ^ x *',
             '5 5 x + y 4 + + + 2 * 5 + x log 5 x 2 ^ * 4 x * + 3 + log']
 
 precalc_tuple = [(1, 2, '+'),
+                 (0, 0, '+'),
                  ((2, 3, '*'), (4, 5, '*'), '+'),
                  (((5, ('x', 2, '^'), '*'), (4, 'x', '*'), '+'), 3, '+'),
                  ((((5, ((5, 'x', '+'), ('y', 4, '/'), '+'), '-'), 2, '*'), 5, '^'), 'x', '*'),
                  (((((5, ((5, 'x', '+'), ('y', 4, '+'), '+'), '+'), 2, '*'), 5, '+'), 'x', 'log'),
                   (((5, ('x', 2, '^'), '*'), (4, 'x', '*'), '+'), 3, '+'), 'log')]
 
-precalc_ans = [3, 26, 276, -19736543.53125, 0.1383251008242367]
+precalc_ans = [3, 0, 26, 276, -19736543.53125, 0.1383251008242367]
 
 precalc_var_dict = {'x': 7,
                     'y': 11}
@@ -401,4 +402,38 @@ class TestTangent:
                         ans_input = input_tree.evaluate(variables)
                         ans_input_deriv = input_tree_derivative.evaluate(variables)
                         isclose(ans_input_deriv / cos(ans_input) ** 2, 1., abs_tol=1e-09)
+                    assert isinstance(err.value, (ValueError, ArithmeticError))
+
+
+class TestArcsine:
+    @pytest.mark.parametrize('rpn1', (x for x in rpn_list))
+    def test_evaluate(self, rpn1):
+        input_tree = rpn_to_tree(rpn1)
+        total_tree = ArcSine(input_tree)
+        for variables in var_dicts_list:
+            try:
+                assert isclose(total_tree.evaluate(variables), asin(input_tree.evaluate(variables)), abs_tol=1e-09)
+            except (ArithmeticError, ValueError):
+                with pytest.raises(Exception) as err:
+                    isclose(asin(input_tree.evaluate(variables)), 1., abs_tol=1e-09)
+                assert isinstance(err.value, (ValueError, ArithmeticError))
+
+    @pytest.mark.parametrize('rpn1', (x for x in rpn_list))
+    def test_derivative(self, rpn1):
+        input_tree = rpn_to_tree(rpn1)
+        total_tree = ArcSine(input_tree)
+        for var in total_tree.dependencies():
+            input_tree_derivative = input_tree.derivative(var)
+            total_tree_derivative = total_tree.derivative(var)
+            for variables in var_dicts_list:
+                try:
+                    ans_total = total_tree_derivative.evaluate(variables)
+                    ans_input = input_tree.evaluate(variables)
+                    ans_input_deriv = input_tree_derivative.evaluate(variables)
+                    assert isclose(ans_total, ans_input_deriv / (1 - ans_input ** 2) ** .5, abs_tol=1e-09)
+                except (ArithmeticError, ValueError):
+                    with pytest.raises(Exception) as err:
+                        ans_input = input_tree.evaluate(variables)
+                        ans_input_deriv = input_tree_derivative.evaluate(variables)
+                        isclose(ans_input_deriv / (1 - ans_input ** 2) ** .5, 1., abs_tol=1e-09)
                     assert isinstance(err.value, (ValueError, ArithmeticError))
