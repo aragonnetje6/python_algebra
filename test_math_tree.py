@@ -447,3 +447,7 @@ class TestArcTangent:
                         ans_input = input_tree.evaluate(variables)
                         ans_input_deriv = input_tree_derivative.evaluate(variables)
                         isclose(ans_input_deriv / (ans_input ** 2 + 1), 1., abs_tol=1e-09)
+
+# todo: add substitution test
+# todo: add infix test
+# todo: add trig functions to tests

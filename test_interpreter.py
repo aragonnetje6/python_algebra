@@ -46,3 +46,5 @@ class TestConversions:
     @pytest.mark.parametrize('rpn', rpn_list)
     def test_rpn_to_nodetree_reversible(self, rpn):
         assert rpn_to_tree(rpn).rpn() == rpn
+
+# todo: add trig functions to tests
