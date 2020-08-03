@@ -509,7 +509,7 @@ class Cosine(Operator1In):
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the derivative to the passed variable of this tree"""
         return Subtraction(Constant(0),
-                           Product(Cosine(self.child),
+                           Product(Sine(self.child),
                                    self.child.derivative(variable)))
 
 
