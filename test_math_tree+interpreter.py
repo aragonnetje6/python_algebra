@@ -87,7 +87,6 @@ class TestAddition:
                     with pytest.raises(Exception) as err:
                         isclose(tree1_derivative.evaluate(variables) + tree2_derivative.evaluate(variables), 1,
                                 abs_tol=1e-09)
-                    assert isinstance(err.value, (ValueError, ArithmeticError))
 
 
 class TestSubtraction:
@@ -124,7 +123,6 @@ class TestSubtraction:
                     with pytest.raises(Exception) as err:
                         isclose(tree1_derivative.evaluate(variables) - tree2_derivative.evaluate(variables), 1,
                                 abs_tol=1e-09)
-                    assert isinstance(err.value, (ValueError, ArithmeticError))
 
 
 class TestProduct:
@@ -166,7 +164,6 @@ class TestProduct:
                         ans_der1 = tree1_derivative.evaluate(variables)
                         ans_der2 = tree2_derivative.evaluate(variables)
                         isclose(ans_der1 * ans2 + ans1 * ans_der2, 1., abs_tol=1e-09)
-                    assert isinstance(err.value, (ValueError, ArithmeticError))
 
 
 class TestDivision:
@@ -208,7 +205,6 @@ class TestDivision:
                         ans_der1 = tree1_derivative.evaluate(variables)
                         ans_der2 = tree2_derivative.evaluate(variables)
                         isclose((ans_der1 * ans2 + ans1 * ans_der2) / ans2 ** 2, 1., abs_tol=1e-09)
-                    assert isinstance(err.value, (ValueError, ArithmeticError))
 
 
 class TestExponent:
@@ -255,7 +251,6 @@ class TestExponent:
                         if isinstance(ans1 ** (ans2 - 1) * (ans2 * ans_der1 + ans1 * log(ans1) * ans_der2), complex):
                             raise ArithmeticError
                         isclose(ans1 ** (ans2 - 1) * (ans2 * ans_der1 + ans1 * log(ans1) * ans_der2), 1., abs_tol=1e-09)
-                    assert isinstance(err.value, (ValueError, ArithmeticError))
 
 
 class TestLogarithm:
@@ -300,7 +295,6 @@ class TestLogarithm:
                         ans_der2 = tree2_derivative.evaluate(variables)
                         isclose(((ans_der1 * log(ans2) / ans1) - (ans_der2 * log(ans1) / ans2)) / log(ans2) ** 2, 1.,
                                 abs_tol=1e-09)
-                    assert isinstance(err.value, (ValueError, ArithmeticError))
 
 
 class TestSine:
@@ -334,7 +328,6 @@ class TestSine:
                         ans_input = input_tree.evaluate(variables)
                         ans_input_deriv = input_tree_derivative.evaluate(variables)
                         isclose(cos(ans_input) * ans_input_deriv, 1., abs_tol=1e-09)
-                    assert isinstance(err.value, (ValueError, ArithmeticError))
 
 
 class TestCosine:
@@ -368,7 +361,6 @@ class TestCosine:
                         ans_input = input_tree.evaluate(variables)
                         ans_input_deriv = input_tree_derivative.evaluate(variables)
                         isclose(-sin(ans_input) * ans_input_deriv, 1., abs_tol=1e-09)
-                    assert isinstance(err.value, (ValueError, ArithmeticError))
 
 
 class TestTangent:
@@ -402,7 +394,6 @@ class TestTangent:
                         ans_input = input_tree.evaluate(variables)
                         ans_input_deriv = input_tree_derivative.evaluate(variables)
                         isclose(ans_input_deriv / cos(ans_input) ** 2, 1., abs_tol=1e-09)
-                    assert isinstance(err.value, (ValueError, ArithmeticError))
 
 
 class TestArcsine:
@@ -436,4 +427,3 @@ class TestArcsine:
                         ans_input = input_tree.evaluate(variables)
                         ans_input_deriv = input_tree_derivative.evaluate(variables)
                         isclose(ans_input_deriv / (1 - ans_input ** 2) ** .5, 1., abs_tol=1e-09)
-                    assert isinstance(err.value, (ValueError, ArithmeticError))
