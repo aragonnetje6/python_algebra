@@ -450,4 +450,3 @@ class TestArcTangent:
 
 # todo: add substitution test
 # todo: add infix test
-# todo: add trig functions to tests
