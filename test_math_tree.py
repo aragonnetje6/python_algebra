@@ -471,3 +471,4 @@ class TestGeneral:
 
 # todo: add infix test
 # todo: add trig functions to tests
+# todo: move infix to general
