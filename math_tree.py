@@ -255,7 +255,10 @@ class Operator2In(Node, metaclass=ABCMeta):
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        return f'({self.child1.infix()}{self.symbol}{self.child2.infix()})'
+        if (isinstance(self.parent, Division) and self.parent.child2 is self) or isinstance(self.parent, Exponent):
+            return f'({self.child1.infix()} {self.symbol} {self.child2.infix()})'
+        else:
+            return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
 
 
 class Addition(Operator2In):
@@ -293,14 +296,6 @@ class Subtraction(Operator2In):
         """returns an expression tree representing the derivative to the passed variable of this tree"""
         return Subtraction(self.child1.derivative(variable), self.child2.derivative(variable))
 
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        if self.parent is None or isinstance(self.parent, (Addition, Logarithm, Operator1In)) or (
-                isinstance(self.parent, Subtraction) and self.parent.child1 is self):
-            return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
-        else:
-            return f'({self.child1.infix()} {self.symbol} {self.child2.infix()})'
-
 
 class Product(Operator2In):
     """Multiplication operator node"""
@@ -330,13 +325,6 @@ class Product(Operator2In):
         return Addition(Product(self.child1, self.child2.derivative(variable)),
                         Product(self.child1.derivative(variable), self.child2))
 
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        if (isinstance(self.parent, Division) and self.parent.child2 is self) or isinstance(self.parent, Exponent):
-            return f'({self.child1.infix()} {self.symbol} {self.child2.infix()})'
-        else:
-            return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
-
 
 class Division(Operator2In):
     """Division operator node"""
@@ -352,13 +340,6 @@ class Division(Operator2In):
         return Division(Subtraction(Product(self.child1.derivative(variable), self.child2),
                                     Product(self.child1, self.child2.derivative(variable))),
                         Exponent(self.child2, Constant(2)))
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        if (isinstance(self.parent, Division) and self.parent.child2 is self) or isinstance(self.parent, Exponent):
-            return f'({self.child1.infix()} {self.symbol} {self.child2.infix()})'
-        else:
-            return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
 
 
 class Exponent(Operator2In):
