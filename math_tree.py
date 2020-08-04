@@ -350,7 +350,7 @@ class Exponent(Operator2In):
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         try:
-            ans = self.child1.evaluate(var_dict) ** self.child2.evaluate(var_dict)
+            ans: Union[Number, complex] = self.child1.evaluate(var_dict) ** self.child2.evaluate(var_dict)
             if isinstance(ans, complex):
                 raise ArithmeticError('Complex values not allowed')
             else:
