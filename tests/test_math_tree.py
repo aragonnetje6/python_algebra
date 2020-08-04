@@ -4,7 +4,7 @@ Unittests for math_tree using pytest
 
 import random
 from math import isclose
-
+from string import ascii_lowercase
 import pytest
 from interpreter import rpn_to_tree
 from math_tree import *
@@ -16,7 +16,7 @@ rpn_list = ['1 2 +',
             '5 5 x + y 4 / + - 2 * 5 ** x *',
             '5 5 x + y 4 + + + 2 * 5 + x log 5 x 2 ** * 4 x * + 3 + log']
 
-var_dicts_list = [{letter: random.randint(-100, 100) for letter in 'abcdefghijklmnopqrstuvwxyz'}]
+var_dicts_list = [{letter: random.randint(-100, 100) for letter in ascii_lowercase}]
 
 
 class TestAddition:
@@ -280,13 +280,13 @@ class TestSine:
                 try:
                     ans_total = total_tree_derivative.evaluate(variables)
                     ans_input = input_tree.evaluate(variables)
-                    ans_input_deriv = input_tree_derivative.evaluate(variables)
-                    assert isclose(ans_total, cos(ans_input) * ans_input_deriv, abs_tol=1e-09)
+                    and_input_derivative = input_tree_derivative.evaluate(variables)
+                    assert isclose(ans_total, cos(ans_input) * and_input_derivative, abs_tol=1e-09)
                 except (ArithmeticError, ValueError):
                     with pytest.raises(Exception):
                         ans_input = input_tree.evaluate(variables)
-                        ans_input_deriv = input_tree_derivative.evaluate(variables)
-                        isclose(cos(ans_input) * ans_input_deriv, 1., abs_tol=1e-09)
+                        and_input_derivative = input_tree_derivative.evaluate(variables)
+                        isclose(cos(ans_input) * and_input_derivative, 1., abs_tol=1e-09)
 
 
 class TestCosine:
@@ -312,13 +312,13 @@ class TestCosine:
                 try:
                     ans_total = total_tree_derivative.evaluate(variables)
                     ans_input = input_tree.evaluate(variables)
-                    ans_input_deriv = input_tree_derivative.evaluate(variables)
-                    assert isclose(ans_total, -sin(ans_input) * ans_input_deriv, abs_tol=1e-09)
+                    and_input_derivative = input_tree_derivative.evaluate(variables)
+                    assert isclose(ans_total, -sin(ans_input) * and_input_derivative, abs_tol=1e-09)
                 except (ArithmeticError, ValueError):
                     with pytest.raises(Exception):
                         ans_input = input_tree.evaluate(variables)
-                        ans_input_deriv = input_tree_derivative.evaluate(variables)
-                        isclose(-sin(ans_input) * ans_input_deriv, 1., abs_tol=1e-09)
+                        and_input_derivative = input_tree_derivative.evaluate(variables)
+                        isclose(-sin(ans_input) * and_input_derivative, 1., abs_tol=1e-09)
 
 
 class TestTangent:
@@ -344,13 +344,13 @@ class TestTangent:
                 try:
                     ans_total = total_tree_derivative.evaluate(variables)
                     ans_input = input_tree.evaluate(variables)
-                    ans_input_deriv = input_tree_derivative.evaluate(variables)
-                    assert isclose(ans_total, ans_input_deriv / cos(ans_input) ** 2, abs_tol=1e-09)
+                    and_input_derivative = input_tree_derivative.evaluate(variables)
+                    assert isclose(ans_total, and_input_derivative / cos(ans_input) ** 2, abs_tol=1e-09)
                 except (ArithmeticError, ValueError):
                     with pytest.raises(Exception):
                         ans_input = input_tree.evaluate(variables)
-                        ans_input_deriv = input_tree_derivative.evaluate(variables)
-                        isclose(ans_input_deriv / cos(ans_input) ** 2, 1., abs_tol=1e-09)
+                        and_input_derivative = input_tree_derivative.evaluate(variables)
+                        isclose(and_input_derivative / cos(ans_input) ** 2, 1., abs_tol=1e-09)
 
 
 class TestArcSine:
@@ -376,13 +376,13 @@ class TestArcSine:
                 try:
                     ans_total = total_tree_derivative.evaluate(variables)
                     ans_input = input_tree.evaluate(variables)
-                    ans_input_deriv = input_tree_derivative.evaluate(variables)
-                    assert isclose(ans_total, ans_input_deriv / (1 - ans_input ** 2) ** .5, abs_tol=1e-09)
+                    and_input_derivative = input_tree_derivative.evaluate(variables)
+                    assert isclose(ans_total, and_input_derivative / (1 - ans_input ** 2) ** .5, abs_tol=1e-09)
                 except (ArithmeticError, ValueError):
                     with pytest.raises(Exception):
                         ans_input = input_tree.evaluate(variables)
-                        ans_input_deriv = input_tree_derivative.evaluate(variables)
-                        isclose(ans_input_deriv / (1 - ans_input ** 2) ** .5, 1., abs_tol=1e-09)
+                        and_input_derivative = input_tree_derivative.evaluate(variables)
+                        isclose(and_input_derivative / (1 - ans_input ** 2) ** .5, 1., abs_tol=1e-09)
 
 
 class TestArcCosine:
@@ -408,13 +408,13 @@ class TestArcCosine:
                 try:
                     ans_total = total_tree_derivative.evaluate(variables)
                     ans_input = input_tree.evaluate(variables)
-                    ans_input_deriv = input_tree_derivative.evaluate(variables)
-                    assert isclose(ans_total, -ans_input_deriv / (1 - ans_input ** 2) ** .5, abs_tol=1e-09)
+                    and_input_derivative = input_tree_derivative.evaluate(variables)
+                    assert isclose(ans_total, -and_input_derivative / (1 - ans_input ** 2) ** .5, abs_tol=1e-09)
                 except (ArithmeticError, ValueError):
                     with pytest.raises(Exception):
                         ans_input = input_tree.evaluate(variables)
-                        ans_input_deriv = input_tree_derivative.evaluate(variables)
-                        isclose(-ans_input_deriv / (1 - ans_input ** 2) ** .5, 1., abs_tol=1e-09)
+                        and_input_derivative = input_tree_derivative.evaluate(variables)
+                        isclose(-and_input_derivative / (1 - ans_input ** 2) ** .5, 1., abs_tol=1e-09)
 
 
 class TestArcTangent:
@@ -440,13 +440,13 @@ class TestArcTangent:
                 try:
                     ans_total = total_tree_derivative.evaluate(variables)
                     ans_input = input_tree.evaluate(variables)
-                    ans_input_deriv = input_tree_derivative.evaluate(variables)
-                    assert isclose(ans_total, ans_input_deriv / (ans_input ** 2 + 1), abs_tol=1e-09)
+                    and_input_derivative = input_tree_derivative.evaluate(variables)
+                    assert isclose(ans_total, and_input_derivative / (ans_input ** 2 + 1), abs_tol=1e-09)
                 except (ArithmeticError, ValueError):
                     with pytest.raises(Exception):
                         ans_input = input_tree.evaluate(variables)
-                        ans_input_deriv = input_tree_derivative.evaluate(variables)
-                        isclose(ans_input_deriv / (ans_input ** 2 + 1), 1., abs_tol=1e-09)
+                        and_input_derivative = input_tree_derivative.evaluate(variables)
+                        isclose(and_input_derivative / (ans_input ** 2 + 1), 1., abs_tol=1e-09)
 
 
 class TestGeneral:
@@ -481,3 +481,9 @@ class TestGeneral:
             except (ArithmeticError, ValueError):
                 with pytest.raises(Exception):
                     isclose(tree.evaluate(variables), 1, abs_tol=1e-09)
+
+    def test_derivative_polynomial(self):
+        pass
+
+    def test_derivative_chain_rule(self):
+        pass
