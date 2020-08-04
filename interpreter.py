@@ -1,8 +1,13 @@
+"""
+interpreters to convert between rpn, tuple representation, and expression tree.
+also has calculation tools for rpn expressions.
+"""
+
 from math import log, sin, cos, tan, asin, acos, atan
 from typing import Callable
 from typing import Optional, Dict, Union, List
 
-from math_tree import Number, Expression, Variables, Node, Operator1In, Operator2In, Constant, Variable, Addition,\
+from math_tree import Number, Expression, Variables, Node, Operator1In, Operator2In, Constant, Variable, Addition, \
     Subtraction, Product, Division, Exponent, Logarithm, Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent
 
 operator_2_in_functions: Dict[str, Callable[[Number, Number], Number]] = {'+': lambda a, b: a + b,
@@ -40,6 +45,7 @@ operator_classes: Dict[str, Union[Callable[[Node], Operator1In], Callable[[Node,
 
 
 def rpn_to_tuple(rpn_string: str) -> tuple:
+    """convert rpn string to tuple representation of expression"""
     stack: List[Union[Expression, Number, str]] = list()
     word_list = rpn_string.split()
     for word in word_list:
@@ -48,8 +54,8 @@ def rpn_to_tuple(rpn_string: str) -> tuple:
         elif word in operator_2_in_functions.keys():
             term2 = stack.pop()
             term1 = stack.pop()
-            newterm: Expression = (term1, term2, word)
-            stack.append(newterm)
+            new_term: Expression = (term1, term2, word)
+            stack.append(new_term)
         elif word in operator_1_in_functions.keys():
             term = stack.pop()
             stack.append((term, word))
@@ -67,10 +73,11 @@ def rpn_to_tuple(rpn_string: str) -> tuple:
         raise ValueError('invalid expression')
 
 
-def tuple_to_ans(tuptree: Expression, var_dict: Optional[Variables] = None) -> Number:
+def tuple_to_ans(tuple_representation: Expression, var_dict: Optional[Variables] = None) -> Number:
+    """calculate result of tuple representation of expression"""
     if var_dict is None:
         var_dict = {}
-    *args, operator = tuptree
+    *args, operator = tuple_representation
     args = [tuple_to_ans(arg, var_dict) if isinstance(arg, tuple) else
             var_dict[arg] if isinstance(arg, str) else
             arg for arg in args]
@@ -78,11 +85,13 @@ def tuple_to_ans(tuptree: Expression, var_dict: Optional[Variables] = None) -> N
 
 
 def rpn_to_ans(rpn_string: str, var_dict: Optional[Variables] = None) -> Number:
+    """calculate result of rpn expression"""
     return tuple_to_ans(rpn_to_tuple(rpn_string), var_dict)
 
 
-def tuple_to_tree(tuptree: tuple) -> Node:
-    *args, operator = tuptree
+def tuple_to_tree(tuple_representation: tuple) -> Node:
+    """convert tuple representation to expression tree"""
+    *args, operator = tuple_representation
     args = [tuple_to_tree(arg) if isinstance(arg, tuple) else
             Variable(arg) if isinstance(arg, str) else
             Constant(arg) for arg in args]
@@ -90,10 +99,12 @@ def tuple_to_tree(tuptree: tuple) -> Node:
 
 
 def rpn_to_tree(rpn_string: str) -> Node:
+    """convert rpn string to expression tree"""
     return tuple_to_tree(rpn_to_tuple(rpn_string))
 
 
 def tuple_to_rpn(exp) -> str:
+    """convert tuple representation to rpn string"""
     out = ''
     if isinstance(exp, str):
         out += exp
