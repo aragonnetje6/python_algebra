@@ -470,5 +470,4 @@ class TestGeneral:
                                 paren_tree.evaluate({var: child_tree_result, **variables}), abs_tol=1e-09)
 
 # todo: add infix test
-# todo: add trig functions to tests
 # todo: move infix to general
