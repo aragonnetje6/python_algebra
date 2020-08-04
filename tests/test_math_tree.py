@@ -12,9 +12,9 @@ from math_tree import *
 rpn_list = ['1 2 +',
             '0 0 +',
             '2 3 * 4 5 * +',
-            '5 x 2 ^ * 4 x * + 3 +',
-            '5 5 x + y 4 / + - 2 * 5 ^ x *',
-            '5 5 x + y 4 + + + 2 * 5 + x log 5 x 2 ^ * 4 x * + 3 + log']
+            '5 x 2 ** * 4 x * + 3 +',
+            '5 5 x + y 4 / + - 2 * 5 ** x *',
+            '5 5 x + y 4 + + + 2 * 5 + x log 5 x 2 ** * 4 x * + 3 + log']
 
 var_dicts_list = [{letter: random.randint(-100, 100) for letter in 'abcdefghijklmnopqrstuvwxyz'}]
 
@@ -473,7 +473,7 @@ class TestGeneral:
     def test_infix(self, rpn1):
         tree = rpn_to_tree(rpn1)
         for variables in var_dicts_list:
-            total_infix = tree.infix().replace('^', '**')
+            total_infix = tree.infix()
             for var, val in variables.items():
                 total_infix = total_infix.replace(var, str(val))
             try:

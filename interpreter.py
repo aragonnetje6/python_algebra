@@ -9,14 +9,14 @@ operator_2_in_functions: Dict[str, Callable[[Number, Number], Number]] = {'+': l
                                                                           '-': lambda a, b: a - b,
                                                                           '*': lambda a, b: a * b,
                                                                           '/': lambda a, b: a / b,
-                                                                          '^': lambda a, b: a ** b,
+                                                                          '**': lambda a, b: a ** b,
                                                                           'log': log}
 
 operator_2_in_classes: Dict[str, Callable[[Node, Node], Operator2In]] = {'+': Addition,
                                                                          '-': Subtraction,
                                                                          '*': Product,
                                                                          '/': Division,
-                                                                         '^': Exponent,
+                                                                         '**': Exponent,
                                                                          'log': Logarithm}
 
 operator_1_in_functions: Dict[str, Callable[[Number], Number]] = {'sin': sin,

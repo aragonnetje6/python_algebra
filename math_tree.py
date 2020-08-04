@@ -345,7 +345,7 @@ class Division(Operator2In):
 class Exponent(Operator2In):
     """Exponent operator node"""
     __slots__ = ()
-    symbol = '^'
+    symbol = '**'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
