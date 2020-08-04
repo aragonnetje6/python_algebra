@@ -448,5 +448,26 @@ class TestArcTangent:
                         ans_input_deriv = input_tree_derivative.evaluate(variables)
                         isclose(ans_input_deriv / (ans_input ** 2 + 1), 1., abs_tol=1e-09)
 
-# todo: add substitution test
+
+class TestGeneral:
+    @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
+    def test_substitution(self, rpn1, rpn2):
+        paren_tree = rpn_to_tree(rpn1)
+        child_tree = rpn_to_tree(rpn2)
+        for variables in var_dicts_list:
+            try:
+                child_tree_result = child_tree.evaluate(variables)
+            except (ArithmeticError, ValueError):
+                return
+            for var in paren_tree.dependencies():
+                total_tree = paren_tree.substitute(var, child_tree)
+                try:
+                    assert isclose(total_tree.evaluate(variables),
+                                   paren_tree.evaluate({var: child_tree_result, **variables}), abs_tol=1e-09)
+                except (ArithmeticError, ValueError):
+                    with pytest.raises(Exception):
+                        isclose(total_tree.evaluate(variables),
+                                paren_tree.evaluate({var: child_tree_result, **variables}), abs_tol=1e-09)
+
 # todo: add infix test
+# todo: move infix to general
