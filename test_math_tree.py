@@ -59,9 +59,9 @@ class TestAddition:
         tree2 = rpn_to_tree(rpn2)
         total = Addition(tree1, tree2)
         for variables in var_dicts_list:
-            tree1_infix = tree1.infix()
-            tree2_infix = tree2.infix()
-            total_infix = total.infix()
+            tree1_infix = tree1.infix().replace('^', '**')
+            tree2_infix = tree2.infix().replace('^', '**')
+            total_infix = total.infix().replace('^', '**')
             for var, val in variables.items():
                 tree1_infix = tree1_infix.replace(var, str(val))
                 tree2_infix = tree2_infix.replace(var, str(val))
@@ -117,9 +117,9 @@ class TestSubtraction:
         tree2 = rpn_to_tree(rpn2)
         total = Subtraction(tree1, tree2)
         for variables in var_dicts_list:
-            tree1_infix = tree1.infix()
-            tree2_infix = tree2.infix()
-            total_infix = total.infix()
+            tree1_infix = tree1.infix().replace('^', '**')
+            tree2_infix = tree2.infix().replace('^', '**')
+            total_infix = total.infix().replace('^', '**')
             for var, val in variables.items():
                 tree1_infix = tree1_infix.replace(var, str(val))
                 tree2_infix = tree2_infix.replace(var, str(val))
@@ -180,9 +180,9 @@ class TestProduct:
         tree2 = rpn_to_tree(rpn2)
         total = Product(tree1, tree2)
         for variables in var_dicts_list:
-            tree1_infix = tree1.infix()
-            tree2_infix = tree2.infix()
-            total_infix = total.infix()
+            tree1_infix = tree1.infix().replace('^', '**')
+            tree2_infix = tree2.infix().replace('^', '**')
+            total_infix = total.infix().replace('^', '**')
             for var, val in variables.items():
                 tree1_infix = tree1_infix.replace(var, str(val))
                 tree2_infix = tree2_infix.replace(var, str(val))
@@ -243,9 +243,9 @@ class TestDivision:
         tree2 = rpn_to_tree(rpn2)
         total = Division(tree1, tree2)
         for variables in var_dicts_list:
-            tree1_infix = tree1.infix()
-            tree2_infix = tree2.infix()
-            total_infix = total.infix()
+            tree1_infix = tree1.infix().replace('^', '**')
+            tree2_infix = tree2.infix().replace('^', '**')
+            total_infix = total.infix().replace('^', '**')
             for var, val in variables.items():
                 tree1_infix = tree1_infix.replace(var, str(val))
                 tree2_infix = tree2_infix.replace(var, str(val))
@@ -311,9 +311,9 @@ class TestExponent:
         tree2 = rpn_to_tree(rpn2)
         total = Exponent(tree1, tree2)
         for variables in var_dicts_list:
-            tree1_infix = tree1.infix()
-            tree2_infix = tree2.infix()
-            total_infix = total.infix()
+            tree1_infix = tree1.infix().replace('^', '**')
+            tree2_infix = tree2.infix().replace('^', '**')
+            total_infix = total.infix().replace('^', '**')
             for var, val in variables.items():
                 tree1_infix = tree1_infix.replace(var, str(val))
                 tree2_infix = tree2_infix.replace(var, str(val))
@@ -377,9 +377,9 @@ class TestLogarithm:
         tree2 = rpn_to_tree(rpn2)
         total = Logarithm(tree1, tree2)
         for variables in var_dicts_list:
-            tree1_infix = tree1.infix()
-            tree2_infix = tree2.infix()
-            total_infix = total.infix()
+            tree1_infix = tree1.infix().replace('^', '**')
+            tree2_infix = tree2.infix().replace('^', '**')
+            total_infix = total.infix().replace('^', '**')
             for var, val in variables.items():
                 tree1_infix = tree1_infix.replace(var, str(val))
                 tree2_infix = tree2_infix.replace(var, str(val))
@@ -430,7 +430,7 @@ class TestSine:
     def test_infix(self, rpn1):
         total = Sine(rpn_to_tree(rpn1))
         for variables in var_dicts_list:
-            total_infix = total.infix()
+            total_infix = total.infix().replace('^', '**')
             for var, val in variables.items():
                 total_infix = total_infix.replace(var, str(val))
             try:
@@ -475,7 +475,7 @@ class TestCosine:
     def test_infix(self, rpn1):
         total = Cosine(rpn_to_tree(rpn1))
         for variables in var_dicts_list:
-            total_infix = total.infix()
+            total_infix = total.infix().replace('^', '**')
             for var, val in variables.items():
                 total_infix = total_infix.replace(var, str(val))
             try:
@@ -520,7 +520,7 @@ class TestTangent:
     def test_infix(self, rpn1):
         total = Tangent(rpn_to_tree(rpn1))
         for variables in var_dicts_list:
-            total_infix = total.infix()
+            total_infix = total.infix().replace('^', '**')
             for var, val in variables.items():
                 total_infix = total_infix.replace(var, str(val))
             try:
@@ -565,7 +565,7 @@ class TestArcSine:
     def test_infix(self, rpn1):
         total = ArcSine(rpn_to_tree(rpn1))
         for variables in var_dicts_list:
-            total_infix = total.infix()
+            total_infix = total.infix().replace('^', '**')
             for var, val in variables.items():
                 total_infix = total_infix.replace(var, str(val))
             try:
@@ -610,7 +610,7 @@ class TestArcCosine:
     def test_infix(self, rpn1):
         total = ArcCosine(rpn_to_tree(rpn1))
         for variables in var_dicts_list:
-            total_infix = total.infix()
+            total_infix = total.infix().replace('^', '**')
             for var, val in variables.items():
                 total_infix = total_infix.replace(var, str(val))
             try:
@@ -655,7 +655,7 @@ class TestArcTangent:
     def test_infix(self, rpn1):
         total = ArcTangent(rpn_to_tree(rpn1))
         for variables in var_dicts_list:
-            total_infix = total.infix()
+            total_infix = total.infix().replace('^', '**')
             for var, val in variables.items():
                 total_infix = total_infix.replace(var, str(val))
             try:
