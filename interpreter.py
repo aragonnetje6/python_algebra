@@ -7,7 +7,7 @@ from math import log, sin, cos, tan, asin, acos, atan
 from typing import Callable
 from typing import Optional, Dict, Union, List
 
-from math_tree import Number, Expression, Variables, Node, Operator1In, Operator2In, Constant, Variable, Addition, \
+from math_tree import Number, Variables, Node, Operator1In, Operator2In, Constant, Variable, Addition, \
     Subtraction, Product, Division, Exponent, Logarithm, Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent
 
 operator_2_in_functions: Dict[str, Callable[[Number, Number], Number]] = {'+': lambda a, b: a + b,
@@ -46,7 +46,7 @@ operator_classes: Dict[str, Union[Callable[[Node], Operator1In], Callable[[Node,
 
 def rpn_to_tuple(rpn_string: str) -> tuple:
     """convert rpn string to tuple representation of expression"""
-    stack: List[Union[Expression, Number, str]] = list()
+    stack: List[Union[tuple, Number, str]] = list()
     word_list = rpn_string.split()
     for word in word_list:
         if word.isdecimal() or word[0] == '-' and word[1:].isdecimal():
@@ -54,7 +54,7 @@ def rpn_to_tuple(rpn_string: str) -> tuple:
         elif word in operator_2_in_functions.keys():
             term2 = stack.pop()
             term1 = stack.pop()
-            new_term: Expression = (term1, term2, word)
+            new_term: tuple = (term1, term2, word)
             stack.append(new_term)
         elif word in operator_1_in_functions.keys():
             term = stack.pop()
@@ -67,21 +67,23 @@ def rpn_to_tuple(rpn_string: str) -> tuple:
         else:
             stack.append(word)
     out = stack.pop()
-    if type(out) == tuple and len(stack) == 0:
+    if isinstance(out, tuple) and len(stack) == 0:
         return out
     else:
         raise ValueError('invalid expression')
 
 
-def tuple_to_ans(tuple_representation: Expression, var_dict: Optional[Variables] = None) -> Number:
+def tuple_to_ans(tuple_representation: tuple, var_dict: Optional[Variables] = None) -> Number:
     """calculate result of tuple representation of expression"""
     if var_dict is None:
         var_dict = {}
-    *args, operator = tuple_representation
-    args = [tuple_to_ans(arg, var_dict) if isinstance(arg, tuple) else
-            var_dict[arg] if isinstance(arg, str) else
-            arg for arg in args]
-    return operator_functions[operator](*args)
+    if isinstance(tuple_representation, (int, float)):
+        return tuple_representation
+    elif isinstance(tuple_representation, str):
+        return var_dict[tuple_representation]
+    else:
+        *args, operator = tuple_representation
+        return operator_functions[operator](*map(tuple_to_ans, args[:-1]))
 
 
 def rpn_to_ans(rpn_string: str, var_dict: Optional[Variables] = None) -> Number:
@@ -103,7 +105,7 @@ def rpn_to_tree(rpn_string: str) -> Node:
     return tuple_to_tree(rpn_to_tuple(rpn_string))
 
 
-def tuple_to_rpn(exp) -> str:
+def tuple_to_rpn(exp: Union[tuple, str, Number]) -> str:
     """convert tuple representation to rpn string"""
     out = ''
     if isinstance(exp, str):
