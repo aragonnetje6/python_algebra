@@ -664,5 +664,26 @@ class TestArcTangent:
                 with pytest.raises(Exception):
                     isclose(total.evaluate(variables), 1, abs_tol=1e-09)
 
-# todo: add substitution test
-# todo: add trig functions to tests
+
+class TestGeneral:
+    @pytest.mark.parametrize(('rpn1', 'rpn2'), ((x, y) for x in rpn_list for y in rpn_list))
+    def test_substitution(self, rpn1, rpn2):
+        paren_tree = rpn_to_tree(rpn1)
+        child_tree = rpn_to_tree(rpn2)
+        for variables in var_dicts_list:
+            try:
+                child_tree_result = child_tree.evaluate(variables)
+            except (ArithmeticError, ValueError):
+                return
+            for var in paren_tree.dependencies():
+                total_tree = paren_tree.substitute(var, child_tree)
+                try:
+                    assert isclose(total_tree.evaluate(variables),
+                                   paren_tree.evaluate({var: child_tree_result, **variables}), abs_tol=1e-09)
+                except (ArithmeticError, ValueError):
+                    with pytest.raises(Exception):
+                        isclose(total_tree.evaluate(variables),
+                                paren_tree.evaluate({var: child_tree_result, **variables}), abs_tol=1e-09)
+
+
+# todo: move infix to general
