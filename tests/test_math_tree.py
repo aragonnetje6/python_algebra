@@ -489,6 +489,8 @@ class TestGeneral:
                 with pytest.raises(Exception):
                     isclose(tree.evaluate(variables), 1, abs_tol=1e-09)
 
+
+class TestSpecificCases:
     @pytest.mark.parametrize('a', rand_ints(100))
     def test_derivative_polynomial(self, a):
         tree = Exponent(Variable('x'),
@@ -506,5 +508,17 @@ class TestGeneral:
         for variables in var_dicts_list:
             try:
                 assert isclose(derivative.evaluate(variables), a * e ** (a * variables['x']), abs_tol=1e-09)
+            except OverflowError:
+                pass
+
+    @pytest.mark.parametrize('a', rand_ints(100))
+    def test_derivative_logarithm(self, a):
+        tree = Logarithm(Product(Constant(a),
+                                 Variable('x')),
+                         Constant(e))
+        derivative = tree.derivative('x')
+        for variables in var_dicts_list:
+            try:
+                assert isclose(derivative.evaluate(variables), 1 / variables['x'], abs_tol=1e-09)
             except OverflowError:
                 pass
