@@ -20,14 +20,10 @@ rpn_list = ['1 2 +',
 var_dicts_list = [{letter: random.randint(-100, 100) for letter in ascii_lowercase}]
 
 
-def rand_ints(length, count=1, minmax=(-100, 100)):
+def rand_ints(length, minmax=(-100, 100)):
     """generator for tuples of random integers"""
-    if count == 1:
-        for _ in range(length):
-            yield random.randint(*minmax)
-    else:
-        for _ in range(length):
-            yield tuple(random.randint(*minmax) for _ in range(count))
+    for _ in range(length):
+        yield random.randint(*minmax)
 
 
 class TestAddition:
@@ -38,7 +34,8 @@ class TestAddition:
         total_tree = Addition(tree1, tree2)
         for variables in var_dicts_list:
             try:
-                assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) + tree2.evaluate(variables),
+                assert isclose(total_tree.evaluate(variables),
+                               tree1.evaluate(variables) + tree2.evaluate(variables),
                                abs_tol=1e-09)
             except (ArithmeticError, ValueError):
                 with pytest.raises(Exception):
@@ -73,7 +70,8 @@ class TestSubtraction:
         total_tree = Subtraction(tree1, tree2)
         for variables in var_dicts_list:
             try:
-                assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) - tree2.evaluate(variables),
+                assert isclose(total_tree.evaluate(variables),
+                               tree1.evaluate(variables) - tree2.evaluate(variables),
                                abs_tol=1e-09)
             except (ArithmeticError, ValueError):
                 with pytest.raises(Exception):
@@ -108,7 +106,8 @@ class TestProduct:
         total_tree = Product(tree1, tree2)
         for variables in var_dicts_list:
             try:
-                assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) * tree2.evaluate(variables),
+                assert isclose(total_tree.evaluate(variables),
+                               tree1.evaluate(variables) * tree2.evaluate(variables),
                                abs_tol=1e-09)
             except (ArithmeticError, ValueError):
                 with pytest.raises(Exception):
@@ -148,7 +147,8 @@ class TestDivision:
         total_tree = Division(tree1, tree2)
         for variables in var_dicts_list:
             try:
-                assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) / tree2.evaluate(variables),
+                assert isclose(total_tree.evaluate(variables),
+                               tree1.evaluate(variables) / tree2.evaluate(variables),
                                abs_tol=1e-09)
             except (ArithmeticError, ValueError):
                 with pytest.raises(Exception):
@@ -188,7 +188,8 @@ class TestExponent:
         total_tree = Exponent(tree1, tree2)
         for variables in var_dicts_list:
             try:
-                assert isclose(total_tree.evaluate(variables), tree1.evaluate(variables) ** tree2.evaluate(variables),
+                assert isclose(total_tree.evaluate(variables),
+                               tree1.evaluate(variables) ** tree2.evaluate(variables),
                                abs_tol=1e-09)
             except (ArithmeticError, ValueError):
                 with pytest.raises(Exception):
@@ -220,9 +221,11 @@ class TestExponent:
                         ans2 = tree2.evaluate(variables)
                         ans_der1 = tree1_derivative.evaluate(variables)
                         ans_der2 = tree2_derivative.evaluate(variables)
-                        if isinstance(ans1 ** (ans2 - 1) * (ans2 * ans_der1 + ans1 * log(ans1) * ans_der2), complex):
+                        if isinstance(ans1 ** (ans2 - 1) * (ans2 * ans_der1 + ans1 * log(ans1) * ans_der2),
+                                      complex):
                             raise ArithmeticError
-                        isclose(ans1 ** (ans2 - 1) * (ans2 * ans_der1 + ans1 * log(ans1) * ans_der2), 1., abs_tol=1e-09)
+                        isclose(ans1 ** (ans2 - 1) * (ans2 * ans_der1 + ans1 * log(ans1) * ans_der2), 1.,
+                                abs_tol=1e-09)
 
 
 class TestLogarithm:
@@ -264,7 +267,8 @@ class TestLogarithm:
                         ans2 = tree2.evaluate(variables)
                         ans_der1 = tree1_derivative.evaluate(variables)
                         ans_der2 = tree2_derivative.evaluate(variables)
-                        isclose(((ans_der1 * log(ans2) / ans1) - (ans_der2 * log(ans1) / ans2)) / log(ans2) ** 2, 1.,
+                        isclose(((ans_der1 * log(ans2) / ans1) - (ans_der2 * log(ans1) / ans2)) / log(ans2) ** 2,
+                                1.,
                                 abs_tol=1e-09)
 
 
@@ -493,10 +497,36 @@ class TestGeneral:
                 with pytest.raises(Exception):
                     isclose(tree.evaluate(variables), 1, abs_tol=1e-09)
 
-    @pytest.mark.parametrize('a', (a for a in rand_ints(100)))
+
+class TestSpecificCases:
+    @pytest.mark.parametrize('a', rand_ints(100))
     def test_derivative_polynomial(self, a):
         tree = Exponent(Variable('x'),
                         Constant(a))
         derivative = tree.derivative('x')
         for variables in var_dicts_list:
             assert isclose(derivative.evaluate(variables), a * variables['x'] ** (a - 1), abs_tol=1e-09)
+
+    @pytest.mark.parametrize('a', rand_ints(100))
+    def test_derivative_exponential(self, a):
+        tree = Exponent(Constant(e),
+                        Product(Constant(a),
+                                Variable('x')))
+        derivative = tree.derivative('x')
+        for variables in var_dicts_list:
+            try:
+                assert isclose(derivative.evaluate(variables), a * e ** (a * variables['x']), abs_tol=1e-09)
+            except OverflowError:
+                pass
+
+    @pytest.mark.parametrize('a', rand_ints(100))
+    def test_derivative_logarithm(self, a):
+        tree = Logarithm(Product(Constant(a),
+                                 Variable('x')),
+                         Constant(e))
+        derivative = tree.derivative('x')
+        for variables in var_dicts_list:
+            try:
+                assert isclose(derivative.evaluate(variables), 1 / variables['x'], abs_tol=1e-09)
+            except (OverflowError, ArithmeticError):
+                pass
