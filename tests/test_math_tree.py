@@ -500,6 +500,3 @@ class TestGeneral:
         derivative = tree.derivative('x')
         for variables in var_dicts_list:
             assert isclose(derivative.evaluate(variables), a * variables['x'] ** (a - 1), abs_tol=1e-09)
-
-    def test_derivative_chain_rule(self):
-        pass
