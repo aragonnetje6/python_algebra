@@ -5,6 +5,7 @@ Unittests for math_tree using pytest
 import random
 from math import isclose
 from string import ascii_lowercase
+
 import pytest
 from interpreter import rpn_to_tree
 from math_tree import *
@@ -17,6 +18,16 @@ rpn_list = ['1 2 +',
             '5 5 x + y 4 + + + 2 * 5 + x log 5 x 2 ** * 4 x * + 3 + log']
 
 var_dicts_list = [{letter: random.randint(-100, 100) for letter in ascii_lowercase}]
+
+
+def rand_ints(length, count=1, minmax=(-100, 100)):
+    """generator for tuples of random integers"""
+    if count == 1:
+        for _ in range(length):
+            yield random.randint(*minmax)
+    else:
+        for _ in range(length):
+            yield tuple(random.randint(*minmax) for _ in range(count))
 
 
 class TestAddition:
@@ -482,8 +493,13 @@ class TestGeneral:
                 with pytest.raises(Exception):
                     isclose(tree.evaluate(variables), 1, abs_tol=1e-09)
 
-    def test_derivative_polynomial(self):
-        pass
+    @pytest.mark.parametrize('a', (a for a in rand_ints(100)))
+    def test_derivative_polynomial(self, a):
+        tree = Exponent(Variable('x'),
+                        Constant(a))
+        derivative = tree.derivative('x')
+        for variables in var_dicts_list:
+            assert isclose(derivative.evaluate(variables), a * variables['x'] ** (a - 1), abs_tol=1e-09)
 
     def test_derivative_chain_rule(self):
         pass
