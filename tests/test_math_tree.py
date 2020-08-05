@@ -20,14 +20,10 @@ rpn_list = ['1 2 +',
 var_dicts_list = [{letter: random.randint(-100, 100) for letter in ascii_lowercase}]
 
 
-def rand_ints(length, count=1, minmax=(-100, 100)):
+def rand_ints(length, minmax=(-100, 100)):
     """generator for tuples of random integers"""
-    if count == 1:
-        for _ in range(length):
-            yield random.randint(*minmax)
-    else:
-        for _ in range(length):
-            yield tuple(random.randint(*minmax) for _ in range(count))
+    for _ in range(length):
+        yield random.randint(*minmax)
 
 
 class TestAddition:
@@ -493,7 +489,7 @@ class TestGeneral:
                 with pytest.raises(Exception):
                     isclose(tree.evaluate(variables), 1, abs_tol=1e-09)
 
-    @pytest.mark.parametrize('a', (a for a in rand_ints(100)))
+    @pytest.mark.parametrize('a', rand_ints(100))
     def test_derivative_polynomial(self, a):
         tree = Exponent(Variable('x'),
                         Constant(a))
