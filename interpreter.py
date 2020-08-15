@@ -83,7 +83,7 @@ def tuple_to_ans(tuple_representation: tuple, var_dict: Optional[Variables] = No
         return var_dict[tuple_representation]
     else:
         *args, operator = tuple_representation
-        return operator_functions[operator](*map(tuple_to_ans, args[:-1]))
+        return operator_functions[operator](*map(lambda x: tuple_to_ans(x, var_dict), args))
 
 
 def rpn_to_ans(rpn_string: str, var_dict: Optional[Variables] = None) -> Number:
