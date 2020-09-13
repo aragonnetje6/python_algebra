@@ -55,6 +55,10 @@ class Node(metaclass=ABCMeta):
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
 
+    @abstractmethod
+    def wolfram(self) -> str:
+        """return the wolfram language representation of the expression"""
+
     def reset_parents(self, parent: Optional['Node'] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
         self.parent = parent
@@ -89,37 +93,13 @@ class Term(Node, metaclass=ABCMeta):
     """Abstract Base Class for any value (leaf node) in the expression tree"""
     __slots__ = ()
 
-    @abstractmethod
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-
-    @abstractmethod
-    def tuple(self) -> Expression:
-        """returns the tuple representation of the tree"""
-
-    @abstractmethod
-    def rpn(self) -> str:
-        """returns the reverse polish notation representation of the tree"""
-
-    @abstractmethod
-    def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
-
-    @abstractmethod
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-
-    @abstractmethod
-    def substitute(self, var: str, sub: 'Node') -> 'Node':
-        """substitute a variable with an expression inside this tree, returns the resulting tree"""
-
     def list_nodes(self) -> List[Node]:
         """returns a list of all nodes in the tree"""
         return [self]
 
 
 class Constant(Term):
-    """Numerical constant in expression tree, """
+    """Real numerical constant in expression tree, """
     __slots__ = 'value',
 
     def __init__(self, value: Number) -> None:
@@ -156,6 +136,10 @@ class Constant(Term):
     def infix(self) -> str:
         """returns infix representation of the tree"""
         return str(self.value)
+
+    def wolfram(self) -> str:
+        """return the wolfram language representation of the expression"""
+        return f'Real[{self.value}]'
 
 
 class Variable(Term):
@@ -207,11 +191,16 @@ class Variable(Term):
         """returns infix representation of the tree"""
         return self.symbol
 
+    def wolfram(self) -> str:
+        """return the wolfram language representation of the expression"""
+        return self.symbol
+
 
 class Operator2In(Node, metaclass=ABCMeta):
     """Abstract Base Class for 2-input operator in expression tree"""
     __slots__ = 'child1', 'child2',
     symbol = ''
+    wolfram_func = ''
 
     def __init__(self, child1: Node, child2: Node) -> None:
         super().__init__()
@@ -260,11 +249,16 @@ class Operator2In(Node, metaclass=ABCMeta):
         else:
             return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
 
+    def wolfram(self) -> str:
+        """return the wolfram language representation of the expression"""
+        return f'{self.wolfram_func}[{self.child1.wolfram()}, {self.child2.wolfram()}]'
+
 
 class Addition(Operator2In):
     """Addition operator node"""
     __slots__ = ()
     symbol = '+'
+    wolfram_func = 'Plus'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -287,6 +281,7 @@ class Subtraction(Operator2In):
     """Subtraction operator node"""
     __slots__ = ()
     symbol = '-'
+    wolfram_func = 'Subtract'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -301,6 +296,7 @@ class Product(Operator2In):
     """Multiplication operator node"""
     __slots__ = ()
     symbol = '*'
+    wolfram_func = 'Times'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -330,6 +326,7 @@ class Division(Operator2In):
     """Division operator node"""
     __slots__ = ()
     symbol = '/'
+    wolfram_func = 'Divide'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -346,6 +343,7 @@ class Exponent(Operator2In):
     """Exponent operator node"""
     __slots__ = ()
     symbol = '**'
+    wolfram_func = 'Power'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -391,6 +389,7 @@ class Logarithm(Operator2In):
     """Logarithm operator node"""
     __slots__ = ()
     symbol = 'log'
+    wolfram_func = 'Log'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -419,6 +418,7 @@ class Operator1In(Node, metaclass=ABCMeta):
     """Abstract Base Class for single-input operator in expression tree"""
     __slots__ = 'child',
     symbol = ''
+    wolfram_func = ''
 
     def __init__(self, child: Node) -> None:
         super().__init__()
@@ -462,11 +462,16 @@ class Operator1In(Node, metaclass=ABCMeta):
         """returns infix representation of the tree"""
         return f'{self.symbol}({self.child.infix()})'
 
+    def wolfram(self) -> str:
+        """return the wolfram language representation of the expression"""
+        return f'{self.wolfram_func}[{self.child.wolfram()}]'
+
 
 class Sine(Operator1In):
     """Sine operator node in radians"""
     __slots__ = ()
     symbol = 'sin'
+    wolfram_func = 'Sin'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -482,6 +487,7 @@ class Cosine(Operator1In):
     """Cosine operator node in radians"""
     __slots__ = ()
     symbol = 'cos'
+    wolfram_func = 'Cos'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -498,6 +504,7 @@ class Tangent(Operator1In):
     """Tangent operator node in radians"""
     __slots__ = ()
     symbol = 'tan'
+    wolfram_func = 'Tan'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -514,6 +521,7 @@ class ArcSine(Operator1In):
     """Arcsine operator node in radians"""
     __slots__ = ()
     symbol = 'asin'
+    wolfram_func = 'ArcSin'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -532,6 +540,7 @@ class ArcCosine(Operator1In):
     """Arccosine operator node in radians"""
     __slots__ = ()
     symbol = 'acos'
+    wolfram_func = 'ArcCos'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -551,6 +560,7 @@ class ArcTangent(Operator1In):
     """Arctangent operator node in radians"""
     __slots__ = ()
     symbol = 'atan'
+    wolfram_func = 'ArcTan'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
