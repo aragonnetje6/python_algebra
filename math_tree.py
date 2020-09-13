@@ -104,6 +104,7 @@ class Constant(Term):
 
     def __init__(self, value: Number) -> None:
         super().__init__()
+        assert isinstance(value, (int, float))
         self.value = value
 
     def __repr__(self) -> str:
@@ -148,6 +149,7 @@ class Variable(Term):
 
     def __init__(self, symbol: str) -> None:
         super().__init__()
+        assert isinstance(symbol, str)
         self.symbol = symbol
 
     def __repr__(self) -> str:
@@ -204,6 +206,8 @@ class Operator2In(Node, metaclass=ABCMeta):
 
     def __init__(self, child1: Node, child2: Node) -> None:
         super().__init__()
+        assert isinstance(child1, Node)
+        assert isinstance(child2, Node)
         self.child1 = child1.copy()
         self.child2 = child2.copy()
         self.reset_parents()
@@ -422,6 +426,7 @@ class Operator1In(Node, metaclass=ABCMeta):
 
     def __init__(self, child: Node) -> None:
         super().__init__()
+        assert isinstance(child, Node)
         self.child = child.copy()
         self.reset_parents()
 
