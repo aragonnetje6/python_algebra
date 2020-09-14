@@ -3,7 +3,8 @@ basic expression tree with evaluation and derivation
 """
 
 from abc import ABCMeta, abstractmethod
-from math import e, log, sin, cos, tan, asin, acos, atan
+from itertools import combinations_with_replacement
+from math import e, log, sin, cos, tan, asin, acos, atan, isclose
 from typing import Optional, Dict, Union, Tuple, List, Set
 
 Number = Union[int, float]
@@ -26,6 +27,15 @@ class Node(metaclass=ABCMeta):
 
     def __str__(self) -> str:
         return self.rpn()
+
+    def __eq__(self, other: 'Node') -> bool:
+        assert isinstance(other, Node)
+        # todo: un-brute force this
+        full_tree = Subtraction(self, other)
+        dependencies = full_tree.dependencies()
+        return all(isclose(full_tree.evaluate({letter: nr for letter, nr in zip(dependencies, values)}), 0)
+                   for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
+                                                               + [2 ** x for x in range(-20, 21)], len(dependencies)))
 
     @abstractmethod
     def latex(self) -> str:
