@@ -401,7 +401,7 @@ class Product(Operator2In):
         elif var not in self.child2.dependencies():
             return Product(self.child2, self.child1.integral(var))
         else:
-            raise NotImplementedError('Integration not supported')
+            raise NotImplementedError('Integration not supported for this expression')
 
 
 class Division(Operator2In):
@@ -433,7 +433,7 @@ class Division(Operator2In):
         elif var not in self.child2.dependencies():
             return Division(self.child1.integral(var), Constant(self.child1.evaluate()))
         else:
-            raise NotImplementedError('Integration not supported')
+            raise NotImplementedError('Integration not supported for this expression')
 
 
 class Exponent(Operator2In):
@@ -504,7 +504,7 @@ class Exponent(Operator2In):
                             Addition(self.child2,
                                      Constant(1)))
         else:
-            raise NotImplementedError('Integration not supported')
+            raise NotImplementedError('Integration not supported for this expression')
 
 
 class Logarithm(Operator2In):
@@ -549,7 +549,7 @@ class Logarithm(Operator2In):
                                                  Constant(e))),
                                Variable(var))
         else:
-            raise NotImplementedError('Integration not supported')
+            raise NotImplementedError('Integration not supported for this expression')
 
 
 class Operator1In(Node, metaclass=ABCMeta):
@@ -635,7 +635,7 @@ class Sine(Operator1In):
             return Product(Constant(-1),
                            Cosine(Variable(var)))
         else:
-            raise NotImplementedError('Integration not supported')
+            raise NotImplementedError('Integration not supported for this expression')
 
 
 class Cosine(Operator1In):
@@ -662,7 +662,7 @@ class Cosine(Operator1In):
         elif self.child == Variable(var):
             return Sine(Variable(var))
         else:
-            raise NotImplementedError('Integration not supported')
+            raise NotImplementedError('Integration not supported for this expression')
 
 
 class Tangent(Operator1In):
@@ -691,7 +691,7 @@ class Tangent(Operator1In):
                            Logarithm(Cosine(Variable(var)),
                                      Constant(e)))
         else:
-            raise NotImplementedError('Integration not supported')
+            raise NotImplementedError('Integration not supported for this expression')
 
 
 class ArcSine(Operator1In):
@@ -725,7 +725,7 @@ class ArcSine(Operator1In):
                                                           Constant(2))),
                                      Constant(1 / 2)))
         else:
-            raise NotImplementedError('Integration not supported')
+            raise NotImplementedError('Integration not supported for this expression')
 
 
 class ArcCosine(Operator1In):
@@ -760,7 +760,7 @@ class ArcCosine(Operator1In):
                                                              Constant(2))),
                                         Constant(1 / 2)))
         else:
-            raise NotImplementedError('Integration not supported')
+            raise NotImplementedError('Integration not supported for this expression')
 
 
 class ArcTangent(Operator1In):
@@ -794,7 +794,7 @@ class ArcTangent(Operator1In):
                                                        Constant(1)),
                                               Constant(e))))
         else:
-            raise NotImplementedError('Integration not supported')
+            raise NotImplementedError('Integration not supported for this expression')
 
 
 class Absolute(Operator1In):
@@ -823,4 +823,4 @@ class Absolute(Operator1In):
                                     Absolute(Variable(var))),
                             Constant(2))
         else:
-            raise NotImplementedError('Integration not supported')
+            raise NotImplementedError('Integration not supported for this expression')
