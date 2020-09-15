@@ -73,6 +73,10 @@ class Node(metaclass=ABCMeta):
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
 
+    @abstractmethod
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+
     def reset_parents(self, parent: Optional['Node'] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
         self.parent = parent
@@ -161,6 +165,10 @@ class Constant(Term):
         """return latex language representation of the tree"""
         return str(self.value)
 
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Product(self, Variable(var))
+
 
 class Variable(Term):
     """Named variable in expression tree"""
@@ -219,6 +227,16 @@ class Variable(Term):
     def latex(self) -> str:
         """return latex language representation of the tree"""
         return self.symbol
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if self.symbol == var:
+            if self.parent is None or isinstance(self.parent, (Addition, Subtraction)):
+                return Division(Exponent(self, Constant(2)), Constant(2))
+            else:
+                return self
+        else:
+            return Constant(0)
 
 
 class Operator2In(Node, metaclass=ABCMeta):
@@ -318,6 +336,12 @@ class Addition(Operator2In):
         else:
             return f'({self.child1.latex()} {self.symbol} {self.child2.latex()})'
 
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var in self.dependencies():
+            return Addition(self.child1.integral(var),
+                            self.child2.integral(var))
+
 
 class Subtraction(Operator2In):
     """Subtraction operator node"""
@@ -332,6 +356,11 @@ class Subtraction(Operator2In):
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the derivative to the passed variable of this tree"""
         return Subtraction(self.child1.derivative(variable), self.child2.derivative(variable))
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Subtraction(self.child1.integral(var),
+                           self.child2.integral(var))
 
 
 class Product(Operator2In):
@@ -363,6 +392,17 @@ class Product(Operator2In):
         return Addition(Product(self.child1, self.child2.derivative(variable)),
                         Product(self.child1.derivative(variable), self.child2))
 
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var not in self.dependencies():
+            return Product(self, Variable(var))
+        elif var not in self.child1.dependencies():
+            return Product(self.child1, self.child2.integral(var))
+        elif var not in self.child2.dependencies():
+            return Product(self.child2, self.child1.integral(var))
+        else:
+            raise NotImplementedError('Integration not supported')
+
 
 class Division(Operator2In):
     """Division operator node"""
@@ -383,6 +423,17 @@ class Division(Operator2In):
     def latex(self) -> str:
         """return the latex language representation of the expression"""
         return f'\\frac{{{self.child1.latex()}}}{{{self.child2.latex()}}}'
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var not in self.dependencies():
+            return Product(self, Variable(var))
+        elif var not in self.child1.dependencies() and self.child2 == Variable(var):
+            return Product(Logarithm(Absolute(Variable(var)), Constant(e)), Constant(self.child1.evaluate()))
+        elif var not in self.child2.dependencies():
+            return Division(self.child1.integral(var), Constant(self.child1.evaluate()))
+        else:
+            raise NotImplementedError('Integration not supported')
 
 
 class Exponent(Operator2In):
@@ -437,6 +488,24 @@ class Exponent(Operator2In):
         else:
             return f'{self.child1.latex()} {self.symbol} {self.child2.latex()}'
 
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var not in self.dependencies():
+            return Product(self, Variable(var))
+        elif var not in self.child1.dependencies() and self.child2 == Variable(var):
+            return Division(Exponent(self.child1,
+                                     Variable(var)),
+                            Logarithm(self.child1,
+                                      Constant(e)))
+        elif var not in self.child2.dependencies() and self.child1 == Variable(var):
+            return Division(Exponent(Variable(var),
+                                     Addition(self.child2,
+                                              Constant(1))),
+                            Addition(self.child2,
+                                     Constant(1)))
+        else:
+            raise NotImplementedError('Integration not supported')
+
 
 class Logarithm(Operator2In):
     """Logarithm operator node"""
@@ -469,6 +538,18 @@ class Logarithm(Operator2In):
     def latex(self) -> str:
         """returns latex language representation of the tree"""
         return f'\\log{{{self.child2.latex()}}}({self.child1.latex()}'
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var not in self.dependencies():
+            return Product(self, Variable(var))
+        elif self.child1 == Variable(var) and len(self.child2.dependencies()) == 0 and self.child2.evaluate() == e:
+            return Subtraction(Product(Variable(var),
+                                       Logarithm(Variable(var),
+                                                 Constant(e))),
+                               Variable(var))
+        else:
+            raise NotImplementedError('Integration not supported')
 
 
 class Operator1In(Node, metaclass=ABCMeta):
@@ -546,6 +627,16 @@ class Sine(Operator1In):
         return Product(Cosine(self.child),
                        self.child.derivative(variable))
 
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var not in self.dependencies():
+            return Product(self, Variable(var))
+        elif self.child == Variable(var):
+            return Product(Constant(-1),
+                           Cosine(Variable(var)))
+        else:
+            raise NotImplementedError('Integration not supported')
+
 
 class Cosine(Operator1In):
     """Cosine operator node in radians"""
@@ -564,6 +655,15 @@ class Cosine(Operator1In):
                            Product(Sine(self.child),
                                    self.child.derivative(variable)))
 
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var not in self.dependencies():
+            return Product(self, Variable(var))
+        elif self.child == Variable(var):
+            return Sine(Variable(var))
+        else:
+            raise NotImplementedError('Integration not supported')
+
 
 class Tangent(Operator1In):
     """Tangent operator node in radians"""
@@ -581,6 +681,17 @@ class Tangent(Operator1In):
         return Division(self.child.derivative(variable),
                         Exponent(Cosine(self.child),
                                  Constant(2)))
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var not in self.dependencies():
+            return Product(self, Variable(var))
+        elif self.child == Variable(var):
+            return Product(Constant(-1),
+                           Logarithm(Cosine(Variable(var)),
+                                     Constant(e)))
+        else:
+            raise NotImplementedError('Integration not supported')
 
 
 class ArcSine(Operator1In):
@@ -601,6 +712,20 @@ class ArcSine(Operator1In):
                                              Exponent(self.child,
                                                       Constant(2))),
                                  Constant(1 / 2)))
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var not in self.dependencies():
+            return Product(self, Variable(var))
+        elif self.child == Variable(var):
+            return Addition(Product(Variable(var),
+                                    self),
+                            Exponent(Subtraction(Constant(1),
+                                                 Exponent(Variable(var),
+                                                          Constant(2))),
+                                     Constant(1 / 2)))
+        else:
+            raise NotImplementedError('Integration not supported')
 
 
 class ArcCosine(Operator1In):
@@ -623,6 +748,20 @@ class ArcCosine(Operator1In):
                                                                   Constant(2))),
                                              Constant(1 / 2))))
 
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var not in self.dependencies():
+            return Product(self, Variable(var))
+        elif self.child == Variable(var):
+            return Subtraction(Product(Variable(var),
+                                       self),
+                               Exponent(Subtraction(Constant(1),
+                                                    Exponent(Variable(var),
+                                                             Constant(2))),
+                                        Constant(1 / 2)))
+        else:
+            raise NotImplementedError('Integration not supported')
+
 
 class ArcTangent(Operator1In):
     """Arctangent operator node in radians"""
@@ -641,3 +780,47 @@ class ArcTangent(Operator1In):
                         Addition(Constant(1),
                                  Exponent(self.child,
                                           Constant(2))))
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var not in self.dependencies():
+            return Product(self, Variable(var))
+        elif self.child == Variable(var):
+            return Addition(Product(Variable(var),
+                                    self),
+                            Product(Constant(1 / 2),
+                                    Logarithm(Addition(Exponent(Variable(var),
+                                                                Constant(2)),
+                                                       Constant(1)),
+                                              Constant(e))))
+        else:
+            raise NotImplementedError('Integration not supported')
+
+
+class Absolute(Operator1In):
+    """Absolute operator node"""
+    __slots__ = ()
+    symbol = 'abs'
+    wolfram_func = 'Abs'
+    latex_func = '\\abs'
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return abs(self.child.evaluate(var_dict))
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        return Division(Product(self.child,
+                                self.child.derivative(variable)),
+                        Absolute(self.child))
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var not in self.dependencies():
+            return Product(self, Variable(var))
+        elif self.child == Variable(var):
+            return Division(Product(Variable(var),
+                                    Absolute(Variable(var))),
+                            Constant(2))
+        else:
+            raise NotImplementedError('Integration not supported')
