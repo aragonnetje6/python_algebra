@@ -59,7 +59,7 @@ class Node(metaclass=ABCMeta):
 
     @abstractmethod
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
 
     @abstractmethod
     def infix(self) -> str:
@@ -146,7 +146,7 @@ class Constant(Term):
         return str(self.value)
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Constant(0)
 
     def copy(self) -> 'Node':
@@ -203,7 +203,7 @@ class Variable(Term):
         return self.symbol
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         if self.symbol == variable:
             return Constant(1)
         return Constant(0)
@@ -317,7 +317,7 @@ class Addition(Operator2In):
         return self.child1.evaluate(var_dict) + self.child2.evaluate(var_dict)
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Addition(self.child1.derivative(variable), self.child2.derivative(variable))
 
     def infix(self) -> str:
@@ -354,7 +354,7 @@ class Subtraction(Operator2In):
         return self.child1.evaluate(var_dict) - self.child2.evaluate(var_dict)
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Subtraction(self.child1.derivative(variable), self.child2.derivative(variable))
 
     def integral(self, var: str) -> 'Node':
@@ -388,7 +388,7 @@ class Product(Operator2In):
                     raise err
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Addition(Product(self.child1, self.child2.derivative(variable)),
                         Product(self.child1.derivative(variable), self.child2))
 
@@ -415,7 +415,7 @@ class Division(Operator2In):
         return self.child1.evaluate(var_dict) / self.child2.evaluate(var_dict)
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(Subtraction(Product(self.child1.derivative(variable), self.child2),
                                     Product(self.child1, self.child2.derivative(variable))),
                         Exponent(self.child2, Constant(2)))
@@ -465,7 +465,7 @@ class Exponent(Operator2In):
                     raise err
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Product(self,
                        Addition(Product(self.child1.derivative(variable),
                                         Division(self.child2,
@@ -518,7 +518,7 @@ class Logarithm(Operator2In):
         return log(self.child1.evaluate(var_dict), self.child2.evaluate(var_dict))
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(Subtraction(Division(Product(self.child1.derivative(variable),
                                                      Logarithm(self.child2,
                                                                Constant(e))),
@@ -623,7 +623,7 @@ class Sine(Operator1In):
         return sin(self.child.evaluate(var_dict))
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Product(Cosine(self.child),
                        self.child.derivative(variable))
 
@@ -650,7 +650,7 @@ class Cosine(Operator1In):
         return cos(self.child.evaluate(var_dict))
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Subtraction(Constant(0),
                            Product(Sine(self.child),
                                    self.child.derivative(variable)))
@@ -677,7 +677,7 @@ class Tangent(Operator1In):
         return tan(self.child.evaluate(var_dict))
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(self.child.derivative(variable),
                         Exponent(Cosine(self.child),
                                  Constant(2)))
@@ -706,7 +706,7 @@ class ArcSine(Operator1In):
         return asin(self.child.evaluate(var_dict))
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(self.child.derivative(variable),
                         Exponent(Subtraction(Constant(1),
                                              Exponent(self.child,
@@ -740,7 +740,7 @@ class ArcCosine(Operator1In):
         return acos(self.child.evaluate(var_dict))
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Subtraction(Constant(0),
                            Division(self.child.derivative(variable),
                                     Exponent(Subtraction(Constant(1),
@@ -775,7 +775,7 @@ class ArcTangent(Operator1In):
         return atan(self.child.evaluate(var_dict))
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(self.child.derivative(variable),
                         Addition(Constant(1),
                                  Exponent(self.child,
@@ -809,7 +809,7 @@ class Absolute(Operator1In):
         return abs(self.child.evaluate(var_dict))
 
     def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the derivative to the passed variable of this tree"""
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(Product(self.child,
                                 self.child.derivative(variable)),
                         Absolute(self.child))
