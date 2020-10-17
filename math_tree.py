@@ -802,7 +802,6 @@ class Absolute(Operator1In):
     __slots__ = ()
     symbol = 'abs'
     wolfram_func = 'Abs'
-    latex_func = '\\abs'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -824,3 +823,7 @@ class Absolute(Operator1In):
                             Constant(2))
         else:
             raise NotImplementedError('Integration not supported for this expression')
+
+    def latex(self) -> str:
+        """return latex language representation of the tree"""
+        return f'|{self.child}|'
