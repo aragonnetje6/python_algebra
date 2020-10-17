@@ -37,55 +37,69 @@ class Node(metaclass=ABCMeta):
                    for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
                                                                + [2 ** x for x in range(-20, 21)], len(dependencies)))
 
-    @abstractmethod
-    def latex(self) -> str:
-        """return latex language representation of the tree"""
-
-    @abstractmethod
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-
-    @abstractmethod
-    def tuple(self) -> Expression:
-        """returns the tuple representation of the tree"""
-
-    @abstractmethod
-    def rpn(self) -> str:
-        """returns the reverse polish notation representation of the tree"""
-
-    @abstractmethod
-    def list_nodes(self) -> List['Node']:
-        """returns a list of all nodes in the tree"""
+    @staticmethod
+    def dependencies() -> Set[str]:
+        """returns set of all variables present in the tree"""
+        return set()
 
     @abstractmethod
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
 
     @abstractmethod
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+
+    @abstractmethod
     def infix(self) -> str:
         """returns infix representation of the tree"""
+
+    @abstractmethod
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+
+    @abstractmethod
+    def latex(self) -> str:
+        """return latex language representation of the tree"""
+
+    @abstractmethod
+    def list_nodes(self) -> List['Node']:
+        """returns a list of all nodes in the tree"""
+
+    @abstractmethod
+    def rpn(self) -> str:
+        """returns the reverse polish notation representation of the tree"""
+
+    @abstractmethod
+    def simplify(self):
+        """returns a simplified version of the tree"""
+        # todo: implement
 
     @abstractmethod
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
 
     @abstractmethod
+    def tuple(self) -> Expression:
+        """returns the tuple representation of the tree"""
+
+    @abstractmethod
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
 
-    @abstractmethod
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-
-    def reset_parents(self, parent: Optional['Node'] = None) -> None:
-        """Resets the parent references of each descendant to the proper parent"""
-        self.parent = parent
+    def copy(self) -> 'Node':
+        """returns a copy of this tree"""
+        return self.__class__()
 
     def get_root(self) -> 'Node':
         """Returns the root node of the expression tree"""
         if self.parent is None:
             return self
         return self.parent.get_root()
+
+    def reset_parents(self, parent: Optional['Node'] = None) -> None:
+        """Resets the parent references of each descendant to the proper parent"""
+        self.parent = parent
 
     def total_derivative(self) -> 'Node':
         """
@@ -97,15 +111,6 @@ class Node(metaclass=ABCMeta):
             out = Addition(out, self.derivative(variable))
         out.reset_parents()
         return out
-
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__()
-
-    @staticmethod
-    def dependencies() -> Set[str]:
-        """returns set of all variables present in the tree"""
-        return set()
 
 
 class Term(Node, metaclass=ABCMeta):
@@ -129,45 +134,45 @@ class Constant(Term):
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({self.value})'
 
-    def substitute(self, var: str, sub: 'Node') -> 'Node':
-        """substitute a variable with an expression inside this tree, returns the resulting tree"""
-        return self.copy()
-
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return self.value
-
-    def tuple(self) -> Expression:
-        """returns the tuple representation of the tree"""
-        return self.value
-
-    def rpn(self) -> str:
-        """returns the reverse polish notation representation of the tree"""
-        return str(self.value)
+    def copy(self) -> 'Node':
+        """returns a copy of this tree"""
+        return self.__class__(self.value)
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Constant(0)
 
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__(self.value)
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return self.value
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
         return str(self.value)
 
-    def wolfram(self) -> str:
-        """return wolfram language representation of the tree"""
-        return f'Real[{self.value}]'
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Product(self, Variable(var))
 
     def latex(self) -> str:
         """return latex language representation of the tree"""
         return str(self.value)
 
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return Product(self, Variable(var))
+    def rpn(self) -> str:
+        """returns the reverse polish notation representation of the tree"""
+        return str(self.value)
+
+    def substitute(self, var: str, sub: 'Node') -> 'Node':
+        """substitute a variable with an expression inside this tree, returns the resulting tree"""
+        return self.copy()
+
+    def tuple(self) -> Expression:
+        """returns the tuple representation of the tree"""
+        return self.value
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'Real[{self.value}]'
 
 
 class Variable(Term):
@@ -182,32 +187,6 @@ class Variable(Term):
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({self.symbol})'
 
-    def substitute(self, var: str, sub: 'Node') -> 'Node':
-        """substitute a variable with an expression inside this tree, returns the resulting tree"""
-        if self.symbol == var:
-            return sub.copy()
-        return self.copy()
-
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        if var_dict is None:
-            raise KeyError(f'None does not contain "{self.symbol}"')
-        return var_dict[self.symbol]
-
-    def tuple(self) -> Expression:
-        """returns the tuple representation of the tree"""
-        return self.symbol
-
-    def rpn(self) -> str:
-        """returns the reverse polish notation representation of the tree"""
-        return self.symbol
-
-    def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        if self.symbol == variable:
-            return Constant(1)
-        return Constant(0)
-
     def copy(self) -> 'Node':
         """returns a copy of this tree"""
         return self.__class__(self.symbol)
@@ -216,16 +195,20 @@ class Variable(Term):
         """returns set of all variables present in the tree"""
         return {self.symbol}
 
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        if self.symbol == variable:
+            return Constant(1)
+        return Constant(0)
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        if var_dict is None:
+            raise KeyError(f'None does not contain "{self.symbol}"')
+        return var_dict[self.symbol]
+
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        return self.symbol
-
-    def wolfram(self) -> str:
-        """return wolfram language representation of the tree"""
-        return self.symbol
-
-    def latex(self) -> str:
-        """return latex language representation of the tree"""
         return self.symbol
 
     def integral(self, var: str) -> 'Node':
@@ -237,6 +220,28 @@ class Variable(Term):
                 return self
         else:
             return Constant(0)
+
+    def latex(self) -> str:
+        """return latex language representation of the tree"""
+        return self.symbol
+
+    def rpn(self) -> str:
+        """returns the reverse polish notation representation of the tree"""
+        return self.symbol
+
+    def substitute(self, var: str, sub: 'Node') -> 'Node':
+        """substitute a variable with an expression inside this tree, returns the resulting tree"""
+        if self.symbol == var:
+            return sub.copy()
+        return self.copy()
+
+    def tuple(self) -> Expression:
+        """returns the tuple representation of the tree"""
+        return self.symbol
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return self.symbol
 
 
 class Operator2In(Node, metaclass=ABCMeta):
@@ -256,29 +261,6 @@ class Operator2In(Node, metaclass=ABCMeta):
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({repr(self.child1)}, {repr(self.child2)})'
 
-    def substitute(self, var: str, sub: 'Node') -> 'Node':
-        """substitute a variable with an expression inside this tree, returns the resulting tree"""
-        return self.__class__(self.child1.substitute(var, sub), self.child2.substitute(var, sub))
-
-    def reset_parents(self, parent: Optional[Node] = None) -> None:
-        """Resets the parent references of each descendant to the proper parent"""
-        super().reset_parents(parent)
-        self.child1.reset_parents(self)
-        self.child2.reset_parents(self)
-
-    def tuple(self) -> Expression:
-        """returns the tuple representation of the tree"""
-        return self.child1.tuple(), self.child2.tuple(), self.symbol
-
-    def rpn(self) -> str:
-        """returns the reverse polish notation representation of the tree"""
-        return self.child1.rpn() + ' ' + self.child2.rpn() + ' ' + self.symbol
-
-    def list_nodes(self) -> List[Node]:
-        """returns a list of all nodes in the tree"""
-        out = [self]  # type: List[Node]
-        return out + self.child1.list_nodes() + self.child2.list_nodes()
-
     def copy(self) -> 'Node':
         """returns a copy of this tree"""
         return self.__class__(self.child1, self.child2)
@@ -294,16 +276,39 @@ class Operator2In(Node, metaclass=ABCMeta):
         else:
             return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
 
-    def wolfram(self) -> str:
-        """return wolfram language representation of the tree"""
-        return f'{self.wolfram_func}[{self.child1.wolfram()}, {self.child2.wolfram()}]'
-
     def latex(self) -> str:
         """return latex language representation of the tree"""
         if (isinstance(self.parent, Division) and self.parent.child2 is self) or isinstance(self.parent, Exponent):
             return f'({self.child1.latex()} {self.symbol} {self.child2.latex()})'
         else:
             return f'{self.child1.latex()} {self.symbol} {self.child2.latex()}'
+
+    def list_nodes(self) -> List[Node]:
+        """returns a list of all nodes in the tree"""
+        out = [self]  # type: List[Node]
+        return out + self.child1.list_nodes() + self.child2.list_nodes()
+
+    def reset_parents(self, parent: Optional[Node] = None) -> None:
+        """Resets the parent references of each descendant to the proper parent"""
+        super().reset_parents(parent)
+        self.child1.reset_parents(self)
+        self.child2.reset_parents(self)
+
+    def rpn(self) -> str:
+        """returns the reverse polish notation representation of the tree"""
+        return self.child1.rpn() + ' ' + self.child2.rpn() + ' ' + self.symbol
+
+    def substitute(self, var: str, sub: 'Node') -> 'Node':
+        """substitute a variable with an expression inside this tree, returns the resulting tree"""
+        return self.__class__(self.child1.substitute(var, sub), self.child2.substitute(var, sub))
+
+    def tuple(self) -> Expression:
+        """returns the tuple representation of the tree"""
+        return self.child1.tuple(), self.child2.tuple(), self.symbol
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[{self.child1.wolfram()}, {self.child2.wolfram()}]'
 
 
 class Addition(Operator2In):
@@ -312,13 +317,13 @@ class Addition(Operator2In):
     symbol = '+'
     wolfram_func = 'Plus'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return self.child1.evaluate(var_dict) + self.child2.evaluate(var_dict)
-
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Addition(self.child1.derivative(variable), self.child2.derivative(variable))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return self.child1.evaluate(var_dict) + self.child2.evaluate(var_dict)
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -328,6 +333,12 @@ class Addition(Operator2In):
         else:
             return f'({self.child1.infix()} {self.symbol} {self.child2.infix()})'
 
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var in self.dependencies():
+            return Addition(self.child1.integral(var),
+                            self.child2.integral(var))
+
     def latex(self) -> str:
         """return latex language representation of the tree"""
         if self.parent is None or isinstance(self.parent, (Addition, Logarithm, Operator1In)) or (
@@ -336,12 +347,6 @@ class Addition(Operator2In):
         else:
             return f'({self.child1.latex()} {self.symbol} {self.child2.latex()})'
 
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        if var in self.dependencies():
-            return Addition(self.child1.integral(var),
-                            self.child2.integral(var))
-
 
 class Subtraction(Operator2In):
     """Subtraction operator node"""
@@ -349,13 +354,13 @@ class Subtraction(Operator2In):
     symbol = '-'
     wolfram_func = 'Subtract'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return self.child1.evaluate(var_dict) - self.child2.evaluate(var_dict)
-
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Subtraction(self.child1.derivative(variable), self.child2.derivative(variable))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return self.child1.evaluate(var_dict) - self.child2.evaluate(var_dict)
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -368,6 +373,11 @@ class Product(Operator2In):
     __slots__ = ()
     symbol = '*'
     wolfram_func = 'Times'
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Addition(Product(self.child1, self.child2.derivative(variable)),
+                        Product(self.child1.derivative(variable), self.child2))
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -387,11 +397,6 @@ class Product(Operator2In):
                 else:
                     raise err
 
-    def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Addition(Product(self.child1, self.child2.derivative(variable)),
-                        Product(self.child1.derivative(variable), self.child2))
-
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var not in self.dependencies():
@@ -410,19 +415,15 @@ class Division(Operator2In):
     symbol = '/'
     wolfram_func = 'Divide'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return self.child1.evaluate(var_dict) / self.child2.evaluate(var_dict)
-
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(Subtraction(Product(self.child1.derivative(variable), self.child2),
                                     Product(self.child1, self.child2.derivative(variable))),
                         Exponent(self.child2, Constant(2)))
 
-    def latex(self) -> str:
-        """return the latex language representation of the expression"""
-        return f'\\frac{{{self.child1.latex()}}}{{{self.child2.latex()}}}'
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return self.child1.evaluate(var_dict) / self.child2.evaluate(var_dict)
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -435,12 +436,26 @@ class Division(Operator2In):
         else:
             raise NotImplementedError('Integration not supported for this expression')
 
+    def latex(self) -> str:
+        """return the latex language representation of the expression"""
+        return f'\\frac{{{self.child1.latex()}}}{{{self.child2.latex()}}}'
+
 
 class Exponent(Operator2In):
     """Exponent operator node"""
     __slots__ = ()
     symbol = '**'
     wolfram_func = 'Power'
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Product(self,
+                       Addition(Product(self.child1.derivative(variable),
+                                        Division(self.child2,
+                                                 self.child1)),
+                                Product(self.child2.derivative(variable),
+                                        Logarithm(self.child1,
+                                                  Constant(e)))))
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -464,29 +479,12 @@ class Exponent(Operator2In):
                 else:
                     raise err
 
-    def derivative(self, variable: str) -> 'Node':
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Product(self,
-                       Addition(Product(self.child1.derivative(variable),
-                                        Division(self.child2,
-                                                 self.child1)),
-                                Product(self.child2.derivative(variable),
-                                        Logarithm(self.child1,
-                                                  Constant(e)))))
-
     def infix(self) -> str:
         """returns infix representation of the tree"""
         if isinstance(self.parent, Exponent):
             return f'({self.child1.infix()} {self.symbol} {self.child2.infix()})'
         else:
             return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
-
-    def latex(self) -> str:
-        """returns infix representation of the tree"""
-        if isinstance(self.parent, Exponent):
-            return f'({self.child1.latex()} {self.symbol} {self.child2.latex()})'
-        else:
-            return f'{self.child1.latex()} {self.symbol} {self.child2.latex()}'
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -505,6 +503,13 @@ class Exponent(Operator2In):
                                      Constant(1)))
         else:
             raise NotImplementedError('Integration not supported for this expression')
+
+    def latex(self) -> str:
+        """returns infix representation of the tree"""
+        if isinstance(self.parent, Exponent):
+            return f'({self.child1.latex()} {self.symbol} {self.child2.latex()})'
+        else:
+            return f'{self.child1.latex()} {self.symbol} {self.child2.latex()}'
 
 
 class Logarithm(Operator2In):
@@ -535,10 +540,6 @@ class Logarithm(Operator2In):
         """returns infix representation of the tree"""
         return f'{self.symbol}({self.child1.infix()}, {self.child2.infix()})'
 
-    def latex(self) -> str:
-        """returns latex language representation of the tree"""
-        return f'\\log{{{self.child2.latex()}}}({self.child1.latex()}'
-
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var not in self.dependencies():
@@ -550,6 +551,10 @@ class Logarithm(Operator2In):
                                Variable(var))
         else:
             raise NotImplementedError('Integration not supported for this expression')
+
+    def latex(self) -> str:
+        """returns latex language representation of the tree"""
+        return f'\\log{{{self.child2.latex()}}}({self.child1.latex()}'
 
 
 class Operator1In(Node, metaclass=ABCMeta):
@@ -568,28 +573,6 @@ class Operator1In(Node, metaclass=ABCMeta):
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({repr(self.child)})'
 
-    def substitute(self, var: str, sub: 'Node') -> 'Node':
-        """substitute a variable with an expression inside this tree, returns the resulting tree"""
-        return self.__class__(self.child.substitute(var, sub))
-
-    def reset_parents(self, parent: Optional[Node] = None) -> None:
-        """Resets the parent references of each descendant to the proper parent"""
-        super().reset_parents(parent)
-        self.child.reset_parents(self)
-
-    def tuple(self) -> Expression:
-        """returns the tuple representation of the tree"""
-        return self.child.tuple(), self.symbol
-
-    def rpn(self) -> str:
-        """returns the reverse polish notation representation of the tree"""
-        return self.child.rpn() + ' ' + self.symbol
-
-    def list_nodes(self) -> List[Node]:
-        """returns a list of all nodes in the tree"""
-        out = [self]  # type: List[Node]
-        return out + self.child.list_nodes()
-
     def copy(self) -> 'Node':
         """returns a copy of this tree"""
         return self.__class__(self.child)
@@ -602,13 +585,35 @@ class Operator1In(Node, metaclass=ABCMeta):
         """returns infix representation of the tree"""
         return f'{self.symbol}({self.child.infix()})'
 
-    def wolfram(self) -> str:
-        """return wolfram language representation of the tree"""
-        return f'{self.wolfram_func}[{self.child.wolfram()}]'
-
     def latex(self) -> str:
         """return latex language representation of the tree"""
         return f'{self.latex_func}({self.child.latex()})'
+
+    def list_nodes(self) -> List[Node]:
+        """returns a list of all nodes in the tree"""
+        out = [self]  # type: List[Node]
+        return out + self.child.list_nodes()
+
+    def reset_parents(self, parent: Optional[Node] = None) -> None:
+        """Resets the parent references of each descendant to the proper parent"""
+        super().reset_parents(parent)
+        self.child.reset_parents(self)
+
+    def rpn(self) -> str:
+        """returns the reverse polish notation representation of the tree"""
+        return self.child.rpn() + ' ' + self.symbol
+
+    def substitute(self, var: str, sub: 'Node') -> 'Node':
+        """substitute a variable with an expression inside this tree, returns the resulting tree"""
+        return self.__class__(self.child.substitute(var, sub))
+
+    def tuple(self) -> Expression:
+        """returns the tuple representation of the tree"""
+        return self.child.tuple(), self.symbol
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[{self.child.wolfram()}]'
 
 
 class Sine(Operator1In):
@@ -618,14 +623,14 @@ class Sine(Operator1In):
     wolfram_func = 'Sin'
     latex_func = '\\sin'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return sin(self.child.evaluate(var_dict))
-
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Product(Cosine(self.child),
                        self.child.derivative(variable))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return sin(self.child.evaluate(var_dict))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -645,15 +650,15 @@ class Cosine(Operator1In):
     wolfram_func = 'Cos'
     latex_func = '\\cos'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return cos(self.child.evaluate(var_dict))
-
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Subtraction(Constant(0),
                            Product(Sine(self.child),
                                    self.child.derivative(variable)))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return cos(self.child.evaluate(var_dict))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -672,15 +677,15 @@ class Tangent(Operator1In):
     wolfram_func = 'Tan'
     latex_func = '\\tan'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return tan(self.child.evaluate(var_dict))
-
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(self.child.derivative(variable),
                         Exponent(Cosine(self.child),
                                  Constant(2)))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return tan(self.child.evaluate(var_dict))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -701,10 +706,6 @@ class ArcSine(Operator1In):
     wolfram_func = 'ArcSin'
     latex_func = '\\arcsin'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return asin(self.child.evaluate(var_dict))
-
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(self.child.derivative(variable),
@@ -712,6 +713,10 @@ class ArcSine(Operator1In):
                                              Exponent(self.child,
                                                       Constant(2))),
                                  Constant(1 / 2)))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return asin(self.child.evaluate(var_dict))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -735,10 +740,6 @@ class ArcCosine(Operator1In):
     wolfram_func = 'ArcCos'
     latex_func = '\\arccos'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return acos(self.child.evaluate(var_dict))
-
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Subtraction(Constant(0),
@@ -747,6 +748,10 @@ class ArcCosine(Operator1In):
                                                          Exponent(self.child,
                                                                   Constant(2))),
                                              Constant(1 / 2))))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return acos(self.child.evaluate(var_dict))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -770,16 +775,16 @@ class ArcTangent(Operator1In):
     wolfram_func = 'ArcTan'
     latex_func = '\\arctan'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return atan(self.child.evaluate(var_dict))
-
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(self.child.derivative(variable),
                         Addition(Constant(1),
                                  Exponent(self.child,
                                           Constant(2))))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return atan(self.child.evaluate(var_dict))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -803,15 +808,15 @@ class Absolute(Operator1In):
     symbol = 'abs'
     wolfram_func = 'Abs'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return abs(self.child.evaluate(var_dict))
-
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(Product(self.child,
                                 self.child.derivative(variable)),
                         Absolute(self.child))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return abs(self.child.evaluate(var_dict))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
