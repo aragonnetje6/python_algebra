@@ -8,7 +8,7 @@ from typing import Callable
 from typing import Optional, Dict, Union, List
 
 from math_tree import Number, Variables, Node, Operator1In, Operator2In, Constant, Variable, Addition, \
-    Subtraction, Product, Division, Exponent, Logarithm, Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent
+    Subtraction, Product, Division, Exponent, Logarithm, Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent, Absolute
 
 operator_2_in_functions: Dict[str, Callable[[Number, Number], Number]] = {'+': lambda a, b: a + b,
                                                                           '-': lambda a, b: a - b,
@@ -29,14 +29,16 @@ operator_1_in_functions: Dict[str, Callable[[Number], Number]] = {'sin': sin,
                                                                   'tan': tan,
                                                                   'asin': asin,
                                                                   'acos': acos,
-                                                                  'atan': atan}
+                                                                  'atan': atan,
+                                                                  'abs': abs}
 
 operator_1_in_classes: Dict[str, Callable[[Node], Operator1In]] = {'sin': Sine,
                                                                    'cos': Cosine,
                                                                    'tan': Tangent,
                                                                    'asin': ArcSine,
                                                                    'acos': ArcCosine,
-                                                                   'atan': ArcTangent}
+                                                                   'atan': ArcTangent,
+                                                                   'abs': Absolute}
 
 operator_functions: Dict[str, Union[Callable[[Number], Number], Callable[[Number, Number], Number]]] = \
     {**operator_1_in_functions, **operator_2_in_functions}
