@@ -67,6 +67,10 @@ class Node(metaclass=ABCMeta):
         """returns a list of all nodes in the tree"""
 
     @abstractmethod
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+
+    @abstractmethod
     def rpn(self) -> str:
         """returns the reverse polish notation representation of the tree"""
 
@@ -158,6 +162,10 @@ class Constant(Term):
         """return latex language representation of the tree"""
         return str(self.value)
 
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return f'<mn>{self.value}</mn>'
+
     def rpn(self) -> str:
         """returns the reverse polish notation representation of the tree"""
         return str(self.value)
@@ -225,6 +233,10 @@ class Variable(Term):
         """return latex language representation of the tree"""
         return self.symbol
 
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return f'<mi>{self.symbol}</mi>'
+
     def rpn(self) -> str:
         """returns the reverse polish notation representation of the tree"""
         return self.symbol
@@ -288,6 +300,19 @@ class Operator2In(Node, metaclass=ABCMeta):
         out = [self]  # type: List[Node]
         return out + self.child1.list_nodes() + self.child2.list_nodes()
 
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        if (isinstance(self.parent, Division) and self.parent.child2 is self) or isinstance(self.parent, Exponent):
+            return f'<mfenced>\
+                         {self.child1.mathml()}\
+                         <mo>{self.symbol}</mo>\
+                         {self.child2.mathml()}\
+                     </mfenced>'
+        else:
+            return f'{self.child1.mathml()}\
+                     <mo>{self.symbol}</mo>\
+                     {self.child2.mathml()}'
+
     def reset_parents(self, parent: Optional[Node] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
         super().reset_parents(parent)
@@ -346,6 +371,18 @@ class Addition(Operator2In):
             return f'{self.child1.latex()} {self.symbol} {self.child2.latex()}'
         else:
             return f'({self.child1.latex()} {self.symbol} {self.child2.latex()})'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        if self.parent is None or isinstance(self.parent, (Addition, Logarithm, Operator1In)) or (
+                isinstance(self.parent, Subtraction) and self.parent.child1 is self):
+            return f'{self.child1.mathml()}<mo>{self.symbol}</mo>{self.child2.mathml()}'
+        else:
+            return f'<mfenced>\
+                        {self.child1.mathml()}\
+                        <mo>{self.symbol}</mo>\
+                        {self.child2.mathml()}\
+                    </mfenced>'
 
 
 class Subtraction(Operator2In):
@@ -511,9 +548,32 @@ class Exponent(Operator2In):
         else:
             return f'{self.child1.latex()} {self.symbol} {self.child2.latex()}'
 
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        if isinstance(self.parent, Exponent):
+            return f'<mfenced>\
+                        <msup>\
+                            <mrow>\
+                                {self.child1.mathml()}\
+                            </mrow>\
+                            <mrow>\
+                                {self.child2.mathml()}\
+                            </mrow>\
+                        </msup>\
+                    </mfenced>'
+        else:
+            return f'<msup>\
+                        <mrow>\
+                            {self.child1.mathml()}\
+                        </mrow>\
+                        <mrow>\
+                            {self.child2.mathml()}\
+                        </mrow>\
+                     </msup>'
+
 
 class Logarithm(Operator2In):
-    """Logarithm operator node"""
+    """Logarithm operator node, child 2 is base"""
     __slots__ = ()
     symbol = 'log'
     wolfram_func = 'Log'
@@ -556,6 +616,18 @@ class Logarithm(Operator2In):
         """returns latex language representation of the tree"""
         return f'\\log{{{self.child2.latex()}}}({self.child1.latex()}'
 
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return f'<msub>\
+                    <mi>log</mi>\
+                    <mrow>\
+                        {self.child2.mathml()}\
+                    </mrow>\
+                 </msub>\
+                 <mfenced>\
+                    {self.child1.mathml()}\
+                 </mfenced>'
+
 
 class Operator1In(Node, metaclass=ABCMeta):
     """Abstract Base Class for single-input operator in expression tree"""
@@ -593,6 +665,13 @@ class Operator1In(Node, metaclass=ABCMeta):
         """returns a list of all nodes in the tree"""
         out = [self]  # type: List[Node]
         return out + self.child.list_nodes()
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return f'<mi>{self.symbol}</mi>\
+                 <mfenced>\
+                    {self.child.mathml()}\
+                 </mfenced>'
 
     def reset_parents(self, parent: Optional[Node] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
@@ -832,3 +911,9 @@ class Absolute(Operator1In):
     def latex(self) -> str:
         """return latex language representation of the tree"""
         return f'|{self.child}|'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return f'<mo>|</mo>\
+                 {self.child.mathml()}\
+                 <mo>|</mo>'
