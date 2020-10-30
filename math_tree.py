@@ -15,6 +15,10 @@ Expression = Union[Tuple[Union[tuple, Number, str], Union[tuple, Number, str], s
                    str]
 
 
+def tag(xml_tag: str, content: str):
+    return f'<m{xml_tag}>{content}</m{xml_tag}>'
+
+
 class Node(metaclass=ABCMeta):
     """Abstract Base Class for any node in the expression tree"""
     __slots__ = 'parent',
@@ -164,9 +168,9 @@ class Constant(Term):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return '<mrow>' \
-               f'<mn>{self.value}</mn>' \
-               '</mrow>'
+        return tag('row',
+                   tag('n',
+                       str(self.value)))
 
     def rpn(self) -> str:
         """returns the reverse polish notation representation of the tree"""
@@ -237,9 +241,9 @@ class Variable(Term):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return '<mrow>' \
-               f'<mi>{self.symbol}</mi>' \
-               '</mrow>'
+        return tag('row',
+                   tag('<i>',
+                       str(self.symbol)))
 
     def rpn(self) -> str:
         """returns the reverse polish notation representation of the tree"""
@@ -307,21 +311,17 @@ class Operator2In(Node, metaclass=ABCMeta):
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
         if (isinstance(self.parent, Division) and self.parent.child2 is self) or isinstance(self.parent, Exponent):
-            return '<mrow>' \
-                   '<mfenced>' \
-                   '<mrow>' \
-                   f'{self.child1.mathml()}' \
-                   f'<mo>{self.symbol}</mo>' \
-                   f'{self.child2.mathml()}' \
-                   '</mrow>' \
-                   '</mfenced>' \
-                   '</mrow>'
+            return tag('row',
+                       tag('fenced',
+                           tag('row',
+                               self.child1.mathml()
+                               + tag('o', self.symbol)
+                               + self.child2.mathml())))
         else:
-            return '<mrow>' \
-                   f'{self.child1.mathml()}' \
-                   f'<mo>{self.symbol}</mo>' \
-                   f'{self.child2.mathml()}' \
-                   '</mrow>'
+            return tag('row',
+                       self.child1.mathml()
+                       + tag('o', self.symbol)
+                       + self.child2.mathml())
 
     def reset_parents(self, parent: Optional[Node] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
@@ -386,21 +386,17 @@ class Addition(Operator2In):
         """returns the MathML representation of the tree"""
         if self.parent is None or isinstance(self.parent, (Addition, Logarithm, Operator1In)) or (
                 isinstance(self.parent, Subtraction) and self.parent.child1 is self):
-            return '<mrow>' \
-                   f'{self.child1.mathml()}' \
-                   f'<mo>{self.symbol}</mo>' \
-                   f'{self.child2.mathml()}' \
-                   '</mrow>'
+            return tag('row',
+                       self.child1.mathml()
+                       + tag('o', self.symbol)
+                       + self.child2.mathml())
         else:
-            return '<mrow>' \
-                   '<mfenced>' \
-                   '<mrow>' \
-                   f'{self.child1.mathml()}' \
-                   f'<mo>{self.symbol}</mo>' \
-                   f'{self.child2.mathml()}' \
-                   '</mrow>' \
-                   '</mfenced>' \
-                   '</mrow>'
+            return tag('row',
+                       tag('fenced',
+                           tag('row',
+                               self.child1.mathml()
+                               + tag('o', self.symbol)
+                               + self.child2.mathml())))
 
 
 class Subtraction(Operator2In):
@@ -497,12 +493,10 @@ class Division(Operator2In):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return '<mrow>' \
-               '<mfrac>' \
-               f'{self.child1.mathml()}' \
-               f'{self.child2.mathml()}' \
-               '</mfrac>' \
-               '</mrow>'
+        return tag('row',
+                   tag('frac',
+                       self.child1.mathml()
+                       + self.child2.mathml()))
 
 
 class Exponent(Operator2In):
@@ -578,23 +572,17 @@ class Exponent(Operator2In):
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
         if isinstance(self.parent, Exponent):
-            return '<mrow>' \
-                   '<mfenced>' \
-                   '<mrow>' \
-                   '<msup>' \
-                   f'{self.child1.mathml()}' \
-                   f'{self.child2.mathml()}' \
-                   '</msup>' \
-                   '</mrow>' \
-                   '</mfenced>' \
-                   '</mrow>'
+            return tag('row',
+                       tag('fenced',
+                           tag('row',
+                               tag('sup',
+                                   self.child1.mathml()
+                                   + self.child2.mathml()))))
         else:
-            return f'<mrow>' \
-                   '<msup>' \
-                   f'{self.child1.mathml()}' \
-                   f'{self.child2.mathml()}' \
-                   '</msup>' \
-                   '</mrow>'
+            return tag('row',
+                       tag('sup',
+                           self.child1.mathml()
+                           + self.child2.mathml()))
 
 
 class Logarithm(Operator2In):
@@ -643,15 +631,11 @@ class Logarithm(Operator2In):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return '<mrow>' \
-               '<msub>' \
-               '<mi>log</mi>' \
-               f'{self.child2.mathml()}' \
-               '</msub>' \
-               '<mfenced>' \
-               f'{self.child1.mathml()}' \
-               '</mfenced>' \
-               '</mrow>'
+        return tag('row',
+                   tag('sub',
+                       tag('i', self.symbol)
+                       + self.child2.mathml())
+                   + tag('fenced', self.child1.mathml()))
 
 
 class Operator1In(Node, metaclass=ABCMeta):
@@ -693,12 +677,9 @@ class Operator1In(Node, metaclass=ABCMeta):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return '<mrow>' \
-               f'<mi>{self.symbol}</mi>' \
-               '<mfenced>' \
-               f'{self.child.mathml()}' \
-               '</mfenced>' \
-               '</mrow>'
+        return tag('row',
+                   tag('i', self.symbol)
+                   + tag('fenced', self.child.mathml()))
 
     def reset_parents(self, parent: Optional[Node] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
@@ -941,8 +922,7 @@ class Absolute(Operator1In):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return '<mrow>' \
-               '<mo>|</mo>' \
-               f'{self.child.mathml()}' \
-               '<mo>|</mo>' \
-               '</mrow>'
+        return tag('row',
+                   tag('o', '|')
+                   + self.child.mathml()
+                   + tag('o', '|'))
