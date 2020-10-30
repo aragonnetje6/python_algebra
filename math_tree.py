@@ -242,7 +242,7 @@ class Variable(Term):
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
         return tag('row',
-                   tag('<i>',
+                   tag('i',
                        str(self.symbol)))
 
     def rpn(self) -> str:
