@@ -1093,6 +1093,10 @@ class DefiniteIntegral(CalculusOperator):
                    + tag('i', 'd')
                    + self.variable.mathml())
 
+    def rpn(self) -> str:
+        """returns the reverse polish notation representation of the tree"""
+        return ' '.join((self.child.rpn(), self.variable.rpn(), self.lower.rpn(), self.upper.rpn(), self.symbol))
+
     def tuple(self) -> Expression:
         """returns the tuple representation of the tree"""
         return self.child.tuple(), self.variable.tuple(), self.lower.tuple(), self.upper.tuple(), self.symbol
