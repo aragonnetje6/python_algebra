@@ -967,6 +967,7 @@ class CalculusOperator(Node, metaclass=ABCMeta):
 
 class Derivative(CalculusOperator):
     """Derivative operation node"""
+    __slots__ = ()
     wolfram_func = 'Derivative'
     symbol = 'deriv'
 
@@ -1010,6 +1011,7 @@ class IndefiniteIntegral(CalculusOperator):
     """Indefinite Integral operator node"""
     wolfram_func = 'Integrate'
     symbol = 'iint'
+    __slots__ = ()
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1047,6 +1049,7 @@ class DefiniteIntegral(CalculusOperator):
     """Definite Integral operator node"""
     wolfram_func = 'Integrate'
     symbol = 'dint'
+    __slots__ = ('lower', 'upper')
 
     def __init__(self, expression: 'Node', variable: Variable, lower: 'Node', upper: 'Node') -> None:
         super().__init__(expression, variable)
