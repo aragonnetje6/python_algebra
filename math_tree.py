@@ -9,7 +9,9 @@ from typing import Optional, Dict, Union, Tuple, List, Set
 
 Number = Union[int, float]
 Variables = Dict[str, Number]
-Expression = Union[Tuple[Union[tuple, Number, str], Union[tuple, Number, str], str],
+Expression = Union[Tuple[Union[tuple, Number, str], Union[tuple, Number, str], Union[tuple, Number, str], Union[
+    tuple, Number, str], str],
+                   Tuple[Union[tuple, Number, str], Union[tuple, Number, str], str],
                    Tuple[Union[tuple, Number, str], str],
                    Number,
                    str]
@@ -960,7 +962,7 @@ class CalculusOperator(Node, metaclass=ABCMeta):
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
-        return f'{self.wolfram_func}[{self.child.wolfram()}, {self.variable}]'
+        return f'{self.wolfram_func}[{self.child.wolfram()}, {self.variable.wolfram()}]'
 
 
 class Derivative(CalculusOperator):
@@ -1022,7 +1024,7 @@ class IndefiniteIntegral(CalculusOperator):
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        return f'[{self.child}]d{self.variable.symbol}'
+        return f'[{self.child.infix()}]d{self.variable.infix()}'
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1039,3 +1041,60 @@ class IndefiniteIntegral(CalculusOperator):
                    + self.child.mathml()
                    + tag('i', 'd')
                    + self.variable.mathml())
+
+
+class DefiniteIntegral(CalculusOperator):
+    """Definite Integral operator node"""
+    wolfram_func = 'Integrate'
+    symbol = 'dint'
+
+    def __init__(self, expression: 'Node', variable: Variable, lower: 'Node', upper: 'Node') -> None:
+        super().__init__(expression, variable)
+        self.lower = lower
+        self.upper = upper
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        if variable == self.variable.symbol:
+            return Constant(0)
+        else:
+            return Derivative(self, Variable(variable))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        indefinite = self.child.integral(self.variable.symbol)
+        return (indefinite.substitute(self.variable.symbol, self.upper).evaluate(var_dict)
+                - indefinite.substitute(self.variable.symbol, self.lower).evaluate(var_dict))
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        return f'[∫_{self.lower.infix()}^{self.upper.infix()} {self.child.infix()}]d{self.variable.infix()}'
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return IndefiniteIntegral(self, Variable(var))
+
+    def latex(self) -> str:
+        """return latex language representation of the tree"""
+        return f'\\int_{{{self.lower.latex()}}}^{{{self.upper.latex()}}}' \
+               f'\\left[{self.child.latex()}\\right]d{self.variable.latex()}'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return tag('row',
+                   tag('subsup',
+                       tag('o', '&int;')
+                       + self.lower.mathml()
+                       + self.upper.mathml())
+                   + self.child.mathml()
+                   + tag('i', 'd')
+                   + self.variable.mathml())
+
+    def tuple(self) -> Expression:
+        """returns the tuple representation of the tree"""
+        return self.child.tuple(), self.variable.tuple(), self.lower.tuple(), self.upper.tuple(), self.symbol
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[{self.child.wolfram()},' \
+               f'{{{self.variable.wolfram()}, {self.lower.wolfram()}, {self.upper.wolfram()}}}]'
