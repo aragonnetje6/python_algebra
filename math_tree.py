@@ -81,10 +81,9 @@ class Node(metaclass=ABCMeta):
     def rpn(self) -> str:
         """returns the reverse polish notation representation of the tree"""
 
-    # @abstractmethod
-    # def simplify(self):
-    #     """returns a simplified version of the tree"""
-    #     # todo: implement
+    @abstractmethod
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
 
     @abstractmethod
     def substitute(self, var: str, sub: 'Node') -> 'Node':
@@ -126,20 +125,10 @@ class Node(metaclass=ABCMeta):
 
 class Term(Node, metaclass=ABCMeta):
     """Abstract Base Class for any value (leaf node) in the expression tree"""
-    __slots__ = ()
-
-    def list_nodes(self) -> List[Node]:
-        """returns a list of all nodes in the tree"""
-        return [self]
-
-
-class Constant(Term):
-    """Real numerical constant in expression tree, """
     __slots__ = 'value',
 
-    def __init__(self, value: Number) -> None:
+    def __init__(self, value: Union[str, Number]) -> None:
         super().__init__()
-        assert isinstance(value, (int, float))
         self.value = value
 
     def __repr__(self) -> str:
@@ -149,6 +138,39 @@ class Constant(Term):
         """returns a copy of this tree"""
         return self.__class__(self.value)
 
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        return str(self.value)
+
+    def latex(self) -> str:
+        """return latex language representation of the tree"""
+        return str(self.value)
+
+    def list_nodes(self) -> List[Node]:
+        """returns a list of all nodes in the tree"""
+        return [self]
+
+    def rpn(self) -> str:
+        """returns the reverse polish notation representation of the tree"""
+        return str(self.value)
+
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        return self.copy()
+
+    def tuple(self) -> Expression:
+        """returns the tuple representation of the tree"""
+        return self.value
+
+
+class Constant(Term):
+    """Real numerical constant in expression tree, """
+    __slots__ = ()
+
+    def __init__(self, value: Number) -> None:
+        assert isinstance(value, (int, float))
+        super().__init__(value)
+
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Constant(0)
@@ -157,17 +179,9 @@ class Constant(Term):
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.value
 
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        return str(self.value)
-
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         return Product(self, Variable(var))
-
-    def latex(self) -> str:
-        """return latex language representation of the tree"""
-        return str(self.value)
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
@@ -175,17 +189,9 @@ class Constant(Term):
                    tag('n',
                        str(self.value)))
 
-    def rpn(self) -> str:
-        """returns the reverse polish notation representation of the tree"""
-        return str(self.value)
-
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.copy()
-
-    def tuple(self) -> Expression:
-        """returns the tuple representation of the tree"""
-        return self.value
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
@@ -194,77 +200,53 @@ class Constant(Term):
 
 class Variable(Term):
     """Named variable in expression tree"""
-    __slots__ = 'symbol',
+    __slots__ = ()
 
-    def __init__(self, symbol: str) -> None:
-        super().__init__()
-        assert isinstance(symbol, str)
-        self.symbol = symbol
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.symbol})'
-
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__(self.symbol)
+    def __init__(self, value: str) -> None:
+        assert isinstance(value, str)
+        super().__init__(value)
 
     def dependencies(self) -> Set[str]:
         """returns set of all variables present in the tree"""
-        return {self.symbol}
+        return {self.value}
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        if self.symbol == variable:
+        if self.value == variable:
             return Constant(1)
         return Constant(0)
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         if var_dict is None:
-            raise KeyError(f'None does not contain "{self.symbol}"')
-        return var_dict[self.symbol]
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        return self.symbol
+            raise KeyError(f'None does not contain "{self.value}"')
+        return var_dict[self.value]
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        if self.symbol == var:
+        if self.value == var:
             if self.parent is None or isinstance(self.parent, (Addition, Subtraction)):
                 return Division(Exponent(self, Constant(2)), Constant(2))
             else:
-                return self
+                return self.copy()
         else:
             return Constant(0)
-
-    def latex(self) -> str:
-        """return latex language representation of the tree"""
-        return self.symbol
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
         return tag('row',
                    tag('i',
-                       str(self.symbol)))
-
-    def rpn(self) -> str:
-        """returns the reverse polish notation representation of the tree"""
-        return self.symbol
+                       str(self.value)))
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
-        if self.symbol == var:
+        if self.value == var:
             return sub.copy()
         return self.copy()
 
-    def tuple(self) -> Expression:
-        """returns the tuple representation of the tree"""
-        return self.symbol
-
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
-        return self.symbol
+        return self.value
 
 
 class Operator2In(Node, metaclass=ABCMeta):
@@ -336,6 +318,13 @@ class Operator2In(Node, metaclass=ABCMeta):
         """returns the reverse polish notation representation of the tree"""
         return self.child1.rpn() + ' ' + self.child2.rpn() + ' ' + self.symbol
 
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        if len(self.dependencies()) == 0:
+            return Constant(self.evaluate())
+        else:
+            return self.__class__(self.child1.simplify(), self.child2.simplify())
+
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child1.substitute(var, sub), self.child2.substitute(var, sub))
@@ -401,6 +390,19 @@ class Addition(Operator2In):
                                + tag('o', self.symbol)
                                + self.child2.mathml())))
 
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        child1 = self.child1.simplify()
+        child2 = self.child2.simplify()
+        if isinstance(child1, Constant) and isinstance(child2, Constant):
+            return Constant(child1.evaluate() + child2.evaluate())
+        elif isinstance(child1, Constant) and child1.evaluate() == 0:
+            return child2
+        elif isinstance(child2, Constant) and child2.evaluate() == 0:
+            return child1
+        else:
+            return Addition(child1, child2)
+
 
 class Subtraction(Operator2In):
     """Subtraction operator node"""
@@ -420,6 +422,19 @@ class Subtraction(Operator2In):
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         return Subtraction(self.child1.integral(var),
                            self.child2.integral(var))
+
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        child1 = self.child1.simplify()
+        child2 = self.child2.simplify()
+        if isinstance(child1, Constant) and isinstance(child2, Constant):
+            return Constant(child1.evaluate() - child2.evaluate())
+        elif isinstance(child1, Constant) and child1.evaluate() == 0:
+            return Product(Constant(-1), child2)
+        elif isinstance(child2, Constant) and child2.evaluate() == 0:
+            return child1
+        else:
+            return Subtraction(child1, child2)
 
 
 class Product(Operator2In):
@@ -462,6 +477,25 @@ class Product(Operator2In):
         else:
             raise NotImplementedError('Integration not supported for this expression')
 
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        child1 = self.child1.simplify()
+        child2 = self.child2.simplify()
+        if isinstance(child1, Constant) and isinstance(child2, Constant):
+            return Constant(child1.evaluate() * child2.evaluate())
+        elif isinstance(child1, Constant):
+            if child1.evaluate() == 0:
+                return Constant(0)
+            elif child1.evaluate() == 1:
+                return child2
+        elif isinstance(child2, Constant):
+            if child2.evaluate() == 0:
+                return Constant(0)
+            elif child2.evaluate() == 1:
+                return child1
+        else:
+            return Product(child1, child2)
+
 
 class Division(Operator2In):
     """Division operator node"""
@@ -500,6 +534,25 @@ class Division(Operator2In):
                    tag('frac',
                        self.child1.mathml()
                        + self.child2.mathml()))
+
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        child1 = self.child1.simplify()
+        child2 = self.child2.simplify()
+        if isinstance(child1, Constant) and isinstance(child2, Constant):
+            return Constant(child1.evaluate() / child2.evaluate())
+        elif isinstance(child1, Constant):
+            if child1.evaluate() == 0:
+                return Constant(0)
+            elif child1.evaluate() == 1:
+                return Exponent(child2, Constant(-1))
+        elif isinstance(child2, Constant):
+            if child2.evaluate() == 0:
+                raise ZeroDivisionError('division by zero')
+            elif child2.evaluate() == 1:
+                return child1
+        else:
+            return Division(child1, child2)
 
 
 class Exponent(Operator2In):
@@ -587,6 +640,25 @@ class Exponent(Operator2In):
                            self.child1.mathml()
                            + self.child2.mathml()))
 
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        child1 = self.child1.simplify()
+        child2 = self.child2.simplify()
+        if isinstance(child1, Constant) and isinstance(child2, Constant):
+            return Constant(child1.evaluate() ** child2.evaluate())
+        elif isinstance(child1, Constant):
+            if child1.evaluate() == 0:
+                return Constant(0)
+            elif child1.evaluate() == 1:
+                return child2
+        elif isinstance(child2, Constant):
+            if child2.evaluate() == 0:
+                raise Constant(1)
+            elif child2.evaluate() == 1:
+                return child1
+        else:
+            return Exponent(child1, child2)
+
 
 class Logarithm(Operator2In):
     """Logarithm operator node, child 2 is base"""
@@ -640,6 +712,18 @@ class Logarithm(Operator2In):
                        + self.child2.mathml())
                    + tag('fenced', self.child1.mathml()))
 
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        child1 = self.child1.simplify()
+        child2 = self.child2.simplify()
+        if isinstance(child1, Constant) and isinstance(child2, Constant):
+            return Constant(log(child1.evaluate(), child2.evaluate()))
+        elif isinstance(child1, Constant):
+            if child1.evaluate() == 1:
+                return Constant(0)
+        else:
+            return Division(child1, child2)
+
 
 class Operator1In(Node, metaclass=ABCMeta):
     """Abstract Base Class for single-input operator in expression tree"""
@@ -692,6 +776,13 @@ class Operator1In(Node, metaclass=ABCMeta):
     def rpn(self) -> str:
         """returns the reverse polish notation representation of the tree"""
         return self.child.rpn() + ' ' + self.symbol
+
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        if len(self.dependencies()) == 0:
+            return Constant(self.evaluate())
+        else:
+            return self.__class__(self.child.simplify())
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
@@ -945,7 +1036,7 @@ class CalculusOperator(Node, metaclass=ABCMeta):
 
     def list_nodes(self) -> List['Node']:
         """return latex language representation of the tree"""
-        out = [self]  # type: List['Node']
+        out = [self]  # type: List[Node]
         return out + self.child.list_nodes() + self.variable.list_nodes()
 
     def rpn(self) -> str:
@@ -977,16 +1068,16 @@ class Derivative(CalculusOperator):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return self.child.derivative(self.variable.symbol).evaluate(var_dict)
+        return self.child.derivative(self.variable.value).evaluate(var_dict)
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        return f'd({self.child})/d{self.variable.symbol}'
+        return f'd({self.child})/d{self.variable.infix()}'
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        if var == self.variable.symbol:
-            return self.child
+        if var == self.variable.value:
+            return self.child.copy()
         else:
             return IndefiniteIntegral(self, Variable(var))
 
@@ -1003,8 +1094,16 @@ class Derivative(CalculusOperator):
                                'd'))
                        + tag('row',
                              tag('i', 'd')
-                             + tag('i', self.variable.symbol)))
+                             + tag('i', self.variable.mathml())))
                    + tag('fenced', self.child.mathml()))
+
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        result = self.child.simplify().derivative(self.variable.value)
+        if isinstance(result, (IndefiniteIntegral, DefiniteIntegral)):
+            return result
+        else:
+            return result.simplify()
 
 
 class IndefiniteIntegral(CalculusOperator):
@@ -1015,14 +1114,14 @@ class IndefiniteIntegral(CalculusOperator):
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        if variable == self.variable.symbol:
-            return self.child
+        if variable == self.variable.value:
+            return self.child.copy()
         else:
             return Derivative(self, Variable(variable))
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return self.child.integral(self.variable.symbol).evaluate(var_dict)
+        return self.child.simplify().integral(self.variable.value).evaluate(var_dict)
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -1044,6 +1143,21 @@ class IndefiniteIntegral(CalculusOperator):
                    + tag('i', 'd')
                    + self.variable.mathml())
 
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        simpchild = self.child.simplify()
+        try:
+            return simpchild.integral(self.variable.value).simplify()
+        except NotImplementedError:
+            if isinstance(simpchild, Addition):
+                return Addition(self.__class__(simpchild.child1, self.variable),
+                                self.__class__(simpchild.child2, self.variable))
+            elif isinstance(simpchild, Subtraction):
+                return Subtraction(self.__class__(simpchild.child1, self.variable),
+                                   self.__class__(simpchild.child2, self.variable))
+            else:
+                return self.__class__(self.child.simplify(), self.variable)
+
 
 class DefiniteIntegral(CalculusOperator):
     """Definite Integral operator node"""
@@ -1058,16 +1172,16 @@ class DefiniteIntegral(CalculusOperator):
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        if variable == self.variable.symbol:
+        if variable == self.variable.value:
             return Constant(0)
         else:
             return Derivative(self, Variable(variable))
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        indefinite = self.child.integral(self.variable.symbol)
-        return (indefinite.substitute(self.variable.symbol, self.upper).evaluate(var_dict)
-                - indefinite.substitute(self.variable.symbol, self.lower).evaluate(var_dict))
+        indefinite = self.child.integral(self.variable.value)
+        return (indefinite.substitute(self.variable.value, self.upper).evaluate(var_dict)
+                - indefinite.substitute(self.variable.value, self.lower).evaluate(var_dict))
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -1096,6 +1210,13 @@ class DefiniteIntegral(CalculusOperator):
     def rpn(self) -> str:
         """returns the reverse polish notation representation of the tree"""
         return ' '.join((self.child.rpn(), self.variable.rpn(), self.lower.rpn(), self.upper.rpn(), self.symbol))
+
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        indefinite = self.child.simplify().integral(self.variable.value)
+        expanded = Subtraction(indefinite.substitute(self.variable.value, self.upper),
+                               indefinite.substitute(self.variable.value, self.lower))
+        return expanded.simplify()
 
     def tuple(self) -> Expression:
         """returns the tuple representation of the tree"""
