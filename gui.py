@@ -3,8 +3,7 @@ User interface for the tree
 """
 
 from math_tree import Node, tag
-from os import system, remove
-from time import sleep
+from os import system
 
 
 def generate_html(expression: Node) -> str:
@@ -26,5 +25,3 @@ def display(expression: Node):
     with open('output.html', 'w') as file:
         file.write(html)
     system('output.html')
-    sleep(1)
-    remove('output.html')

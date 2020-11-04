@@ -52,6 +52,56 @@ class Node(metaclass=ABCMeta):
                    for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
                                                                + [2 ** x for x in range(-20, 21)], len(dependencies)))
 
+    def __add__(self, other: Union[str, Number, 'Node']) -> 'Addition':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Addition(self, other)
+        else:
+            return NotImplemented
+
+    def __sub__(self, other: Union[str, Number, 'Node']) -> 'Subtraction':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Subtraction(self, other)
+        else:
+            return NotImplemented
+
+    def __mul__(self, other: Union[str, Number, 'Node']) -> 'Product':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Product(self, other)
+        else:
+            return NotImplemented
+
+    def __truediv__(self, other: Union[str, Number, 'Node']) -> 'Division':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Division(self, other)
+        else:
+            return NotImplemented
+
+    def __pow__(self, other: Union[str, Number, 'Node']) -> 'Exponent':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Exponent(self, other)
+        else:
+            return NotImplemented
+
     @staticmethod
     def dependencies() -> Set[str]:
         """returns set of all variables present in the tree"""
