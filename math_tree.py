@@ -790,7 +790,7 @@ class ComparisonOperators(Operator2In, metaclass=ABCMeta):
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Constant(0)
+        return Constant(0)  # todo: piecewise
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -844,7 +844,7 @@ class Equal(ComparisonOperators):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return Constant(0)
+        return Constant(0)  # todo: piecewise
 
 
 class NotEqual(ComparisonOperators):
@@ -865,7 +865,7 @@ class NotEqual(ComparisonOperators):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return Constant(0)
+        return Constant(0)  # todo: piecewise
 
 
 class GreaterThan(ComparisonOperators):
@@ -886,7 +886,7 @@ class GreaterThan(ComparisonOperators):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        raise NotImplementedError('Comparison operator integration not supported')
+        raise NotImplementedError('Comparison operator integration not supported')  # todo: piecewise
 
 
 class LessThan(ComparisonOperators):
@@ -907,7 +907,7 @@ class LessThan(ComparisonOperators):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        raise NotImplementedError('Comparison operator integration not supported')
+        raise NotImplementedError('Comparison operator integration not supported')  # todo: piecewise
 
 
 class GreaterEqual(ComparisonOperators):
@@ -928,7 +928,7 @@ class GreaterEqual(ComparisonOperators):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        raise NotImplementedError('Comparison operator integration not supported')
+        raise NotImplementedError('Comparison operator integration not supported')  # todo: piecewise
 
 
 class LessEqual(ComparisonOperators):
@@ -949,7 +949,7 @@ class LessEqual(ComparisonOperators):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        raise NotImplementedError('Comparison operator integration not supported')
+        raise NotImplementedError('Comparison operator integration not supported')  # todo: piecewise
 
 
 class Operator1In(Node, metaclass=ABCMeta):
