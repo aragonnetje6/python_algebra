@@ -43,13 +43,13 @@ class Node(metaclass=ABCMeta):
     def __str__(self) -> str:
         return self.rpn()
 
-    def __eq__(self, other: 'Node') -> 'Equals':
+    def __eq__(self, other: 'Node') -> 'Equal':
         if isinstance(other, str):
             other = Variable(other)
         elif isinstance(other, (float, int)):
             other = Constant(other)
         if isinstance(other, Node):
-            return Equals(self, other)
+            return Equal(self, other)
         else:
             return NotImplemented
 
@@ -784,25 +784,13 @@ class Logarithm(Operator2In):
             return Division(child1, child2)
 
 
-class Equals(Operator2In):
-    """Equality operator node"""
+class ComparisonOperators(Operator2In, metaclass=ABCMeta):
+    """Abstract base class for comparison operators"""
     __slots__ = ()
-    symbol = '=='
-    wolfram_func = 'EqualTo'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Equals(self.child1.derivative(variable), self.child2.derivative(variable))
-
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        # todo: un-brute force this
-        dependencies = self.dependencies()
-        return int(all(isclose(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}),
-                               self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)}))
-                       for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
-                                                                   + [2 ** x for x in range(-20, 21)],
-                                                                   len(dependencies))))
+        return Constant(0)
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -810,10 +798,6 @@ class Equals(Operator2In):
             return f'({self.child1.infix()} {self.symbol} {self.child2.infix()})'
         else:
             return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
-
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return Equals(self.child1.integral(var), self.child2.integral(var))
 
     def latex(self) -> str:
         """returns infix representation of the tree"""
@@ -840,6 +824,132 @@ class Equals(Operator2In):
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child1.wolfram()}][{self.child2.wolfram()}]'
+
+
+class Equal(ComparisonOperators):
+    """Equality operator node"""
+    __slots__ = ()
+    symbol = '=='
+    wolfram_func = 'EqualTo'
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        # todo: un-brute force this
+        dependencies = self.dependencies()
+        return int(all(isclose(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}),
+                               self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)}))
+                       for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
+                                                                   + [2 ** x for x in range(-20, 21)],
+                                                                   len(dependencies))))
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Constant(0)
+
+
+class NotEqual(ComparisonOperators):
+    """Inequality operator node"""
+    __slots__ = ()
+    symbol = '!='
+    wolfram_func = 'UnequalTo'
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        # todo: un-brute force this
+        dependencies = self.dependencies()
+        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}) !=
+                       self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+                       for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
+                                                                   + [2 ** x for x in range(-20, 21)],
+                                                                   len(dependencies))))
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Constant(0)
+
+
+class GreaterThan(ComparisonOperators):
+    """Greater-than operator node"""
+    __slots__ = ()
+    symbol = '>'
+    wolfram_func = 'GreaterThan'
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        # todo: un-brute force this
+        dependencies = self.dependencies()
+        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}) >
+                       self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+                       for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
+                                                                   + [2 ** x for x in range(-20, 21)],
+                                                                   len(dependencies))))
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        raise NotImplementedError('Comparison operator integration not supported')
+
+
+class LessThan(ComparisonOperators):
+    """Less-than operator node"""
+    __slots__ = ()
+    symbol = '<'
+    wolfram_func = 'LessThan'
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        # todo: un-brute force this
+        dependencies = self.dependencies()
+        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}) <
+                       self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+                       for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
+                                                                   + [2 ** x for x in range(-20, 21)],
+                                                                   len(dependencies))))
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        raise NotImplementedError('Comparison operator integration not supported')
+
+
+class GreaterEqual(ComparisonOperators):
+    """Greater-equal operator node"""
+    __slots__ = ()
+    symbol = '>='
+    wolfram_func = 'GreaterEqual'
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        # todo: un-brute force this
+        dependencies = self.dependencies()
+        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}) >=
+                       self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+                       for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
+                                                                   + [2 ** x for x in range(-20, 21)],
+                                                                   len(dependencies))))
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        raise NotImplementedError('Comparison operator integration not supported')
+
+
+class LessEqual(ComparisonOperators):
+    """Less-equal operator node"""
+    __slots__ = ()
+    symbol = '<='
+    wolfram_func = 'LessEqual'
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        # todo: un-brute force this
+        dependencies = self.dependencies()
+        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}) <=
+                       self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+                       for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
+                                                                   + [2 ** x for x in range(-20, 21)],
+                                                                   len(dependencies))))
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        raise NotImplementedError('Comparison operator integration not supported')
 
 
 class Operator1In(Node, metaclass=ABCMeta):
