@@ -857,8 +857,8 @@ class NotEqual(ComparisonOperators):
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         # todo: un-brute force this
         dependencies = self.dependencies()
-        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}) !=
-                       self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+                       != self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
                        for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
                                                                    + [2 ** x for x in range(-20, 21)],
                                                                    len(dependencies))))
@@ -878,8 +878,8 @@ class GreaterThan(ComparisonOperators):
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         # todo: un-brute force this
         dependencies = self.dependencies()
-        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}) >
-                       self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+                       > self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
                        for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
                                                                    + [2 ** x for x in range(-20, 21)],
                                                                    len(dependencies))))
@@ -899,8 +899,8 @@ class LessThan(ComparisonOperators):
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         # todo: un-brute force this
         dependencies = self.dependencies()
-        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}) <
-                       self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+                       < self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
                        for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
                                                                    + [2 ** x for x in range(-20, 21)],
                                                                    len(dependencies))))
@@ -920,8 +920,8 @@ class GreaterEqual(ComparisonOperators):
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         # todo: un-brute force this
         dependencies = self.dependencies()
-        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}) >=
-                       self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+                       >= self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
                        for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
                                                                    + [2 ** x for x in range(-20, 21)],
                                                                    len(dependencies))))
@@ -941,8 +941,8 @@ class LessEqual(ComparisonOperators):
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         # todo: un-brute force this
         dependencies = self.dependencies()
-        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}) <=
-                       self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+        return int(all(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
+                       <= self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)})
                        for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
                                                                    + [2 ** x for x in range(-20, 21)],
                                                                    len(dependencies))))
