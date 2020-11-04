@@ -783,6 +783,58 @@ class Logarithm(Operator2In):
             return Division(child1, child2)
 
 
+class Equals(Operator2In):
+    """Equality operator node"""
+    __slots__ = ()
+    symbol = '=='
+    wolfram_func = 'EqualTo'
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Equals(self.child1.derivative(variable), self.child2.derivative(variable))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return int(self.child1.evaluate(var_dict) == self.child2.evaluate(var_dict))
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        if self.parent is not None:
+            return f'({self.child1.infix()} {self.symbol} {self.child2.infix()})'
+        else:
+            return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Equals(self.child1.integral(var), self.child2.integral(var))
+
+    def latex(self) -> str:
+        """returns infix representation of the tree"""
+        if self.parent is not None:
+            return f'({self.child1.infix()} {self.symbol} {self.child2.infix()})'
+        else:
+            return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        if self.parent is None:
+            return mtag('row',
+                        self.child1.mathml()
+                        + mtag('o', self.symbol)
+                        + self.child2.mathml())
+        else:
+            return mtag('row',
+                        mtag('fenced',
+                             mtag('row',
+                                  self.child1.mathml()
+                                  + mtag('o', self.symbol)
+                                  + self.child2.mathml())))
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[{self.child1.wolfram()}][{self.child2.wolfram()}]'
+
+
 class Operator1In(Node, metaclass=ABCMeta):
     """Abstract Base Class for single-input operator in expression tree"""
     __slots__ = 'child',
