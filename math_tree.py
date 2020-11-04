@@ -17,9 +17,17 @@ Expression = Union[Tuple[Union[tuple, Number, str], Union[tuple, Number, str], U
                    str]
 
 
-def tag(xml_tag: str, content: str):
+def tag(xml_tag: str, content: str, args: Optional[str] = None):
+    """XML tag wrapping function"""
+    if args is None:
+        return f'<{xml_tag}>{content}</{xml_tag}>'
+    else:
+        return f'<{xml_tag} {args}>{content}</{xml_tag}>'
+
+
+def mtag(xml_tag: str, content: str, args: Optional[str] = None):
     """Mathml tag wrapping function"""
-    return f'<m{xml_tag}>{content}</m{xml_tag}>'
+    return tag('m' + xml_tag, content, args)
 
 
 class Node(metaclass=ABCMeta):
@@ -185,9 +193,9 @@ class Constant(Term):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return tag('row',
-                   tag('n',
-                       str(self.value)))
+        return mtag('row',
+                    mtag('n',
+                         str(self.value)))
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
@@ -234,9 +242,9 @@ class Variable(Term):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return tag('row',
-                   tag('i',
-                       str(self.value)))
+        return mtag('row',
+                    mtag('i',
+                         str(self.value)))
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
@@ -296,17 +304,17 @@ class Operator2In(Node, metaclass=ABCMeta):
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
         if (isinstance(self.parent, Division) and self.parent.child2 is self) or isinstance(self.parent, Exponent):
-            return tag('row',
-                       tag('fenced',
-                           tag('row',
-                               self.child1.mathml()
-                               + tag('o', self.symbol)
-                               + self.child2.mathml())))
+            return mtag('row',
+                        mtag('fenced',
+                             mtag('row',
+                                  self.child1.mathml()
+                                  + mtag('o', self.symbol)
+                                  + self.child2.mathml())))
         else:
-            return tag('row',
-                       self.child1.mathml()
-                       + tag('o', self.symbol)
-                       + self.child2.mathml())
+            return mtag('row',
+                        self.child1.mathml()
+                        + mtag('o', self.symbol)
+                        + self.child2.mathml())
 
     def reset_parents(self, parent: Optional[Node] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
@@ -378,17 +386,17 @@ class Addition(Operator2In):
         """returns the MathML representation of the tree"""
         if self.parent is None or isinstance(self.parent, (Addition, Logarithm, Operator1In)) or (
                 isinstance(self.parent, Subtraction) and self.parent.child1 is self):
-            return tag('row',
-                       self.child1.mathml()
-                       + tag('o', self.symbol)
-                       + self.child2.mathml())
+            return mtag('row',
+                        self.child1.mathml()
+                        + mtag('o', self.symbol)
+                        + self.child2.mathml())
         else:
-            return tag('row',
-                       tag('fenced',
-                           tag('row',
-                               self.child1.mathml()
-                               + tag('o', self.symbol)
-                               + self.child2.mathml())))
+            return mtag('row',
+                        mtag('fenced',
+                             mtag('row',
+                                  self.child1.mathml()
+                                  + mtag('o', self.symbol)
+                                  + self.child2.mathml())))
 
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
@@ -530,10 +538,10 @@ class Division(Operator2In):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return tag('row',
-                   tag('frac',
-                       self.child1.mathml()
-                       + self.child2.mathml()))
+        return mtag('row',
+                    mtag('frac',
+                         self.child1.mathml()
+                         + self.child2.mathml()))
 
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
@@ -628,17 +636,17 @@ class Exponent(Operator2In):
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
         if isinstance(self.parent, Exponent):
-            return tag('row',
-                       tag('fenced',
-                           tag('row',
-                               tag('sup',
-                                   self.child1.mathml()
-                                   + self.child2.mathml()))))
+            return mtag('row',
+                        mtag('fenced',
+                             mtag('row',
+                                  mtag('sup',
+                                       self.child1.mathml()
+                                       + self.child2.mathml()))))
         else:
-            return tag('row',
-                       tag('sup',
-                           self.child1.mathml()
-                           + self.child2.mathml()))
+            return mtag('row',
+                        mtag('sup',
+                             self.child1.mathml()
+                             + self.child2.mathml()))
 
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
@@ -706,11 +714,11 @@ class Logarithm(Operator2In):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return tag('row',
-                   tag('sub',
-                       tag('i', self.symbol)
-                       + self.child2.mathml())
-                   + tag('fenced', self.child1.mathml()))
+        return mtag('row',
+                    mtag('sub',
+                         mtag('i', self.symbol)
+                         + self.child2.mathml())
+                    + mtag('fenced', self.child1.mathml()))
 
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
@@ -764,9 +772,9 @@ class Operator1In(Node, metaclass=ABCMeta):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return tag('row',
-                   tag('i', self.symbol)
-                   + tag('fenced', self.child.mathml()))
+        return mtag('row',
+                    mtag('i', self.symbol)
+                    + mtag('fenced', self.child.mathml()))
 
     def reset_parents(self, parent: Optional[Node] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
@@ -1016,10 +1024,10 @@ class Absolute(Operator1In):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return tag('row',
-                   tag('o', '|')
-                   + self.child.mathml()
-                   + tag('o', '|'))
+        return mtag('row',
+                    mtag('o', '|')
+                    + self.child.mathml()
+                    + mtag('o', '|'))
 
 
 class CalculusOperator(Node, metaclass=ABCMeta):
@@ -1087,15 +1095,15 @@ class Derivative(CalculusOperator):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return tag('row',
-                   tag('frac',
-                       tag('row',
-                           tag('i',
-                               'd'))
-                       + tag('row',
-                             tag('i', 'd')
-                             + tag('i', self.variable.mathml())))
-                   + tag('fenced', self.child.mathml()))
+        return mtag('row',
+                    mtag('frac',
+                         mtag('row',
+                              mtag('i',
+                                   'd'))
+                         + mtag('row',
+                                mtag('i', 'd')
+                                + mtag('i', self.variable.mathml())))
+                    + mtag('fenced', self.child.mathml()))
 
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
@@ -1137,11 +1145,11 @@ class IndefiniteIntegral(CalculusOperator):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return tag('row',
-                   tag('o', '&int;')
-                   + self.child.mathml()
-                   + tag('i', 'd')
-                   + self.variable.mathml())
+        return mtag('row',
+                    mtag('o', '&int;')
+                    + self.child.mathml()
+                    + mtag('i', 'd')
+                    + self.variable.mathml())
 
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
@@ -1198,14 +1206,14 @@ class DefiniteIntegral(CalculusOperator):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        return tag('row',
-                   tag('subsup',
-                       tag('o', '&int;')
-                       + self.lower.mathml()
-                       + self.upper.mathml())
-                   + self.child.mathml()
-                   + tag('i', 'd')
-                   + self.variable.mathml())
+        return mtag('row',
+                    mtag('subsup',
+                         mtag('o', '&int;')
+                         + self.lower.mathml()
+                         + self.upper.mathml())
+                    + self.child.mathml()
+                    + mtag('i', 'd')
+                    + self.variable.mathml())
 
     def rpn(self) -> str:
         """returns the reverse polish notation representation of the tree"""
