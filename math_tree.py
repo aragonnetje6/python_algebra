@@ -43,14 +43,15 @@ class Node(metaclass=ABCMeta):
     def __str__(self) -> str:
         return self.rpn()
 
-    def __eq__(self, other: 'Node') -> bool:
-        assert isinstance(other, Node)
-        # todo: un-brute force this
-        full_tree = Subtraction(self, other)
-        dependencies = full_tree.dependencies()
-        return all(isclose(full_tree.evaluate({letter: nr for letter, nr in zip(dependencies, values)}), 0)
-                   for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
-                                                               + [2 ** x for x in range(-20, 21)], len(dependencies)))
+    def __eq__(self, other: 'Node') -> 'Equals':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Equals(self, other)
+        else:
+            return NotImplemented
 
     def __add__(self, other: Union[str, Number, 'Node']) -> 'Addition':
         if isinstance(other, str):
@@ -795,7 +796,13 @@ class Equals(Operator2In):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return int(self.child1.evaluate(var_dict) == self.child2.evaluate(var_dict))
+        # todo: un-brute force this
+        dependencies = self.dependencies()
+        return int(all(isclose(self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}),
+                               self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)}))
+                       for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
+                                                                   + [2 ** x for x in range(-20, 21)],
+                                                                   len(dependencies))))
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
