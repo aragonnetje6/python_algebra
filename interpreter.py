@@ -7,7 +7,7 @@ from math import log, sin, cos, tan, asin, acos, atan
 from typing import Callable
 from typing import Optional, Dict, Union, List
 
-from math_tree import Number, Variables, Node, Operator1In, Operator2In, Constant, Variable, Addition, \
+from math_tree import Number, Variables, Node, UnaryOperator, BinaryOperator, Constant, Variable, Addition, \
     Subtraction, Product, Division, Exponent, Logarithm, Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent, Absolute
 
 operator_2_in_functions: Dict[str, Callable[[Number, Number], Number]] = {'+': lambda a, b: a + b,
@@ -17,12 +17,12 @@ operator_2_in_functions: Dict[str, Callable[[Number, Number], Number]] = {'+': l
                                                                           '**': lambda a, b: a ** b,
                                                                           'log': log}
 
-operator_2_in_classes: Dict[str, Callable[[Node, Node], Operator2In]] = {'+': Addition,
-                                                                         '-': Subtraction,
-                                                                         '*': Product,
-                                                                         '/': Division,
-                                                                         '**': Exponent,
-                                                                         'log': Logarithm}
+operator_2_in_classes: Dict[str, Callable[[Node, Node], BinaryOperator]] = {'+': Addition,
+                                                                            '-': Subtraction,
+                                                                            '*': Product,
+                                                                            '/': Division,
+                                                                            '**': Exponent,
+                                                                            'log': Logarithm}
 
 operator_1_in_functions: Dict[str, Callable[[Number], Number]] = {'sin': sin,
                                                                   'cos': cos,
@@ -32,17 +32,17 @@ operator_1_in_functions: Dict[str, Callable[[Number], Number]] = {'sin': sin,
                                                                   'atan': atan,
                                                                   'abs': abs}
 
-operator_1_in_classes: Dict[str, Callable[[Node], Operator1In]] = {'sin': Sine,
-                                                                   'cos': Cosine,
-                                                                   'tan': Tangent,
-                                                                   'asin': ArcSine,
-                                                                   'acos': ArcCosine,
-                                                                   'atan': ArcTangent,
-                                                                   'abs': Absolute}
+operator_1_in_classes: Dict[str, Callable[[Node], UnaryOperator]] = {'sin': Sine,
+                                                                     'cos': Cosine,
+                                                                     'tan': Tangent,
+                                                                     'asin': ArcSine,
+                                                                     'acos': ArcCosine,
+                                                                     'atan': ArcTangent,
+                                                                     'abs': Absolute}
 
 operator_functions: Dict[str, Union[Callable[[Number], Number], Callable[[Number, Number], Number]]] = \
     {**operator_1_in_functions, **operator_2_in_functions}
-operator_classes: Dict[str, Union[Callable[[Node], Operator1In], Callable[[Node, Node], Operator2In]]] = \
+operator_classes: Dict[str, Union[Callable[[Node], UnaryOperator], Callable[[Node, Node], BinaryOperator]]] = \
     {**operator_1_in_classes, **operator_2_in_classes}
 
 
