@@ -1493,7 +1493,7 @@ class Piecewise(Node):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        raise NotImplementedError('Integration of piecewise functions not yet supported')
+        return Piecewise([(expr.integral(var), cond) for expr, cond in self.expressions], self.default.integral(var))
 
     def latex(self) -> str:
         """return latex language representation of the tree"""
@@ -1518,7 +1518,10 @@ class Piecewise(Node):
                                            'columnalign="left"')
                                     + mtag('td', cond.mathml()))
         expression_part += mtag('tr',
-                                mtag('td', self.default.mathml()))
+                                mtag('td', self.default.mathml())
+                                + mtag('td',
+                                       mtag('text', '&#xa0;<!--NO-BREAK SPACE--> otherwise'),
+                                       'columnaling="left"'))
         return mtag('row',
                     mtag('o', '{')
                     + mtag('table',
