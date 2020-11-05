@@ -185,6 +185,24 @@ class Node(metaclass=ABCMeta):
         out.reset_parents()
         return out
 
+    def plot(self, var: str, minimum: Number, maximum: Number, var_dict: Optional[Variables] = None, n: int = 10000):
+        """Plot function over supplied variable range"""
+        import matplotlib.pyplot as plt
+
+        if var_dict is None:
+            var_dict = {}
+
+        x = [i / n * (maximum - minimum) + minimum for i in range(n)]
+        y = []
+        for i in x:
+            try:
+                y.append(self.evaluate({**var_dict, var: i}))
+            except (ArithmeticError, NotImplementedError):
+                y.append(None)
+
+        plt.plot(x, y)
+        plt.show()
+
 
 class Term(Node, metaclass=ABCMeta):
     """Abstract Base Class for any value (leaf node) in the expression tree"""
