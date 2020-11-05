@@ -64,6 +64,9 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
+    def __radd__(self, other: Union[str, Number, 'Node']) -> 'Addition':
+        return self + other
+
     def __sub__(self, other: Union[str, Number, 'Node']) -> 'Subtraction':
         if isinstance(other, str):
             other = Variable(other)
@@ -71,6 +74,16 @@ class Node(metaclass=ABCMeta):
             other = Constant(other)
         if isinstance(other, Node):
             return Subtraction(self, other)
+        else:
+            return NotImplemented
+
+    def __rsub__(self, other: Union[str, Number, 'Node']) -> 'Subtraction':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Subtraction(other, self)
         else:
             return NotImplemented
 
@@ -84,6 +97,9 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
+    def __rmul__(self, other: Union[str, Number, 'Node']) -> 'Product':
+        return self * other
+
     def __truediv__(self, other: Union[str, Number, 'Node']) -> 'Division':
         if isinstance(other, str):
             other = Variable(other)
@@ -91,6 +107,16 @@ class Node(metaclass=ABCMeta):
             other = Constant(other)
         if isinstance(other, Node):
             return Division(self, other)
+        else:
+            return NotImplemented
+
+    def __rtruediv__(self, other: Union[str, Number, 'Node']) -> 'Division':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Division(other, self)
         else:
             return NotImplemented
 
@@ -104,8 +130,21 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
+    def __rpow__(self, other: Union[str, Number, 'Node']) -> 'Exponent':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Exponent(other, self)
+        else:
+            return NotImplemented
+
     def __neg__(self) -> 'Negate':
         return Negate(self)
+
+    def __invert__(self) -> 'Invert':
+        return Invert(self)
 
     @staticmethod
     def dependencies() -> Set[str]:
