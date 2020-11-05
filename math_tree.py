@@ -36,6 +36,7 @@ class Node(metaclass=ABCMeta):
 
     def __init__(self) -> None:
         self.parent: Optional[Node] = None
+        self.reset_parents()
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}()'
@@ -102,6 +103,9 @@ class Node(metaclass=ABCMeta):
             return Exponent(self, other)
         else:
             return NotImplemented
+
+    def __neg__(self) -> 'Negate':
+        return Negate(self)
 
     @staticmethod
     def dependencies() -> Set[str]:
@@ -308,19 +312,18 @@ class Variable(Term):
         return self.value
 
 
-class Operator2In(Node, metaclass=ABCMeta):
+class BinaryOperator(Node, metaclass=ABCMeta):
     """Abstract Base Class for 2-input operator in expression tree"""
     __slots__ = 'child1', 'child2',
     symbol = ''
     wolfram_func = ''
 
     def __init__(self, child1: Node, child2: Node) -> None:
-        super().__init__()
         assert isinstance(child1, Node)
         assert isinstance(child2, Node)
         self.child1 = child1.copy()
         self.child2 = child2.copy()
-        self.reset_parents()
+        super().__init__()
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({repr(self.child1)}, {repr(self.child2)})'
@@ -397,7 +400,7 @@ class Operator2In(Node, metaclass=ABCMeta):
         return f'{self.wolfram_func}[{self.child1.wolfram()}, {self.child2.wolfram()}]'
 
 
-class Addition(Operator2In):
+class Addition(BinaryOperator):
     """Addition operator node"""
     __slots__ = ()
     symbol = '+'
@@ -413,7 +416,7 @@ class Addition(Operator2In):
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        if self.parent is None or isinstance(self.parent, (Addition, Logarithm, Operator1In)) or (
+        if self.parent is None or isinstance(self.parent, (Addition, Logarithm, UnaryOperator)) or (
                 isinstance(self.parent, Subtraction) and self.parent.child1 is self):
             return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
         else:
@@ -427,7 +430,7 @@ class Addition(Operator2In):
 
     def latex(self) -> str:
         """return latex language representation of the tree"""
-        if self.parent is None or isinstance(self.parent, (Addition, Logarithm, Operator1In)) or (
+        if self.parent is None or isinstance(self.parent, (Addition, Logarithm, UnaryOperator)) or (
                 isinstance(self.parent, Subtraction) and self.parent.child1 is self):
             return f'{self.child1.latex()} {self.symbol} {self.child2.latex()}'
         else:
@@ -435,7 +438,7 @@ class Addition(Operator2In):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        if self.parent is None or isinstance(self.parent, (Addition, Logarithm, Operator1In)) or (
+        if self.parent is None or isinstance(self.parent, (Addition, Logarithm, UnaryOperator)) or (
                 isinstance(self.parent, Subtraction) and self.parent.child1 is self):
             return mtag('row',
                         self.child1.mathml()
@@ -463,7 +466,7 @@ class Addition(Operator2In):
             return Addition(child1, child2)
 
 
-class Subtraction(Operator2In):
+class Subtraction(BinaryOperator):
     """Subtraction operator node"""
     __slots__ = ()
     symbol = '-'
@@ -496,7 +499,7 @@ class Subtraction(Operator2In):
             return Subtraction(child1, child2)
 
 
-class Product(Operator2In):
+class Product(BinaryOperator):
     """Multiplication operator node"""
     __slots__ = ()
     symbol = '*'
@@ -556,7 +559,7 @@ class Product(Operator2In):
             return Product(child1, child2)
 
 
-class Division(Operator2In):
+class Division(BinaryOperator):
     """Division operator node"""
     __slots__ = ()
     symbol = '/'
@@ -614,7 +617,7 @@ class Division(Operator2In):
             return Division(child1, child2)
 
 
-class Exponent(Operator2In):
+class Exponent(BinaryOperator):
     """Exponent operator node"""
     __slots__ = ()
     symbol = '**'
@@ -719,11 +722,16 @@ class Exponent(Operator2In):
             return Exponent(child1, child2)
 
 
-class Logarithm(Operator2In):
+class Logarithm(BinaryOperator):
     """Logarithm operator node, child 2 is base"""
     __slots__ = ()
     symbol = 'log'
     wolfram_func = 'Log'
+
+    def __init__(self, child1: Node, child2: Optional[Node] = None):
+        if child2 is None:
+            child2 = Constant(e)
+        super().__init__(child1, child2)
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -784,7 +792,7 @@ class Logarithm(Operator2In):
             return Division(child1, child2)
 
 
-class ComparisonOperators(Operator2In, metaclass=ABCMeta):
+class ComparisonOperators(BinaryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
     __slots__ = ()
 
@@ -952,7 +960,7 @@ class LessEqual(ComparisonOperators):
         raise NotImplementedError('Comparison operator integration not supported')  # todo: piecewise
 
 
-class Operator1In(Node, metaclass=ABCMeta):
+class UnaryOperator(Node, metaclass=ABCMeta):
     """Abstract Base Class for single-input operator in expression tree"""
     __slots__ = 'child',
     symbol = ''
@@ -960,10 +968,9 @@ class Operator1In(Node, metaclass=ABCMeta):
     latex_func = ''
 
     def __init__(self, child: Node) -> None:
-        super().__init__()
         assert isinstance(child, Node)
         self.child = child.copy()
-        self.reset_parents()
+        super().__init__()
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({repr(self.child)})'
@@ -1024,7 +1031,7 @@ class Operator1In(Node, metaclass=ABCMeta):
         return f'{self.wolfram_func}[{self.child.wolfram()}]'
 
 
-class Sine(Operator1In):
+class Sine(UnaryOperator):
     """Sine operator node in radians"""
     __slots__ = ()
     symbol = 'sin'
@@ -1051,7 +1058,7 @@ class Sine(Operator1In):
             raise NotImplementedError('Integration not supported for this expression')
 
 
-class Cosine(Operator1In):
+class Cosine(UnaryOperator):
     """Cosine operator node in radians"""
     __slots__ = ()
     symbol = 'cos'
@@ -1078,7 +1085,7 @@ class Cosine(Operator1In):
             raise NotImplementedError('Integration not supported for this expression')
 
 
-class Tangent(Operator1In):
+class Tangent(UnaryOperator):
     """Tangent operator node in radians"""
     __slots__ = ()
     symbol = 'tan'
@@ -1107,7 +1114,7 @@ class Tangent(Operator1In):
             raise NotImplementedError('Integration not supported for this expression')
 
 
-class ArcSine(Operator1In):
+class ArcSine(UnaryOperator):
     """Arcsine operator node in radians"""
     __slots__ = ()
     symbol = 'asin'
@@ -1141,7 +1148,7 @@ class ArcSine(Operator1In):
             raise NotImplementedError('Integration not supported for this expression')
 
 
-class ArcCosine(Operator1In):
+class ArcCosine(UnaryOperator):
     """Arccosine operator node in radians"""
     __slots__ = ()
     symbol = 'acos'
@@ -1176,7 +1183,7 @@ class ArcCosine(Operator1In):
             raise NotImplementedError('Integration not supported for this expression')
 
 
-class ArcTangent(Operator1In):
+class ArcTangent(UnaryOperator):
     """Arctangent operator node in radians"""
     __slots__ = ()
     symbol = 'atan'
@@ -1210,7 +1217,7 @@ class ArcTangent(Operator1In):
             raise NotImplementedError('Integration not supported for this expression')
 
 
-class Absolute(Operator1In):
+class Absolute(UnaryOperator):
     """Absolute operator node"""
     __slots__ = ()
     symbol = 'abs'
@@ -1247,6 +1254,123 @@ class Absolute(Operator1In):
                     mtag('o', '|')
                     + self.child.mathml()
                     + mtag('o', '|'))
+
+
+class Negate(UnaryOperator):
+    """Unary negative operator"""
+    __slots__ = ()
+    symbol = '-'
+    wolfram_func = 'Minus'
+    latex_func = '-'
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Negate(self.child.derivative(variable))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return -self.child.evaluate(var_dict)
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        if len(self.child.list_nodes()) > 1:
+            return f'{self.symbol}({self.child.infix()})'
+        else:
+            return f'{self.symbol}{self.child.infix()}'
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Negate(self.child.integral(var))
+
+    def latex(self) -> str:
+        """return latex language representation of the tree"""
+        if len(self.child.list_nodes()) > 1:
+            return f'{self.latex_func}({self.child.latex()})'
+        else:
+            return f'{self.latex_func}{self.child.latex()}'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        if len(self.child.list_nodes()) > 1:
+            return mtag('row',
+                        mtag('i', self.symbol)
+                        + mtag('fenced', self.child.mathml()))
+        else:
+            return mtag('row',
+                        mtag('i', self.symbol)
+                        + self.child.mathml())
+
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        simpchild = self.child.simplify()
+        if isinstance(simpchild, Constant):
+            return Constant(-simpchild.evaluate())
+        elif isinstance(simpchild, Negate):
+            return simpchild.child
+        else:
+            return Negate(simpchild)
+
+
+class Invert(UnaryOperator):
+    """Unary inversion operator"""
+    __slots__ = ()
+    symbol = '1/'
+    latex_func = '\\frac'
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        if variable in self.dependencies():
+            return Division(self.child.derivative(variable), Exponent(self.child, Constant(2)))
+        else:
+            return Constant(0)
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return 1 / self.child.evaluate(var_dict)
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        if len(self.child.list_nodes()) > 1:
+            return f'{self.symbol}({self.child.infix()})'
+        else:
+            return f'{self.symbol}{self.child.infix()}'
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        if var not in self.dependencies():
+            return Division(Variable(var), self.child)
+        elif isinstance(self.child, Variable):
+            return Logarithm(Absolute(self.child))
+        else:
+            raise NotImplementedError
+
+    def latex(self) -> str:
+        """return the latex language representation of the expression"""
+        return f'\\frac{{1}}{{{self.child.latex()}}}'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mtag('row',
+                    mtag('frac',
+                         tag('row',
+                             tag('n', '1'))
+                         + self.child.mathml()))
+
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        simpchild = self.child.simplify()
+        if isinstance(simpchild, Constant):
+            return Constant(1 / simpchild.evaluate())
+        elif isinstance(simpchild, Invert):
+            return simpchild.child
+        elif isinstance(simpchild, Division):
+            return Division(simpchild.child2, simpchild.child1)
+        else:
+            return Invert(simpchild)
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'Divide[1, {self.child.wolfram()}]'
 
 
 class CalculusOperator(Node, metaclass=ABCMeta):
