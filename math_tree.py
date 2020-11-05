@@ -170,22 +170,8 @@ class Node(metaclass=ABCMeta):
             return self
         return self.parent.get_root()
 
-    def reset_parents(self, parent: Optional['Node'] = None) -> None:
-        """Resets the parent references of each descendant to the proper parent"""
-        self.parent = parent
-
-    def total_derivative(self) -> 'Node':
-        """
-        returns an expression tree representing the total derivative of this tree.
-        the total derivative of f is defined as sum(f.derivative(var) for var in f.dependencies)
-        """
-        out: Node = Constant(0)
-        for variable in self.dependencies():
-            out = Addition(out, self.derivative(variable))
-        out.reset_parents()
-        return out
-
-    def plot(self, var: str, minimum: Number, maximum: Number, var_dict: Optional[Variables] = None, n: int = 10000):
+    def plot(self, var: str, minimum: Number, maximum: Number, var_dict: Optional[Variables] = None, n: int = 10000,
+             *args, **kwargs):
         """Plot function over supplied variable range"""
         import matplotlib.pyplot as plt
 
@@ -200,8 +186,23 @@ class Node(metaclass=ABCMeta):
             except (ArithmeticError, NotImplementedError):
                 y.append(None)
 
-        plt.plot(x, y)
+        plt.plot(x, y, *args, **kwargs)
         plt.show()
+
+    def reset_parents(self, parent: Optional['Node'] = None) -> None:
+        """Resets the parent references of each descendant to the proper parent"""
+        self.parent = parent
+
+    def total_derivative(self) -> 'Node':
+        """
+        returns an expression tree representing the total derivative of this tree.
+        the total derivative of f is defined as sum(f.derivative(var) for var in f.dependencies)
+        """
+        out: Node = Constant(0)
+        for variable in self.dependencies():
+            out = Addition(out, self.derivative(variable))
+        out.reset_parents()
+        return out
 
 
 class Term(Node, metaclass=ABCMeta):
