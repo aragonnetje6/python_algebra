@@ -1463,7 +1463,7 @@ class Piecewise(Node):
 
     def __init__(self, expressions: List[Tuple[Node, Node]], default: Optional[Node] = None):
         super().__init__()
-        self.default = default if default is not None else 0
+        self.default = default if default is not None else Constant(0)
         self.expressions = expressions
 
     def copy(self) -> 'Node':
@@ -1509,7 +1509,20 @@ class Piecewise(Node):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        raise NotImplementedError('MathML representation of piecewise functions not supported')
+        expression_part = ''
+        for expr, cond in self.expressions:
+            expression_part += mtag('tr',
+                                    mtag('td', expr.mathml())
+                                    + mtag('td',
+                                           mtag('text', '&#xa0;<!--NO-BREAK SPACE--> if &#xa0;<!--NO-BREAK SPACE-->'),
+                                           'columnalign="left"')
+                                    + mtag('td', cond.mathml()))
+        expression_part += mtag('tr',
+                                mtag('td', self.default.mathml()))
+        return mtag('row',
+                    mtag('o', '{')
+                    + mtag('table',
+                           expression_part))
 
     def rpn(self) -> str:
         """returns the reverse polish notation representation of the tree"""
