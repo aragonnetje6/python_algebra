@@ -1453,3 +1453,103 @@ class DefiniteIntegral(CalculusOperator):
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child.wolfram()},' \
                f'{{{self.variable.wolfram()}, {self.lower.wolfram()}, {self.upper.wolfram()}}}]'
+
+
+class Piecewise(Node):
+    """Piecewise function node"""
+    wolfram_func = 'Piecewise'
+    symbol = 'piecewise'
+    __slots__ = 'expressions', 'default'
+
+    def __init__(self, expressions: List[Tuple[Node, Node]], default: Optional[Node] = None):
+        super().__init__()
+        self.default = default if default is not None else Constant(0)
+        self.expressions = expressions
+
+    def copy(self) -> 'Node':
+        """returns a copy of this tree"""
+        return Piecewise([(expr, cond) for expr, cond in self.expressions], self.default)
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Piecewise([(expr.derivative(variable), cond) for expr, cond in self.expressions],
+                         self.default.derivative(variable))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        for expression, condition in self.expressions:
+            if condition.evaluate(var_dict):
+                return expression.evaluate(var_dict)
+        else:
+            return self.default.evaluate(var_dict)
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        expression_part = ''
+        for expr, cond in self.expressions:
+            expression_part += f'({expr.infix()}, {cond.infix()}), '
+        expression_part += self.default.infix()
+        return self.symbol + '(' + expression_part + ')'
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Piecewise([(expr.integral(var), cond) for expr, cond in self.expressions], self.default.integral(var))
+
+    def latex(self) -> str:
+        """return latex language representation of the tree"""
+        raise NotImplementedError('Latex representation of piecewise functions not supported')
+
+    def list_nodes(self) -> List['Node']:
+        """return latex language representation of the tree"""
+        out = [self]  # type: List[Node]
+        for expr, cond in self.expressions:
+            out += expr.list_nodes()
+            out += cond.list_nodes()
+        return out + self.default.list_nodes()
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        expression_part = ''
+        for expr, cond in self.expressions:
+            expression_part += mtag('tr',
+                                    mtag('td', expr.mathml())
+                                    + mtag('td',
+                                           mtag('text', '&#xa0;<!--NO-BREAK SPACE--> if &#xa0;<!--NO-BREAK SPACE-->'),
+                                           'columnalign="left"')
+                                    + mtag('td', cond.mathml()))
+        expression_part += mtag('tr',
+                                mtag('td', self.default.mathml())
+                                + mtag('td',
+                                       mtag('text', '&#xa0;<!--NO-BREAK SPACE--> otherwise'),
+                                       'columnaling="left"'))
+        return mtag('row',
+                    mtag('o', '{')
+                    + mtag('table',
+                           expression_part))
+
+    def rpn(self) -> str:
+        """returns the reverse polish notation representation of the tree"""
+        raise NotImplementedError('Rpn notation of piecewise functions not supported')
+
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        return Piecewise([(expr.simplify(), cond.simplify()) for expr, cond in self.expressions],
+                         self.default.simplify())
+
+    def substitute(self, var: str, sub: 'Node') -> 'Node':
+        """substitute a variable with an expression inside this tree, returns the resulting tree"""
+        return Piecewise([(expr.substitute(var, sub), cond.substitute(var, sub)) for expr, cond in self.expressions],
+                         self.default.substitute(var, sub))
+
+    def tuple(self) -> Expression:
+        """returns the tuple representation of the tree"""
+        return (tuple((expr.tuple(), cond.tuple()) for expr, cond in self.expressions) + (self.default.tuple(),)
+                + (self.symbol,))
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        expression_part = '{'
+        for expr, cond in self.expressions:
+            expression_part += f'{{{expr.infix()}, {cond.infix()}}}, '
+        expression_part += '}, ' + self.default.infix()
+        return f'{self.wolfram_func}[{expression_part}]'
