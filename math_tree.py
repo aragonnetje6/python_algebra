@@ -303,7 +303,7 @@ class Node(metaclass=ABCMeta):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
 
     @abstractmethod
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
 
     @abstractmethod
@@ -1013,24 +1013,24 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Constant(0)  # todo: piecewise
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> bool:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         # todo: un-brute force this
         if var_dict is None:
-            return int(self._comparison_function(self.child1.evaluate(), self.child2.evaluate()))
+            var_dict = {}
+        simple = self
+        for var, val in var_dict.items():
+            simple = simple.substitute(var, Constant(val))
+        dependencies = simple.dependencies()
+        if len(dependencies) == 0:
+            return self._comparison_function(simple.child1.evaluate(var_dict), simple.child2.evaluate(var_dict))
         else:
-            simple = self
-            for var, val in var_dict.items():
-                simple = simple.substitute(var, Constant(val))
-            dependencies = simple.dependencies()
-            if len(dependencies) > 0:
-                return int(all(
-                    self._comparison_function(
-                        self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}),
-                        self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)}))
-                    for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
-                                                                + [2 ** x for x in range(-20, 21)],
-                                                                len(dependencies))))
+            return all(self._comparison_function(
+                self.child1.evaluate({letter: nr for letter, nr in zip(dependencies, values)}),
+                self.child2.evaluate({letter: nr for letter, nr in zip(dependencies, values)}))
+                       for values in combinations_with_replacement([-2 ** x for x in range(20, -21, -1)]
+                                                                   + [2 ** x for x in range(-20, 21)],
+                                                                   len(dependencies)))
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -1077,7 +1077,7 @@ class Equal(ComparisonLogicalOperator):
     wolfram_func = 'EqualTo'
 
     @staticmethod
-    def _comparison_function(x: Number, y: Number) -> bool:
+    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
         return isclose(x, y)
 
@@ -1089,7 +1089,7 @@ class NotEqual(ComparisonLogicalOperator):
     wolfram_func = 'UnequalTo'
 
     @staticmethod
-    def _comparison_function(x: Number, y: Number) -> bool:
+    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
         return x != y
 
@@ -1101,7 +1101,7 @@ class GreaterThan(ComparisonLogicalOperator):
     wolfram_func = 'GreaterThan'
 
     @staticmethod
-    def _comparison_function(x: Number, y: Number) -> bool:
+    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
         return x > y
 
@@ -1113,7 +1113,7 @@ class LessThan(ComparisonLogicalOperator):
     wolfram_func = 'LessThan'
 
     @staticmethod
-    def _comparison_function(x: Number, y: Number) -> bool:
+    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
         return x < y
 
@@ -1125,7 +1125,7 @@ class GreaterEqual(ComparisonLogicalOperator):
     wolfram_func = 'GreaterEqual'
 
     @staticmethod
-    def _comparison_function(x: Number, y: Number) -> bool:
+    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
         return x >= y
 
@@ -1137,7 +1137,7 @@ class LessEqual(ComparisonLogicalOperator):
     wolfram_func = 'LessEqual'
 
     @staticmethod
-    def _comparison_function(x: Number, y: Number) -> bool:
+    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
         return x <= y
 
@@ -1149,7 +1149,7 @@ class And(ComparisonLogicalOperator):
     wolfram_func = 'And'
 
     @staticmethod
-    def _comparison_function(x: Number, y: Number) -> bool:
+    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
         return bool(x) & bool(y)
 
@@ -1172,7 +1172,7 @@ class Or(ComparisonLogicalOperator):
     wolfram_func = 'Or'
 
     @staticmethod
-    def _comparison_function(x: Number, y: Number) -> bool:
+    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
         return bool(x) | bool(y)
 
@@ -1194,7 +1194,7 @@ class Nand(ComparisonLogicalOperator):
     wolfram_func = 'Nand'
 
     @staticmethod
-    def _comparison_function(x: Number, y: Number) -> bool:
+    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
         return not (bool(x) & bool(y))
 
@@ -1237,7 +1237,7 @@ class Nor(ComparisonLogicalOperator):
     wolfram_func = 'Nor'
 
     @staticmethod
-    def _comparison_function(x: Number, y: Number) -> bool:
+    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
         return not (bool(x) | bool(y))
 
@@ -1281,7 +1281,7 @@ class Xor(ComparisonLogicalOperator):
     wolfram_func = 'Xor'
 
     @staticmethod
-    def _comparison_function(x: Number, y: Number) -> bool:
+    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
         return bool(x) ^ bool(y)
 
@@ -1303,7 +1303,7 @@ class Xnor(ComparisonLogicalOperator):
     wolfram_func = 'Xnor'
 
     @staticmethod
-    def _comparison_function(x: Number, y: Number) -> bool:
+    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
         return not (bool(x) ^ bool(y))
 
