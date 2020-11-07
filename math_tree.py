@@ -5,8 +5,11 @@ basic expression tree with evaluation and derivation
 from abc import ABCMeta, abstractmethod
 from itertools import combinations_with_replacement
 from math import e, log, sin, cos, tan, asin, acos, atan, isclose
+from os import system
 from typing import Optional, Dict, Union, Tuple, List, Set
-from gui import display
+
+from IPython import get_ipython
+from IPython.display import HTML, display_html
 
 Number = Union[int, float]
 Variables = Dict[str, Number]
@@ -29,6 +32,35 @@ def tag(xml_tag: str, content: str, args: Optional[str] = None):
 def mathml_tag(xml_tag: str, content: str, args: Optional[str] = None):
     """Mathml tag wrapping function"""
     return tag('m' + xml_tag, content, args)
+
+
+def generate_html_doc(expression: 'Node') -> str:
+    """generates html code for expression"""
+    return '<!DOCTYPE html>' \
+           + tag('html',
+                 tag('head',
+                     tag('title',
+                         'python_algebra output'))
+                 + tag('body',
+                       tag('math',
+                           expression.mathml(),
+                           'xmlns = "http://www.w3.org/1998/Math/MathML" id = "expr"')))
+
+
+def display(expression: 'Node') -> None:
+    """Generates and opens html representation of expression"""
+    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
+        # noinspection PyTypeChecker
+        display_html(
+            HTML(
+                tag('math',
+                    expression.mathml(),
+                    'xmlns = "http://www.w3.org/1998/Math/MathML" id = "expr"')))
+    else:
+        html = generate_html_doc(expression)
+        with open('output.html', 'w') as file:
+            file.write(html)
+        system('output.html')
 
 
 class Node(metaclass=ABCMeta):
