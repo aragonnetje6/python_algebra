@@ -1,4 +1,5 @@
 """
+DEPRECATED
 interpreters to convert between rpn, tuple representation, and expression tree.
 also has calculation tools for rpn expressions.
 """
@@ -47,7 +48,7 @@ operator_classes: Dict[str, Union[Callable[[Node], UnaryOperator], Callable[[Nod
 
 
 def rpn_to_tuple(rpn_string: str) -> tuple:
-    """convert rpn string to tuple representation of expression"""
+    """DEPRECATED -- convert rpn string to tuple representation of expression"""
     stack: List[Union[tuple, Number, str]] = list()
     word_list = rpn_string.split()
     for word in word_list:
@@ -76,7 +77,7 @@ def rpn_to_tuple(rpn_string: str) -> tuple:
 
 
 def tuple_to_ans(tuple_representation: tuple, var_dict: Optional[Variables] = None) -> Number:
-    """calculate result of tuple representation of expression"""
+    """DERECATED -- calculate result of tuple representation of expression"""
     if var_dict is None:
         var_dict = {}
     if isinstance(tuple_representation, (int, float)):
@@ -89,12 +90,12 @@ def tuple_to_ans(tuple_representation: tuple, var_dict: Optional[Variables] = No
 
 
 def rpn_to_ans(rpn_string: str, var_dict: Optional[Variables] = None) -> Number:
-    """calculate result of rpn expression"""
+    """DEPRECATED -- calculate result of rpn expression"""
     return tuple_to_ans(rpn_to_tuple(rpn_string), var_dict)
 
 
 def tuple_to_tree(tuple_representation: tuple) -> Node:
-    """convert tuple representation to expression tree"""
+    """DEPRECATED -- convert tuple representation to expression tree"""
     *args, operator = tuple_representation
     args = [tuple_to_tree(arg) if isinstance(arg, tuple) else
             Variable(arg) if isinstance(arg, str) else
@@ -103,7 +104,7 @@ def tuple_to_tree(tuple_representation: tuple) -> Node:
 
 
 def rpn_to_tree(rpn_string: str) -> Node:
-    """convert rpn string to expression tree"""
+    """DEPRECATED -- convert rpn string to expression tree"""
     return tuple_to_tree(rpn_to_tuple(rpn_string))
 
 
