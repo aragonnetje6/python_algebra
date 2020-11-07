@@ -678,13 +678,13 @@ class Product(BinaryOperator):
                 if ans1 == 0:
                     return 0
                 else:
-                    raise err
+                    raise err from err
             except (ArithmeticError, ValueError) as err:
                 ans2 = self.child2.evaluate(var_dict)
                 if ans2 == 0:
                     return 0
                 else:
-                    raise err
+                    raise err from err
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -805,13 +805,13 @@ class Exponent(BinaryOperator):
                 if ans1 == 0 or ans1 == 1:
                     return ans1
                 else:
-                    raise err
+                    raise err from err
             except (ArithmeticError, ValueError) as err:
                 ans2 = self.child2.evaluate(var_dict)
                 if ans2 == 0:
                     return 1
                 else:
-                    raise err
+                    raise err from err
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -873,7 +873,7 @@ class Exponent(BinaryOperator):
                 return child2
         elif isinstance(child2, Constant):
             if child2.evaluate() == 0:
-                raise Constant(1)
+                return Constant(1)
             elif child2.evaluate() == 1:
                 return child1
         else:
@@ -1672,7 +1672,7 @@ class Invert(UnaryOperator):
         elif isinstance(self.child, Variable):
             return Logarithm(Absolute(self.child))
         else:
-            raise NotImplementedError
+            raise NotImplementedError('Integral too complex')
 
     def latex(self) -> str:
         """return the latex language representation of the expression"""
