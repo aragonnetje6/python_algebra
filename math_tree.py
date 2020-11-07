@@ -186,6 +186,66 @@ class Node(metaclass=ABCMeta):
     def __invert__(self) -> 'Invert':
         return Invert(self)
 
+    def __and__(self, other: Union[str, Number, 'Node']) -> 'And':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return And(self, other)
+        else:
+            return NotImplemented
+
+    def __rand__(self, other: Union[str, Number, 'Node']) -> 'And':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return And(other, self)
+        else:
+            return NotImplemented
+
+    def __or__(self, other: Union[str, Number, 'Node']) -> 'Or':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Or(self, other)
+        else:
+            return NotImplemented
+
+    def __ror__(self, other: Union[str, Number, 'Node']) -> 'Or':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Or(other, self)
+        else:
+            return NotImplemented
+
+    def __xor__(self, other: Union[str, Number, 'Node']) -> 'Xor':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Xor(self, other)
+        else:
+            return NotImplemented
+
+    def __rxor__(self, other: Union[str, Number, 'Node']) -> 'Xor':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Xor(other, self)
+        else:
+            return NotImplemented
+
     @staticmethod
     def dependencies() -> Set[str]:
         """returns set of all variables present in the tree"""
@@ -779,7 +839,7 @@ class Exponent(BinaryOperator):
             raise NotImplementedError('Integration not supported for this expression')
 
     def latex(self) -> str:
-        """returns infix representation of the tree"""
+        """returns latex representation of the tree"""
         if isinstance(self.parent, Exponent):
             return f'({self.child1.latex()} {self.symbol} {self.child2.latex()})'
         else:
@@ -890,7 +950,7 @@ class Logarithm(BinaryOperator):
             return Division(child1, child2)
 
 
-class ComparisonOperator(BinaryOperator, metaclass=ABCMeta):
+class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
     __slots__ = ()
 
@@ -929,8 +989,12 @@ class ComparisonOperator(BinaryOperator, metaclass=ABCMeta):
         else:
             return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
 
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Piecewise([(Variable(var), self)])
+
     def latex(self) -> str:
-        """returns infix representation of the tree"""
+        """returns latex representation of the tree"""
         if self.parent is not None:
             return f'({self.child1.infix()} {self.symbol} {self.child2.infix()})'
         else:
@@ -956,7 +1020,7 @@ class ComparisonOperator(BinaryOperator, metaclass=ABCMeta):
         return f'{self.wolfram_func}[{self.child1.wolfram()}][{self.child2.wolfram()}]'
 
 
-class Equal(ComparisonOperator):
+class Equal(ComparisonLogicalOperator):
     """Equality operator node"""
     __slots__ = ()
     symbol = '=='
@@ -967,12 +1031,8 @@ class Equal(ComparisonOperator):
         """Compare both numbers"""
         return isclose(x, y)
 
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return Constant(0)  # todo: piecewise
 
-
-class NotEqual(ComparisonOperator):
+class NotEqual(ComparisonLogicalOperator):
     """Inequality operator node"""
     __slots__ = ()
     symbol = '!='
@@ -983,12 +1043,8 @@ class NotEqual(ComparisonOperator):
         """Compare both numbers"""
         return x != y
 
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return Constant(0)  # todo: piecewise
 
-
-class GreaterThan(ComparisonOperator):
+class GreaterThan(ComparisonLogicalOperator):
     """Greater-than operator node"""
     __slots__ = ()
     symbol = '>'
@@ -999,12 +1055,8 @@ class GreaterThan(ComparisonOperator):
         """Compare both numbers"""
         return x > y
 
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        raise NotImplementedError('Comparison operator integration not supported')  # todo: piecewise
 
-
-class LessThan(ComparisonOperator):
+class LessThan(ComparisonLogicalOperator):
     """Less-than operator node"""
     __slots__ = ()
     symbol = '<'
@@ -1015,12 +1067,8 @@ class LessThan(ComparisonOperator):
         """Compare both numbers"""
         return x < y
 
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        raise NotImplementedError('Comparison operator integration not supported')  # todo: piecewise
 
-
-class GreaterEqual(ComparisonOperator):
+class GreaterEqual(ComparisonLogicalOperator):
     """Greater-equal operator node"""
     __slots__ = ()
     symbol = '>='
@@ -1031,12 +1079,8 @@ class GreaterEqual(ComparisonOperator):
         """Compare both numbers"""
         return x >= y
 
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        raise NotImplementedError('Comparison operator integration not supported')  # todo: piecewise
 
-
-class LessEqual(ComparisonOperator):
+class LessEqual(ComparisonLogicalOperator):
     """Less-equal operator node"""
     __slots__ = ()
     symbol = '<='
@@ -1047,9 +1091,203 @@ class LessEqual(ComparisonOperator):
         """Compare both numbers"""
         return x <= y
 
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        raise NotImplementedError('Comparison operator integration not supported')  # todo: piecewise
+
+class And(ComparisonLogicalOperator):
+    """logical AND operator node"""
+    __slots__ = ()
+    symbol = '&'
+    wolfram_func = 'And'
+
+    @staticmethod
+    def comparison_function(x: Number, y: Number) -> bool:
+        """Compare both numbers"""
+        return bool(x) & bool(y)
+
+    def simplify(self) -> Node:
+        """returns a simplified version of the tree"""
+        if len(self.dependencies()) == 0:
+            return Constant(self.evaluate())
+        simp_child1 = self.child1.simplify()
+        simp_child2 = self.child2.simplify()
+        if isinstance(simp_child1, Not) and isinstance(simp_child2, Not):
+            return Nor(simp_child1.child, simp_child2.child).simplify()
+        else:
+            return And(simp_child1, simp_child2)
+
+
+class Or(ComparisonLogicalOperator):
+    """logical OR operator node"""
+    __slots__ = ()
+    symbol = '|'
+    wolfram_func = 'Or'
+
+    @staticmethod
+    def comparison_function(x: Number, y: Number) -> bool:
+        """Compare both numbers"""
+        return bool(x) | bool(y)
+
+    def simplify(self) -> Node:
+        """returns a simplified version of the tree"""
+        if len(self.dependencies()) == 0:
+            return Constant(self.evaluate())
+        simp_child1 = self.child1.simplify()
+        simp_child2 = self.child2.simplify()
+        if isinstance(simp_child1, Not) and isinstance(simp_child2, Not):
+            return Nand(simp_child1.child, simp_child2.child).simplify()
+        else:
+            return Nor(simp_child1, simp_child2)
+
+
+class Nand(ComparisonLogicalOperator):
+    """logical NAND operator node"""
+    __slots__ = ()
+    wolfram_func = 'Nand'
+
+    @staticmethod
+    def comparison_function(x: Number, y: Number) -> bool:
+        """Compare both numbers"""
+        return not (bool(x) & bool(y))
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        if self.parent is not None:
+            return f'(not (bool({self.child1.infix()}) & bool({self.child2.infix()})))'
+        else:
+            return f'not (bool({self.child1.infix()}) & bool({self.child2.infix()}))'
+
+    def latex(self) -> str:
+        """returns latex representation of the tree"""
+        return f'~({self.child1.infix()} & {self.child2.infix()})'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mtag('row',
+                    mtag('o', '~')
+                    + mtag('fenced',
+                           mtag('row',
+                                self.child1.mathml()
+                                + mtag('o', '&')
+                                + self.child2.mathml())))
+
+    def simplify(self) -> Node:
+        """returns a simplified version of the tree"""
+        if len(self.dependencies()) == 0:
+            return Constant(self.evaluate())
+        simp_child1 = self.child1.simplify()
+        simp_child2 = self.child2.simplify()
+        if isinstance(simp_child1, Not) and isinstance(simp_child2, Not):
+            return Or(simp_child1.child, simp_child2.child).simplify()
+        else:
+            return Nand(simp_child1, simp_child2)
+
+
+class Nor(ComparisonLogicalOperator):
+    """logical NOR operator node"""
+    __slots__ = ()
+    wolfram_func = 'Nor'
+
+    @staticmethod
+    def comparison_function(x: Number, y: Number) -> bool:
+        """Compare both numbers"""
+        return not (bool(x) | bool(y))
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        if self.parent is not None:
+            return f'(not (bool({self.child1.infix()}) | bool({self.child2.infix()})))'
+        else:
+            return f'not (bool({self.child1.infix()}) | bool({self.child2.infix()}))'
+
+    def latex(self) -> str:
+        """returns latex representation of the tree"""
+        return f'~({self.child1.infix()} | {self.child2.infix()})'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mtag('row',
+                    mtag('o', '~')
+                    + mtag('fenced',
+                           mtag('row',
+                                self.child1.mathml()
+                                + mtag('o', '|')
+                                + self.child2.mathml())))
+
+    def simplify(self) -> Node:
+        """returns a simplified version of the tree"""
+        if len(self.dependencies()) == 0:
+            return Constant(self.evaluate())
+        simp_child1 = self.child1.simplify()
+        simp_child2 = self.child2.simplify()
+        if isinstance(simp_child1, Not) and isinstance(simp_child2, Not):
+            return And(simp_child1.child, simp_child2.child).simplify()
+        else:
+            return Nor(simp_child1, simp_child2)
+
+
+class Xor(ComparisonLogicalOperator):
+    """logical XOR operator node"""
+    __slots__ = ()
+    symbol = '^'
+    wolfram_func = 'Xor'
+
+    @staticmethod
+    def comparison_function(x: Number, y: Number) -> bool:
+        """Compare both numbers"""
+        return bool(x) ^ bool(y)
+
+    def simplify(self) -> Node:
+        """returns a simplified version of the tree"""
+        if len(self.dependencies()) == 0:
+            return Constant(self.evaluate())
+        simp_child1 = self.child1.simplify()
+        simp_child2 = self.child2.simplify()
+        if isinstance(simp_child1, Not) and isinstance(simp_child2, Not):
+            return Xor(simp_child1.child, simp_child2.child).simplify()
+        else:
+            return Xor(simp_child1, simp_child2)
+
+
+class Xnor(ComparisonLogicalOperator):
+    """logical XOR operator node"""
+    __slots__ = ()
+    wolfram_func = 'Xnor'
+
+    @staticmethod
+    def comparison_function(x: Number, y: Number) -> bool:
+        """Compare both numbers"""
+        return not (bool(x) ^ bool(y))
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        if self.parent is not None:
+            return f'(not (bool({self.child1.infix()}) ^ bool({self.child2.infix()})))'
+        else:
+            return f'not (bool({self.child1.infix()}) ^ bool({self.child2.infix()}))'
+
+    def latex(self) -> str:
+        """returns latex representation of the tree"""
+        return f'~({self.child1.infix()} ^ {self.child2.infix()})'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mtag('row',
+                    mtag('o', '~')
+                    + mtag('fenced',
+                           mtag('row',
+                                self.child1.mathml()
+                                + mtag('o', '^')
+                                + self.child2.mathml())))
+
+    def simplify(self) -> Node:
+        """returns a simplified version of the tree"""
+        if len(self.dependencies()) == 0:
+            return Constant(self.evaluate())
+        simp_child1 = self.child1.simplify()
+        simp_child2 = self.child2.simplify()
+        if isinstance(simp_child1, Not) and isinstance(simp_child2, Not):
+            return Xnor(simp_child1.child, simp_child2.child).simplify()
+        else:
+            return Xnor(simp_child1, simp_child2)
 
 
 class UnaryOperator(Node, metaclass=ABCMeta):
@@ -1465,6 +1703,71 @@ class Invert(UnaryOperator):
         return f'Divide[1, {self.child.wolfram()}]'
 
 
+class Not(UnaryOperator):
+    """Logical not operator"""
+    __slots__ = ()
+    symbol = '~'
+    wolfram_func = 'Not'
+    latex_func = '~'
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Not(self.child.derivative(variable))
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return int(not self.child.evaluate(var_dict))
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        if len(self.child.list_nodes()) > 1:
+            return f'{self.symbol}({self.child.infix()})'
+        else:
+            return f'{self.symbol}{self.child.infix()}'
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Piecewise([(Variable(var), self)])
+
+    def latex(self) -> str:
+        """return latex language representation of the tree"""
+        if len(self.child.list_nodes()) > 1:
+            return f'{self.latex_func}({self.child.latex()})'
+        else:
+            return f'{self.latex_func}{self.child.latex()}'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        if len(self.child.list_nodes()) > 1:
+            return mtag('row',
+                        mtag('i', self.symbol)
+                        + mtag('fenced', self.child.mathml()))
+        else:
+            return mtag('row',
+                        mtag('i', self.symbol)
+                        + self.child.mathml())
+
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        simpchild = self.child.simplify()
+        if isinstance(simpchild, Not):
+            return simpchild
+        elif isinstance(simpchild, Nand):
+            return And(simpchild.child1, simpchild.child2).simplify()
+        elif isinstance(simpchild, Nor):
+            return Or(simpchild.child1, simpchild.child2).simplify()
+        elif isinstance(simpchild, Xnor):
+            return Xor(simpchild.child1, simpchild.child2).simplify()
+        elif isinstance(simpchild, And):
+            return Nand(simpchild.child1, simpchild.child2).simplify()
+        elif isinstance(simpchild, Or):
+            return Nor(simpchild.child1, simpchild.child2).simplify()
+        elif isinstance(simpchild, Xor):
+            return Xnor(simpchild.child1, simpchild.child2).simplify()
+        else:
+            return Not(simpchild)
+
+
 class CalculusOperator(Node, metaclass=ABCMeta):
     """Calculus-related operator nodes"""
     __slots__ = ('child', 'variable')
@@ -1770,8 +2073,8 @@ class Piecewise(Node):
 
     def tuple(self) -> Expression:
         """returns the tuple representation of the tree"""
-        return (tuple((expr.tuple(), cond.tuple()) for expr, cond in self.expressions) + (self.default.tuple(),)
-                + (self.symbol,))
+        return (tuple((expr.tuple(), cond.tuple()) for expr, cond in self.expressions)
+                + (self.default.tuple(), self.symbol))
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
