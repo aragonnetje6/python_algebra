@@ -6,7 +6,7 @@ from os import system
 
 from IPython import get_ipython
 from IPython.display import HTML, display_html
-from math_tree import *
+from math_tree import Node, tag
 
 
 def generate_html_doc(expression: 'Node') -> str:
