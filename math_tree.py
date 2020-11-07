@@ -42,7 +42,7 @@ class Node(metaclass=ABCMeta):
         return f'{self.__class__.__name__}()'
 
     def __str__(self) -> str:
-        return self.rpn()
+        return self.infix()
 
     def __eq__(self, other: 'Node') -> 'Equal':
         if isinstance(other, str):
@@ -105,7 +105,14 @@ class Node(metaclass=ABCMeta):
             return NotImplemented
 
     def __radd__(self, other: Union[str, Number, 'Node']) -> 'Addition':
-        return self + other
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Addition(other, self)
+        else:
+            return NotImplemented
 
     def __sub__(self, other: Union[str, Number, 'Node']) -> 'Subtraction':
         if isinstance(other, str):
@@ -138,7 +145,14 @@ class Node(metaclass=ABCMeta):
             return NotImplemented
 
     def __rmul__(self, other: Union[str, Number, 'Node']) -> 'Product':
-        return self * other
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return Product(other, self)
+        else:
+            return NotImplemented
 
     def __truediv__(self, other: Union[str, Number, 'Node']) -> 'Division':
         if isinstance(other, str):
@@ -183,8 +197,8 @@ class Node(metaclass=ABCMeta):
     def __neg__(self) -> 'Negate':
         return Negate(self)
 
-    def __invert__(self) -> 'Invert':
-        return Invert(self)
+    def __invert__(self) -> 'Not':
+        return Not(self)
 
     def __and__(self, other: Union[str, Number, 'Node']) -> 'And':
         if isinstance(other, str):
@@ -650,11 +664,10 @@ class Subtraction(BinaryOperator):
         if isinstance(child1, Constant) and isinstance(child2, Constant):
             return Constant(child1.evaluate() - child2.evaluate())
         elif isinstance(child1, Constant) and child1.evaluate() == 0:
-            return Product(Constant(-1), child2)
+            return Negate(child2)
         elif isinstance(child2, Constant) and child2.evaluate() == 0:
             return child1
-        else:
-            return Subtraction(child1, child2)
+        return Subtraction(child1, child2)
 
 
 class Product(BinaryOperator):
@@ -713,8 +726,7 @@ class Product(BinaryOperator):
                 return Constant(0)
             elif child2.evaluate() == 1:
                 return child1
-        else:
-            return Product(child1, child2)
+        return Product(child1, child2)
 
 
 class Division(BinaryOperator):
@@ -765,14 +777,17 @@ class Division(BinaryOperator):
             if child1.evaluate() == 0:
                 return Constant(0)
             elif child1.evaluate() == 1:
-                return Exponent(child2, Constant(-1))
+                return Invert(child2)
+            elif child1.evaluate() == -1:
+                return Negate(child2)
         elif isinstance(child2, Constant):
-            if child2.evaluate() == 0:
-                raise ZeroDivisionError('division by zero')
-            elif child2.evaluate() == 1:
+            if child2.evaluate() == 1:
                 return child1
-        else:
-            return Division(child1, child2)
+            elif child2.evaluate() == -1:
+                return Negate(child1)
+            else:
+                return Division(child1, child2)
+        return Division(child1, child2)
 
 
 class Exponent(BinaryOperator):
@@ -876,8 +891,7 @@ class Exponent(BinaryOperator):
                 return Constant(1)
             elif child2.evaluate() == 1:
                 return child1
-        else:
-            return Exponent(child1, child2)
+        return Exponent(child1, child2)
 
 
 class Logarithm(BinaryOperator):
@@ -946,8 +960,7 @@ class Logarithm(BinaryOperator):
         elif isinstance(child1, Constant):
             if child1.evaluate() == 1:
                 return Constant(0)
-        else:
-            return Division(child1, child2)
+        return Logarithm(child1, child2)
 
 
 class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
@@ -2083,3 +2096,10 @@ class Piecewise(Node):
             expression_part += f'{{{expr.infix()}, {cond.infix()}}}, '
         expression_part += '}, ' + self.default.infix()
         return f'{self.wolfram_func}[{expression_part}]'
+
+
+if __name__ == '__main__':
+    x = Variable('x')
+    expr = sum((3 - i) * (x ** i) for i in range(3))
+    print(expr)
+    print(expr.simplify())
