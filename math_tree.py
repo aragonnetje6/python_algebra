@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 from itertools import combinations_with_replacement
 from math import e, log, sin, cos, tan, asin, acos, atan, isclose
 from typing import Optional, Dict, Union, Tuple, List, Set
+from gui import display
 
 Number = Union[int, float]
 Variables = Dict[str, Number]
@@ -316,6 +317,10 @@ class Node(metaclass=ABCMeta):
     def copy(self) -> 'Node':
         """returns a copy of this tree"""
         return self.__class__()
+
+    def display(self):
+        """shows graphical representation of expression"""
+        display(self)
 
     def get_root(self) -> 'Node':
         """Returns the root node of the expression tree"""

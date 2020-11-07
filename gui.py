@@ -9,7 +9,7 @@ from IPython.display import HTML, display_html
 from math_tree import *
 
 
-def generate_html_doc(expression: Node) -> str:
+def generate_html_doc(expression: 'Node') -> str:
     """generates html code for expression"""
     return '<!DOCTYPE html>' \
            + tag('html',
@@ -22,7 +22,7 @@ def generate_html_doc(expression: Node) -> str:
                            'xmlns = "http://www.w3.org/1998/Math/MathML" id = "expr"')))
 
 
-def display(expression: Node) -> None:
+def display(expression: 'Node') -> None:
     """Generates and opens html representation of expression"""
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         # noinspection PyTypeChecker
