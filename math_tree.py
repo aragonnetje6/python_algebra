@@ -1022,7 +1022,6 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
 
     def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> bool:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        # todo: bool support
         if var_dict is None:
             var_dict = {}
         simple = self
