@@ -1091,7 +1091,7 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
                             simple.child2.evaluate(case)
                         except ArithmeticError:
                             continue
-                return False
+                    return False
             return True
 
     def infix(self) -> str:
