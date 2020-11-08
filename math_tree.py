@@ -87,6 +87,16 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
+    def __ne__(self, other: 'Node') -> 'NotEqual':
+        if isinstance(other, str):
+            other = Variable(other)
+        elif isinstance(other, (float, int, bool)):
+            other = Constant(other)
+        if isinstance(other, Node):
+            return NotEqual(self, other)
+        else:
+            return NotImplemented
+
     def __gt__(self, other: 'Node') -> 'GreaterThan':
         if isinstance(other, str):
             other = Variable(other)
@@ -303,7 +313,8 @@ class Node(metaclass=ABCMeta):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
 
     @abstractmethod
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
 
     @abstractmethod
@@ -447,7 +458,8 @@ class Constant(Term):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Constant(0)
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.value
 
@@ -495,7 +507,8 @@ class Variable(Term):
             return Constant(1)
         return Constant(0)
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         if var_dict is None:
             raise KeyError(f'None does not contain "{self.value}"')
@@ -626,7 +639,8 @@ class Addition(BinaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Addition(self.child1.derivative(variable), self.child2.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.child1.evaluate(var_dict) + self.child2.evaluate(var_dict)
 
@@ -692,7 +706,8 @@ class Subtraction(BinaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Subtraction(self.child1.derivative(variable), self.child2.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.child1.evaluate(var_dict) - self.child2.evaluate(var_dict)
 
@@ -725,7 +740,8 @@ class Product(BinaryOperator):
         return Addition(Product(self.child1, self.child2.derivative(variable)),
                         Product(self.child1.derivative(variable), self.child2))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         try:
             return self.child1.evaluate(var_dict) * self.child2.evaluate(var_dict)
@@ -785,7 +801,8 @@ class Division(BinaryOperator):
                                     Product(self.child1, self.child2.derivative(variable))),
                         Exponent(self.child2, Constant(2)))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.child1.evaluate(var_dict) / self.child2.evaluate(var_dict)
 
@@ -850,7 +867,8 @@ class Exponent(BinaryOperator):
                                         Logarithm(self.child1,
                                                   Constant(e)))))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         try:
             ans: Union[Number, complex] = self.child1.evaluate(var_dict) ** self.child2.evaluate(var_dict)
@@ -949,7 +967,7 @@ class Logarithm(BinaryOperator):
             child2 = Constant(e)
         super().__init__(child1, child2)
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return log(self.child1.evaluate(var_dict), self.child2.evaluate(var_dict))
 
@@ -1020,7 +1038,7 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return self.__class__(self.child1.derivative(variable), self.child2.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> bool:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) -> bool:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         if var_dict is None:
             var_dict = {}
@@ -1029,16 +1047,28 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
             simple = simple.substitute(var, Constant(val))
         dependencies = simple.dependencies()
         if len(dependencies) == 0:
-            return self._comparison_function(simple.child1.evaluate(var_dict), simple.child2.evaluate(var_dict))
+            try:
+                return self._comparison_function(simple.child1.evaluate(var_dict), simple.child2.evaluate(var_dict))
+            except ArithmeticError:
+                try:
+                    simple.child1.evaluate(var_dict)
+                except ArithmeticError:
+                    try:
+                        simple.child2.evaluate(var_dict)
+                    except ArithmeticError:
+                        return True
+                return False
         else:
-            def inputs(vars_set: Set[str], var_types: Optional[Types] = None):
+            def inputs(vars_set: Set[str], var_types: Optional[Dict[str, str]] = None):
                 """recursively generate input values for evaluation"""
                 vars_set = vars_set.copy()
                 var_name = vars_set.pop()
-                space = [-2 ** x for x in range(20, -21, -1)] + [0] + [2 ** x for x in range(-20, 21)]
+                space = [-2 ** x for x in range(20, -21, -1)] + [0]
                 try:
-                    if var_types[var_name] == bool:
+                    if var_types[var_name] == 'bool':
                         space = [False, True]
+                    elif var_types[var_name] == 'pos_num':
+                        space = [2 ** x for x in range(-20, 21)]
                 except (KeyError, TypeError):
                     pass
                 if len(vars_set) > 0:
@@ -1049,8 +1079,20 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
                     for value in space:
                         yield {var_name: value}
 
-            return all(self._comparison_function(self.child1.evaluate(case), self.child2.evaluate(case))
-                       for case in inputs(dependencies, types))
+            for case in inputs(dependencies, types):
+                try:
+                    if not self._comparison_function(self.child1.evaluate(case), self.child2.evaluate(case)):
+                        return False
+                except ArithmeticError:
+                    try:
+                        simple.child1.evaluate(case)
+                    except ArithmeticError:
+                        try:
+                            simple.child2.evaluate(case)
+                        except ArithmeticError:
+                            continue
+                return False
+            return True
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -1443,7 +1485,8 @@ class Sine(UnaryOperator):
         return Product(Cosine(self.child),
                        self.child.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return sin(self.child.evaluate(var_dict))
 
@@ -1471,7 +1514,8 @@ class Cosine(UnaryOperator):
                            Product(Sine(self.child),
                                    self.child.derivative(variable)))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return cos(self.child.evaluate(var_dict))
 
@@ -1498,7 +1542,8 @@ class Tangent(UnaryOperator):
                         Exponent(Cosine(self.child),
                                  Constant(2)))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return tan(self.child.evaluate(var_dict))
 
@@ -1529,7 +1574,8 @@ class ArcSine(UnaryOperator):
                                                       Constant(2))),
                                  Constant(1 / 2)))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return asin(self.child.evaluate(var_dict))
 
@@ -1564,7 +1610,8 @@ class ArcCosine(UnaryOperator):
                                                                   Constant(2))),
                                              Constant(1 / 2))))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return acos(self.child.evaluate(var_dict))
 
@@ -1597,7 +1644,8 @@ class ArcTangent(UnaryOperator):
                                  Exponent(self.child,
                                           Constant(2))))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return atan(self.child.evaluate(var_dict))
 
@@ -1629,7 +1677,8 @@ class Absolute(UnaryOperator):
                                 self.child.derivative(variable)),
                         Absolute(self.child))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return abs(self.child.evaluate(var_dict))
 
@@ -1667,7 +1716,8 @@ class Negate(UnaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Negate(self.child.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return -self.child.evaluate(var_dict)
 
@@ -1724,7 +1774,8 @@ class Invert(UnaryOperator):
         else:
             return Constant(0)
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return 1 / self.child.evaluate(var_dict)
 
@@ -1784,7 +1835,8 @@ class Not(UnaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Not(self.child.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return int(not self.child.evaluate(var_dict))
 
@@ -1884,7 +1936,8 @@ class Derivative(CalculusOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Derivative(self, variable)
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.child.derivative(self.variable).evaluate(var_dict)
 
@@ -1940,7 +1993,8 @@ class IndefiniteIntegral(CalculusOperator):
         else:
             return Derivative(self, variable)
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.child.simplify().integral(self.variable).evaluate(var_dict)
 
@@ -2002,7 +2056,8 @@ class DefiniteIntegral(CalculusOperator):
         else:
             return Derivative(self, variable)
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         indefinite = self.child.integral(self.variable)
         return (indefinite.substitute(self.variable, self.upper).evaluate(var_dict)
@@ -2073,7 +2128,8 @@ class Piecewise(Node):
         return Piecewise([(expr.derivative(variable), cond) for expr, cond in self.expressions],
                          self.default.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
+            -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         for expression, condition in self.expressions:
             if condition.evaluate(var_dict):
