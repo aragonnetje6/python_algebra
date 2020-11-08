@@ -1013,12 +1013,12 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def _comparison_function(x: Number, y: Number) -> bool:
+    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Constant(0)  # todo: piecewise
+        return self.__class__(self.child1.derivative(variable), self.child2.derivative(variable))
 
     def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Types] = None) -> bool:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -1032,6 +1032,7 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
             return self._comparison_function(simple.child1.evaluate(var_dict), simple.child2.evaluate(var_dict))
         else:
             def inputs(vars_set: Set[str], var_types: Optional[Types] = None):
+                """recursively generate input values for evaluation"""
                 vars_set = vars_set.copy()
                 var_name = vars_set.pop()
                 space = [-2 ** x for x in range(20, -21, -1)] + [0] + [2 ** x for x in range(-20, 21)]
