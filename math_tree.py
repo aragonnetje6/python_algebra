@@ -1049,13 +1049,13 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
         if len(dependencies) == 0:
             try:
                 return self._comparison_function(simple.child1.evaluate(var_dict), simple.child2.evaluate(var_dict))
-            except ArithmeticError:
+            except (ArithmeticError, ValueError):
                 try:
                     simple.child1.evaluate(var_dict)
-                except ArithmeticError:
+                except (ArithmeticError, ValueError):
                     try:
                         simple.child2.evaluate(var_dict)
-                    except ArithmeticError:
+                    except (ArithmeticError, ValueError):
                         return True
                 return False
         else:
@@ -1083,13 +1083,13 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
                 try:
                     if not self._comparison_function(self.child1.evaluate(case), self.child2.evaluate(case)):
                         return False
-                except ArithmeticError:
+                except (ArithmeticError, ValueError):
                     try:
                         simple.child1.evaluate(case)
-                    except ArithmeticError:
+                    except (ArithmeticError, ValueError):
                         try:
                             simple.child2.evaluate(case)
-                        except ArithmeticError:
+                        except (ArithmeticError, ValueError):
                             continue
                     return False
             return True
@@ -1775,7 +1775,7 @@ class Invert(UnaryOperator):
             return Constant(0)
 
     def evaluate(self, var_dict: Optional[Variables] = None, types: Optional[Dict[str, str]] = None) \
-            -> Union[Number, bool]:
+            -> Union[Number]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return 1 / self.child.evaluate(var_dict)
 
