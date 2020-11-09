@@ -3,7 +3,7 @@ Unittests for interpreter using pytest
 """
 
 import pytest
-from interpreter import *
+from python_algebra.interpreter import *
 
 rpn_list = ['1 2 +',
             '0 0 +',
