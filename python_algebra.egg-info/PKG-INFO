@@ -1,0 +1,18 @@
+Metadata-Version: 2.1
+Name: python-algebra
+Version: 0.0.1
+Summary: Symbolic math package
+Home-page: https://github.com/aragonnetje6/python_algebra
+Author: Twan Stok
+Author-email: twanstok@gmail.com
+License: UNKNOWN
+Description: # python_algebra
+        
+        simple expression tree with derivatives and basic integrals implemented in python
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: win
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
