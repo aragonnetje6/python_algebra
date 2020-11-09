@@ -3,12 +3,11 @@ Unittests for math_tree using pytest
 """
 
 import random
-from math import isclose
 from string import ascii_lowercase
 
 import pytest
-from interpreter import rpn_to_tree
-from math_tree import *
+from python_algebra.interpreter import rpn_to_tree
+from python_algebra.math_tree import *
 
 rpn_list = ['1 2 +',
             '0 0 +',

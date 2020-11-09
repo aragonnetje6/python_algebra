@@ -8,7 +8,8 @@ from math import log, sin, cos, tan, asin, acos, atan
 from typing import Callable
 from typing import Optional, Dict, Union, List
 
-from math_tree import Number, Variables, Node, UnaryOperator, BinaryOperator, Constant, Variable, Addition, \
+from python_algebra.math_tree import Number, Variables, Node, UnaryOperator, BinaryOperator, Constant, Variable, \
+    Addition, \
     Subtraction, Product, Division, Exponent, Logarithm, Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent, Absolute
 
 operator_2_in_functions: Dict[str, Callable[[Number, Number], Number]] = {'+': lambda a, b: a + b,
