@@ -1,9 +1,0 @@
-README.md
-setup.py
-python_algebra/__init__.py
-python_algebra/interpreter.py
-python_algebra/math_tree.py
-python_algebra.egg-info/PKG-INFO
-python_algebra.egg-info/SOURCES.txt
-python_algebra.egg-info/dependency_links.txt
-python_algebra.egg-info/top_level.txt

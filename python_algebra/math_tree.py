@@ -338,10 +338,6 @@ class Node(metaclass=ABCMeta):
         """returns the MathML representation of the tree"""
 
     @abstractmethod
-    def rpn(self) -> str:
-        """DEPRECATED -- returns the reverse polish notation representation of the tree"""
-
-    @abstractmethod
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
 
@@ -432,10 +428,6 @@ class Term(Node, metaclass=ABCMeta):
     def list_nodes(self) -> List[Node]:
         """returns a list of all nodes in the tree"""
         return [self]
-
-    def rpn(self) -> str:
-        """DEPRECATED -- returns the reverse polish notation representation of the tree"""
-        return str(self.value)
 
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
@@ -604,10 +596,6 @@ class BinaryOperator(Node, metaclass=ABCMeta):
         super().reset_parents(parent)
         self.child1.reset_parents(self)
         self.child2.reset_parents(self)
-
-    def rpn(self) -> str:
-        """DEPRECATED -- returns the reverse polish notation representation of the tree"""
-        return self.child1.rpn() + ' ' + self.child2.rpn() + ' ' + self.symbol
 
     def simplify(self) -> Node:
         """returns a simplified version of the tree"""
@@ -1449,10 +1437,6 @@ class UnaryOperator(Node, metaclass=ABCMeta):
         super().reset_parents(parent)
         self.child.reset_parents(self)
 
-    def rpn(self) -> str:
-        """DEPRECATED -- returns the reverse polish notation representation of the tree"""
-        return self.child.rpn() + ' ' + self.symbol
-
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
         if len(self.dependencies()) == 0:
@@ -1906,10 +1890,6 @@ class CalculusOperator(Node, metaclass=ABCMeta):
         out = [self]  # type: List[Node]
         return out + self.child.list_nodes()
 
-    def rpn(self) -> str:
-        """DEPRECATED -- returns the reverse polish notation representation of the tree"""
-        return self.child.rpn() + ' ' + self.variable + ' ' + self.symbol
-
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child.substitute(var, sub), self.variable)
@@ -2087,10 +2067,6 @@ class DefiniteIntegral(CalculusOperator):
                           + mathml_tag('i', 'd')
                           + mathml_tag('i', self.variable))
 
-    def rpn(self) -> str:
-        """DEPRECATED -- returns the reverse polish notation representation of the tree"""
-        return ' '.join((self.child.rpn(), self.variable, self.lower.rpn(), self.upper.rpn(), self.symbol))
-
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
         indefinite = self.child.simplify().integral(self.variable)
@@ -2182,10 +2158,6 @@ class Piecewise(Node):
                           mathml_tag('o', '{')
                           + mathml_tag('table',
                                        expression_part))
-
-    def rpn(self) -> str:
-        """DEPRECATED -- returns the reverse polish notation representation of the tree"""
-        raise NotImplementedError('Rpn notation of piecewise functions not supported')
 
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""

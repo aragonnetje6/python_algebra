@@ -6,7 +6,6 @@ import random
 from string import ascii_lowercase
 
 import pytest
-from python_algebra.interpreter import rpn_to_tree
 from python_algebra.math_tree import *
 
 rpn_list = ['1 2 +',
