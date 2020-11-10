@@ -63,6 +63,27 @@ def display(expression: 'Node') -> None:
         system('output.html')
 
 
+def inputs(vars_set: Set[str], var_types: Optional[Dict[str, str]] = None):
+    """recursively generate input values for evaluation"""
+    vars_set = vars_set.copy()
+    var_name = vars_set.pop()
+    space = [-(2 ** x) for x in range(-20, 21, 1)] + [0] + [-(2 ** x) for x in range(-20, 21, 1)]
+    try:
+        if var_types[var_name] == 'bool':
+            space = [False, True]
+        elif var_types[var_name] == 'pos_num':
+            space = [2 ** x for x in range(-20, 21)]
+    except (KeyError, TypeError):
+        pass
+    if len(vars_set) > 0:
+        for value in space:
+            for tail in inputs(vars_set, var_types):
+                yield {var_name: value, **tail}
+    else:
+        for value in space:
+            yield {var_name: value}
+
+
 class Node(metaclass=ABCMeta):
     """Abstract Base Class for any node in the expression tree"""
     __slots__ = 'parent',
@@ -77,7 +98,7 @@ class Node(metaclass=ABCMeta):
     def __str__(self) -> str:
         return self.infix()
 
-    def __eq__(self, other: 'Node') -> 'Equal':
+    def __eq__(self, other: Union[str, Number, 'Node']) -> 'Equal':
         if isinstance(other, str):
             other = Variable(other)
         elif isinstance(other, (float, int, bool)):
@@ -87,7 +108,7 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
-    def __ne__(self, other: 'Node') -> 'NotEqual':
+    def __ne__(self, other: Union[str, Number, 'Node']) -> 'NotEqual':
         if isinstance(other, str):
             other = Variable(other)
         elif isinstance(other, (float, int, bool)):
@@ -97,7 +118,7 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
-    def __gt__(self, other: 'Node') -> 'GreaterThan':
+    def __gt__(self, other: Union[str, Number, 'Node']) -> 'GreaterThan':
         if isinstance(other, str):
             other = Variable(other)
         elif isinstance(other, (float, int, bool)):
@@ -107,7 +128,7 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
-    def __ge__(self, other: 'Node') -> 'GreaterEqual':
+    def __ge__(self, other: Union[str, Number, 'Node']) -> 'GreaterEqual':
         if isinstance(other, str):
             other = Variable(other)
         elif isinstance(other, (float, int, bool)):
@@ -117,7 +138,7 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
-    def __lt__(self, other: 'Node') -> 'LessThan':
+    def __lt__(self, other: Union[str, Number, 'Node']) -> 'LessThan':
         if isinstance(other, str):
             other = Variable(other)
         elif isinstance(other, (float, int, bool)):
@@ -127,7 +148,7 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
-    def __le__(self, other: 'Node') -> 'LessEqual':
+    def __le__(self, other: Union[str, Number, 'Node']) -> 'LessEqual':
         if isinstance(other, str):
             other = Variable(other)
         elif isinstance(other, (float, int, bool)):
@@ -1047,26 +1068,6 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
                         return True
                 return False
         else:
-            def inputs(vars_set: Set[str], var_types: Optional[Dict[str, str]] = None):
-                """recursively generate input values for evaluation"""
-                vars_set = vars_set.copy()
-                var_name = vars_set.pop()
-                space = [-2 ** x for x in range(20, -21, -1)] + [0]
-                try:
-                    if var_types[var_name] == 'bool':
-                        space = [False, True]
-                    elif var_types[var_name] == 'pos_num':
-                        space = [2 ** x for x in range(-20, 21)]
-                except (KeyError, TypeError):
-                    pass
-                if len(vars_set) > 0:
-                    for value in space:
-                        for tail in inputs(vars_set, var_types):
-                            yield {var_name: value, **tail}
-                else:
-                    for value in space:
-                        yield {var_name: value}
-
             for case in inputs(dependencies, types):
                 try:
                     if not self._comparison_function(self.child1.evaluate(case), self.child2.evaluate(case)):
