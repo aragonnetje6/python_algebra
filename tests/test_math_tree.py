@@ -16,6 +16,7 @@ var_dicts_floats = [{letter: random.random() * 200 - 100 for letter in ascii_low
 
 
 class TestAlgebraProperties:
+    """Property based testing for algebraic operators"""
     class TestAddition:
         def test_commutative(self):
             assert (x + y == y + x).evaluate()
