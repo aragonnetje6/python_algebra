@@ -34,9 +34,6 @@ class TestAlgebraProperties:
         def test_definition(self):
             assert (x + -y == x - y).evaluate()
 
-        def test_negation(self):
-            assert (x - y == -(y - x)).evaluate()
-
         def test_identity(self):
             assert (x - 0 == x).evaluate()
 
