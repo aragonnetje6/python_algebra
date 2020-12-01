@@ -1,4 +1,4 @@
-![Test Status](https://github.com/aragonnetje6/python_algebra/workflows/pytest/badge.svg)
+![Pytest](https://github.com/aragonnetje6/python_algebra/workflows/Pytest/badge.svg)
 
 # python_algebra
 
