@@ -1,2 +1,3 @@
-IPython~= 7.19.0
+IPython~=7.19.0
 pytest~= 6.1.1
+matplotlib-base== 3.3.2
