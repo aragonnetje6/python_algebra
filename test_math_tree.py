@@ -79,9 +79,6 @@ class TestAlgebraProperties:
         def test_distribution_over_addition(self):
             assert ((x + y) ** 2 == x ** 2 + y ** 2 + 2 * x * y).evaluate()
 
-        def test_distribution_over_product(self):
-            assert (((x * y) ** z == x ** z * y ** z) | (x < 0) | (y < 0)).evaluate()
-
     class TestLogarithm:
         def test_definition(self):
             assert ((Logarithm(x ^ y, x) == y) | (x <= 0)).evaluate()
