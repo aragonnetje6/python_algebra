@@ -86,11 +86,12 @@ def inputs(vars_set: Set[str], var_types: Optional[Dict[str, str]] = None):
 
 class Node(metaclass=ABCMeta):
     """Abstract Base Class for any node in the expression tree"""
-    __slots__ = 'parent',
+    __slots__ = 'parent', '_finished'
 
     def __init__(self) -> None:
         self.parent: Optional[Node] = None
         self.reset_parents()
+        self._finished = True
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}()'
@@ -324,6 +325,12 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
+    def __setattr__(self, key, value):
+        if not hasattr(self, '_finished') or not self._finished or key == 'parent':
+            super().__setattr__(key, value)
+        else:
+            raise AttributeError(f'\'{self.__class__.__name__}\' object is read-only')
+
     @staticmethod
     def dependencies() -> Set[str]:
         """returns set of all variables present in the tree"""
@@ -400,7 +407,6 @@ class Node(metaclass=ABCMeta):
         out: Node = Constant(0)
         for variable in self.dependencies():
             out = Addition(out, self.derivative(variable))
-        out.reset_parents()
         return out
 
 
@@ -409,8 +415,8 @@ class Term(Node, metaclass=ABCMeta):
     __slots__ = 'value',
 
     def __init__(self, value: Union[str, Number]) -> None:
-        super().__init__()
         self.value = value
+        super().__init__()
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({self.value})'
@@ -1863,9 +1869,9 @@ class CalculusOperator(Node, metaclass=ABCMeta):
     symbol = ''
 
     def __init__(self, expression: 'Node', variable: 'str') -> None:
-        super().__init__()
         self.child = expression.copy()
         self.variable = variable
+        super().__init__()
 
     def list_nodes(self) -> List['Node']:
         """return latex language representation of the tree"""
@@ -2073,9 +2079,9 @@ class Piecewise(Node):
     __slots__ = 'expressions', 'default'
 
     def __init__(self, expressions: List[Tuple[Node, Node]], default: Optional[Node] = None):
-        super().__init__()
         self.default = default.copy() if default is not None else Constant(0)
         self.expressions = [(expr.copy(), cond.copy()) for expr, cond in expressions]
+        super().__init__()
 
     def copy(self) -> 'Node':
         """returns a copy of this tree"""
