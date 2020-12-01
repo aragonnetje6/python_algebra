@@ -1,1 +1,2 @@
 IPython~= 7.19.0
+pytest~= 6.1.1
