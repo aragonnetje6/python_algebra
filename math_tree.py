@@ -388,25 +388,6 @@ class Node(metaclass=ABCMeta):
             return self
         return self.parent.get_root()
 
-    def plot(self, var: str, minimum: Number, maximum: Number, var_dict: Optional[Variables] = None, n: int = 10000,
-             *args, **kwargs):
-        """Plot function over supplied variable range"""
-        import matplotlib.pyplot as plt
-
-        if var_dict is None:
-            var_dict = {}
-
-        x = [i / n * (maximum - minimum) + minimum for i in range(n)]
-        y = []
-        for i in x:
-            try:
-                y.append(self.evaluate({**var_dict, var: i}))
-            except (ArithmeticError, NotImplementedError):
-                y.append(None)
-
-        plt.plot(x, y, *args, **kwargs)
-        plt.show()
-
     def reset_parents(self, parent: Optional['Node'] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
         self.parent = parent
