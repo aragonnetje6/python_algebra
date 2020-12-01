@@ -5,7 +5,7 @@ Unittests for math_tree using pytest
 import random
 from string import ascii_lowercase
 
-from python_algebra.math_tree import *
+from math_tree import *
 
 x = Variable('x')
 y = Variable('y')
