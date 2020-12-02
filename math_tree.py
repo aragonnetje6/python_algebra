@@ -366,6 +366,10 @@ class Node(metaclass=ABCMeta):
         """returns the MathML representation of the tree"""
 
     @abstractmethod
+    def polynomial(self) -> 'Node':
+        """expands the expression into polynomial form"""
+
+    @abstractmethod
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
 
@@ -436,6 +440,10 @@ class Term(Node, metaclass=ABCMeta):
     def list_nodes(self) -> List[Node]:
         """returns a list of all nodes in the tree"""
         return [self]
+
+    def polynomial(self) -> 'Node':
+        """expands the expression into polynomial form"""
+        return self
 
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
@@ -598,6 +606,11 @@ class BinaryOperator(Node, metaclass=ABCMeta):
                               self.child1.mathml()
                               + mathml_tag('o', self.symbol)
                               + self.child2.mathml())
+
+    def polynomial(self) -> 'Node':
+        """expands the expression into polynomial form"""
+        return self.__class__(self.child1.polynomial(),
+                              self.child2.polynomial())
 
     def reset_parents(self, parent: Optional[Node] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
@@ -766,6 +779,19 @@ class Product(BinaryOperator):
         else:
             raise NotImplementedError('Integration not supported for this expression')
 
+    def polynomial(self) -> 'Node':
+        """expands the expression into polynomial form"""
+        child1 = self.child1.polynomial()
+        child2 = self.child2.polynomial()
+        if isinstance(child1, Addition):
+            return Addition(Product(child2, child1.child1),
+                            Product(child2, child1.child2)).polynomial()
+        elif isinstance(child2, Addition):
+            return Addition(Product(child1, child2.child1),
+                            Product(child1, child2.child2)).polynomial()
+        else:
+            return Product(child1, child2)
+
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
         child1 = self.child1.simplify()
@@ -823,6 +849,16 @@ class Division(BinaryOperator):
                           mathml_tag('frac',
                                      self.child1.mathml()
                                      + self.child2.mathml()))
+
+    def polynomial(self) -> 'Node':
+        """expands the expression into polynomial form"""
+        child1 = self.child1.polynomial()
+        child2 = self.child2.polynomial()
+        if isinstance(child1, Addition):
+            return Addition(Division(child1.child1, child2),
+                            Division(child1.child2, child2)).polynomial()
+        else:
+            return Division(child1, child2)
 
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
@@ -933,6 +969,19 @@ class Exponent(BinaryOperator):
                                          self.child1.mathml()
                                          + self.child2.mathml()))
 
+    def polynomial(self) -> 'Node':
+        """expands the expression into polynomial form"""
+        child1 = self.child1.polynomial()
+        child2 = self.child2.polynomial()
+        if isinstance(child1, Product):
+            return Product(Exponent(child1.child1, child2),
+                           Exponent(child1.child2, child2)).polynomial()
+        elif isinstance(child1, Exponent):
+            return Exponent(child1.child1,
+                            Product(child2, child1.child2)).polynomial()
+        else:
+            return Exponent(child1, child2)
+
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
         child1 = self.child1.simplify()
@@ -1008,6 +1057,22 @@ class Logarithm(BinaryOperator):
                                      mathml_tag('i', self.symbol)
                                      + self.child2.mathml())
                           + mathml_tag('fenced', self.child1.mathml()))
+
+    def polynomial(self) -> 'Node':
+        """expands the expression into polynomial form"""
+        child1 = self.child1.polynomial()
+        child2 = self.child2.polynomial()
+        if isinstance(child1, Exponent):
+            return Product(child1.child2,
+                           Logarithm(child1.child1,
+                                     child2)).polynomial()
+        elif isinstance(child1, Product):
+            return Addition(Logarithm(child1.child1, child2),
+                            Logarithm(child1.child1, child2)).polynomial()
+        elif isinstance(child1, Division):
+            return Subtraction(Logarithm(child1.child1, child2),
+                               Logarithm(child1.child1, child2)).polynomial()
+        return Logarithm(child1, child2)
 
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
@@ -1102,6 +1167,10 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
                                                     self.child1.mathml()
                                                     + mathml_tag('o', self.symbol)
                                                     + self.child2.mathml())))
+
+    def polynomial(self) -> 'Node':
+        """expands the expression into polynomial form"""
+        return self
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
@@ -1419,6 +1488,10 @@ class UnaryOperator(Node, metaclass=ABCMeta):
         return mathml_tag('row',
                           mathml_tag('i', self.symbol)
                           + mathml_tag('fenced', self.child.mathml()))
+
+    def polynomial(self) -> 'Node':
+        """expands the expression into polynomial form"""
+        return self.__class__(self.child.polynomial())
 
     def reset_parents(self, parent: Optional[Node] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
@@ -1878,6 +1951,10 @@ class CalculusOperator(Node, metaclass=ABCMeta):
         out = [self]  # type: List[Node]
         return out + self.child.list_nodes()
 
+    def polynomial(self) -> 'Node':
+        """expands the expression into polynomial form"""
+        return self.__class__(self.child.polynomial(), self.variable)
+
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child.substitute(var, sub), self.variable)
@@ -2055,6 +2132,10 @@ class DefiniteIntegral(CalculusOperator):
                           + mathml_tag('i', 'd')
                           + mathml_tag('i', self.variable))
 
+    def polynomial(self) -> 'Node':
+        """expands the expression into polynomial form"""
+        return self.__class__(self.child.polynomial(), self.symbol, self.lower, self.upper)
+
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
         indefinite = self.child.simplify().integral(self.variable)
@@ -2146,6 +2227,11 @@ class Piecewise(Node):
                           mathml_tag('o', '{')
                           + mathml_tag('table',
                                        expression_part))
+
+    def polynomial(self) -> 'Node':
+        """expands the expression into polynomial form"""
+        return self.__class__([(x.polynomial(), y.polynomial()) for x, y in self.expressions],
+                              self.default.polynomial())
 
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
