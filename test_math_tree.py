@@ -4,6 +4,7 @@ Unittests for math_tree using pytest
 
 import random
 from string import ascii_lowercase
+from hypothesis import given, infer, example
 
 from math_tree import *
 
@@ -85,3 +86,19 @@ class TestAlgebraProperties:
 
         def test_one(self):
             assert ((Logarithm(x, x) == 1) | (x <= 0)).evaluate()
+
+
+class TestTransformation:
+    @given(expression=infer)
+    @example(expression=(x * y) ** 2)
+    @example(expression=(x + y) * 2)
+    @example(expression=(x + y * 0))
+    def test_simplify(self, expression: Node):
+        assert (expression == expression.simplify()).evaluate()
+
+    @given(expression=infer)
+    @example(expression=(x * y) ** 2)
+    @example(expression=(x + y) * 2)
+    @example(expression=(x + y * 0))
+    def test_polynomial(self, expression: Node):
+        assert (expression == expression.polynomial()).evaluate()
