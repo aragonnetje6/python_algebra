@@ -1946,6 +1946,10 @@ class CalculusOperator(Node, metaclass=ABCMeta):
         self.variable = variable
         super().__init__()
 
+    def copy(self):
+        """returns a copy of this tree"""
+        return self.__class__(self.child, self.variable)
+
     def list_nodes(self) -> List['Node']:
         """return latex language representation of the tree"""
         out = [self]  # type: List[Node]
@@ -2089,6 +2093,10 @@ class DefiniteIntegral(CalculusOperator):
         super().__init__(expression, variable)
         self.lower = lower.copy()
         self.upper = upper.copy()
+
+    def copy(self):
+        """returns a copy of this tree"""
+        return self.__class__(self.child, self.variable, self.lower, self.upper)
 
     def dependencies(self) -> Set[str]:
         """returns set of all variables present in the tree"""
