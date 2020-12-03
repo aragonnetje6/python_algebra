@@ -423,7 +423,10 @@ class Term(Node, metaclass=ABCMeta):
         super().__init__()
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.value})'
+        if isinstance(self.value, str):
+            return f'{self.__class__.__name__}(\'{self.value}\')'
+        else:
+            return f'{self.__class__.__name__}({self.value})'
 
     def copy(self) -> 'Node':
         """returns a copy of this tree"""
@@ -1186,7 +1189,7 @@ class Equal(ComparisonLogicalOperator):
     @staticmethod
     def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
         """Compare both numbers"""
-        return isclose(x, y)
+        return x == y or isclose(x, y)
 
 
 class NotEqual(ComparisonLogicalOperator):
