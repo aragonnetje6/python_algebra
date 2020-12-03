@@ -2,21 +2,46 @@
 Unittests for math_tree using pytest
 """
 
-import random
-from string import ascii_lowercase
-
-from math_tree import *
+from hypothesis import given, settings
+from hypothesis.strategies import deferred, one_of, builds, sampled_from, booleans, integers, floats, dictionaries
+from math_tree import Node, Constant, Variable, Addition, Subtraction, Product, Division, Exponent, Logarithm, Equal, \
+    NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor, Xnor, Sine, Cosine, Tangent, \
+    ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, IndefiniteIntegral, DefiniteIntegral, \
+    Variables
 
 x = Variable('x')
 y = Variable('y')
 z = Variable('z')
 
-var_dicts_ints = [{letter: random.randint(-100, 100) for letter in ascii_lowercase} for _ in range(100)]
-var_dicts_floats = [{letter: random.random() * 200 - 100 for letter in ascii_lowercase} for _ in range(100)]
+binary_operators = [Addition, Subtraction, Product, Division, Exponent, Logarithm]
+binary_logical_operators = [Equal, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor,
+                            Xnor]
+unary_operators = [Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert]
+unary_logical_operators = [Not]
+calculus_operators = [Derivative, IndefiniteIntegral, DefiniteIntegral]
+
+variables_dict = dictionaries(sampled_from('abcdefghijklmnopqrstuvwxyz'),
+                              one_of(integers(), floats(allow_nan=False, allow_infinity=False)),
+                              min_size=26)
+
+constant = builds(Constant, one_of(integers(), floats(allow_nan=False, allow_infinity=False)))
+constant_bool = builds(Constant, booleans())
+variable = builds(Variable, sampled_from('xy'))
+expression = deferred(lambda: constant
+                              | variable
+                              | one_of(*[builds(operator, expression) for operator in unary_operators])
+                              | one_of(*[builds(operator, expression, expression) for operator in binary_operators]))
 
 
 class TestAlgebraProperties:
     """Property based testing for algebraic operators"""
+
+    class TestEquality:
+        @given(expr1=expression, expr2=expression, variables=variables_dict)
+        def test_definition(self, expr1: Node, expr2: Node, variables: Variables):
+            if (expr1 == expr2).evaluate():
+                assert expr1.evaluate(variables) == expr2.evaluate(variables)
+
     class TestAddition:
         def test_commutative(self):
             assert (x + y == y + x).evaluate()
@@ -85,3 +110,21 @@ class TestAlgebraProperties:
 
         def test_one(self):
             assert ((Logarithm(x, x) == 1) | (x <= 0)).evaluate()
+
+
+class TestTransformation:
+    @settings(deadline=10000)
+    @given(expr=expression)
+    def test_simplify(self, expr: Node):
+        try:
+            assert (expr == expr.simplify()).evaluate()
+        except (ValueError, ArithmeticError):
+            pass
+
+    @settings(deadline=10000)
+    @given(expr=expression)
+    def test_polynomial(self, expr: Node):
+        try:
+            assert (expr == expr.polynomial()).evaluate()
+        except (ValueError, ArithmeticError):
+            pass
