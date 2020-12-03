@@ -2,11 +2,12 @@
 Unittests for math_tree using pytest
 """
 
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis.strategies import deferred, one_of, builds, sampled_from, booleans, integers, floats, dictionaries
 from math_tree import Node, Constant, Variable, Addition, Subtraction, Product, Division, Exponent, Logarithm, Equal, \
     NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor, Xnor, Sine, Cosine, Tangent, \
-    ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, IndefiniteIntegral, DefiniteIntegral
+    ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, IndefiniteIntegral, DefiniteIntegral, \
+    Variables
 
 x = Variable('x')
 y = Variable('y')
@@ -19,9 +20,9 @@ unary_operators = [Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent, Absolu
 unary_logical_operators = [Not]
 calculus_operators = [Derivative, IndefiniteIntegral, DefiniteIntegral]
 
-variables_dicts = dictionaries(sampled_from('abcdefghijklmnopqrstuvwxyz'),
-                               one_of(integers(), floats(allow_nan=False, allow_infinity=False)),
-                               min_size=26)
+variables_dict = dictionaries(sampled_from('abcdefghijklmnopqrstuvwxyz'),
+                              one_of(integers(), floats(allow_nan=False, allow_infinity=False)),
+                              min_size=26)
 
 constant = builds(Constant, one_of(integers(), floats(allow_nan=False, allow_infinity=False)))
 constant_bool = builds(Constant, booleans())
@@ -34,6 +35,12 @@ expression = deferred(lambda: constant
 
 class TestAlgebraProperties:
     """Property based testing for algebraic operators"""
+
+    class TestEquality:
+        @given(expr1=expression, expr2=expression, variables=variables_dict)
+        def test_definition(self, expr1: Node, expr2: Node, variables: Variables):
+            if (expr1 == expr2).evaluate():
+                assert expr1.evaluate(variables) == expr2.evaluate(variables)
 
     class TestAddition:
         def test_commutative(self):
@@ -106,6 +113,7 @@ class TestAlgebraProperties:
 
 
 class TestTransformation:
+    @settings(deadline=10000)
     @given(expr=expression)
     def test_simplify(self, expr: Node):
         try:
@@ -113,6 +121,7 @@ class TestTransformation:
         except (ValueError, ArithmeticError):
             pass
 
+    @settings(deadline=10000)
     @given(expr=expression)
     def test_polynomial(self, expr: Node):
         try:
