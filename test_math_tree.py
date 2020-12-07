@@ -12,17 +12,17 @@ from math_tree import Node, Constant, Variable, Addition, Subtraction, Product, 
 from pytest import fixture
 
 
-@fixture
+@fixture(scope="module")
 def x():
     return Variable('x')
 
 
-@fixture
+@fixture(scope="module")
 def y():
     return Variable('y')
 
 
-@fixture
+@fixture(scope="module")
 def z():
     return Variable('z')
 
