@@ -180,7 +180,7 @@ class TestIdentities:
     def test_22(self, x: Variable, y: Variable, var_dict):
         try:
             x1, y1 = x.evaluate(var_dict), y.evaluate(var_dict)
-            if (0 < y1 < 1 and x1 > 0) or (y1 > 1 and x1 > 0) or (y1 != 0 and y1 != 1 and x1 == y1):
+            if (0 < y1 < 1 or y1 > 1) and x1 > 0:
                 assert (Logarithm(x, y) == (Logarithm(x) / Logarithm(y))).evaluate(var_dict)
         except OverflowError:
             pass
