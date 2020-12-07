@@ -3,10 +3,10 @@ basic expression tree with evaluation and derivation
 """
 
 from abc import ABCMeta, abstractmethod
+from decimal import Decimal, getcontext
 from math import e, log, sin, cos, tan, asin, acos, atan, isclose
 from os import system
 from typing import Optional, Dict, Union, Tuple, List, Set
-from decimal import Decimal, getcontext
 
 getcontext().prec = 1000
 
@@ -1064,16 +1064,14 @@ class Logarithm(BinaryOperator):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        ans = log(self.child1.evaluate(var_dict), self.child2.evaluate(var_dict))
-        try:
-            if isinstance(ans, float):
-                if int(ans) == ans:
-                    ans = int(ans)
-                else:
-                    ans = Decimal(ans)
-        except OverflowError:
-            ans = Decimal(ans)
-        return ans
+        x = Decimal(self.child1.evaluate(var_dict))
+        y = Decimal(self.child2.evaluate(var_dict))
+        if y != 0 and y != 1 and x == y:
+            return 1
+        elif (0 < y < 1 and x > 0) or (y > 1 and x > 0):
+            return round(x.log10() / y.log10(), 6)
+        else:
+            raise ValueError(f'Invalid inputs: {x}, {y}')
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1167,9 +1165,8 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
         try:
             return self._comparison_function(self.child1.evaluate(var_dict), self.child2.evaluate(var_dict))
         except (KeyError, ArithmeticError, ValueError):
-            pass
-        return self._comparison_function(self.child1.simplify().evaluate(var_dict),
-                                         self.child2.simplify().evaluate(var_dict))
+            return self._comparison_function(self.child1.simplify().evaluate(var_dict),
+                                             self.child2.simplify().evaluate(var_dict))
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
