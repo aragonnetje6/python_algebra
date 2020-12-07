@@ -5,12 +5,13 @@ basic expression tree with evaluation and derivation
 from abc import ABCMeta, abstractmethod
 from math import e, log, sin, cos, tan, asin, acos, atan, isclose
 from os import system
-from typing import Optional, Dict, Union, Tuple, List, Set, Type
+from typing import Optional, Dict, Union, Tuple, List, Set
+from decimal import Decimal, getcontext
 
+getcontext().prec = 1000
 
-Number = Union[int, float]
+Number = Union[int, float, Decimal]
 Variables = Dict[str, Number]
-Types = Dict[str, Type]
 Expression = Union[Tuple[Union[tuple, Number, str], Union[tuple, Number, str], Union[tuple, Number, str], Union[
     tuple, Number, str], str],
                    Tuple[Union[tuple, Number, str], Union[tuple, Number, str], str],
@@ -67,27 +68,6 @@ def display(expression: 'Node') -> None:
         with open('output.html', 'w') as file:
             file.write(html)
         system('output.html')
-
-
-def inputs(vars_set: Set[str], var_types: Optional[Dict[str, str]] = None):
-    """recursively generate input values for evaluation"""
-    vars_set = vars_set.copy()
-    var_name = vars_set.pop()
-    space = [-(2 ** x) for x in range(-20, 21, 1)] + [0] + [-(2 ** x) for x in range(-20, 21, 1)]
-    try:
-        if var_types[var_name] == 'bool':
-            space = [False, True]
-        elif var_types[var_name] == 'pos_num':
-            space = [2 ** x for x in range(-20, 21)]
-    except (KeyError, TypeError):
-        pass
-    if len(vars_set) > 0:
-        for value in space:
-            for tail in inputs(vars_set, var_types):
-                yield {var_name: value, **tail}
-    else:
-        for value in space:
-            yield {var_name: value}
 
 
 class Node(metaclass=ABCMeta):
@@ -467,12 +447,15 @@ class Constant(Term):
     __slots__ = ()
 
     def __init__(self, value: Union[Number, bool]) -> None:
-        assert isinstance(value, (int, float, bool))
+        assert isinstance(value, (int, float, bool, Decimal))
         try:
-            if isinstance(value, float) and int(value) == value:
-                value = int(value)
+            if isinstance(value, float):
+                if int(value) == value:
+                    value = int(value)
+                else:
+                    value = Decimal(value)
         except OverflowError:
-            pass
+            value = Decimal(value)
         super().__init__(value)
 
     def derivative(self, variable: str) -> 'Node':
@@ -535,10 +518,13 @@ class Variable(Term):
             raise KeyError(f'None does not contain "{self.value}"')
         value = var_dict[self.value]
         try:
-            if isinstance(value, float) and int(value) == value:
-                value = int(value)
+            if isinstance(value, float):
+                if int(value) == value:
+                    value = int(value)
+                else:
+                    value = Decimal(value)
         except OverflowError:
-            pass
+            value = Decimal(value)
         return value
 
     def integral(self, var: str) -> 'Node':
@@ -866,7 +852,16 @@ class Division(BinaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) \
             -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return self.child1.evaluate(var_dict) / self.child2.evaluate(var_dict)
+        ans = self.child1.evaluate(var_dict) / self.child2.evaluate(var_dict)
+        try:
+            if isinstance(ans, float):
+                if int(ans) == ans:
+                    ans = int(ans)
+                else:
+                    ans = Decimal(ans)
+        except OverflowError:
+            ans = Decimal(ans)
+        return ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -950,21 +945,26 @@ class Exponent(BinaryOperator):
             ans: Union[Number, complex] = self.child1.evaluate(var_dict) ** self.child2.evaluate(var_dict)
             if isinstance(ans, complex):
                 raise ArithmeticError('Complex values not allowed')
-            else:
-                return ans
         except (ArithmeticError, ValueError) as err:
             try:
-                ans1 = self.child1.evaluate(var_dict)
-                if ans1 == 0 or ans1 == 1:
-                    return ans1
-                else:
+                ans = self.child1.evaluate(var_dict)
+                if not (ans == 0 or ans == 1):
                     raise err from err
             except (ArithmeticError, ValueError) as err:
                 ans2 = self.child2.evaluate(var_dict)
                 if ans2 == 0:
-                    return 1
+                    ans = 1
                 else:
                     raise err from err
+        try:
+            if isinstance(ans, float):
+                if int(ans) == ans:
+                    ans = int(ans)
+                else:
+                    ans = Decimal(ans)
+        except OverflowError:
+            ans = Decimal(ans)
+        return ans
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -1064,7 +1064,16 @@ class Logarithm(BinaryOperator):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return log(self.child1.evaluate(var_dict), self.child2.evaluate(var_dict))
+        ans = log(self.child1.evaluate(var_dict), self.child2.evaluate(var_dict))
+        try:
+            if isinstance(ans, float):
+                if int(ans) == ans:
+                    ans = int(ans)
+                else:
+                    ans = Decimal(ans)
+        except OverflowError:
+            ans = Decimal(ans)
+        return ans
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1573,7 +1582,16 @@ class Sine(UnaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) \
             -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return sin(self.child.evaluate(var_dict))
+        ans = sin(self.child.evaluate(var_dict))
+        try:
+            if isinstance(ans, float):
+                if int(ans) == ans:
+                    ans = int(ans)
+                else:
+                    ans = Decimal(ans)
+        except OverflowError:
+            ans = Decimal(ans)
+        return ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1602,7 +1620,16 @@ class Cosine(UnaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) \
             -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return cos(self.child.evaluate(var_dict))
+        ans = cos(self.child.evaluate(var_dict))
+        try:
+            if isinstance(ans, float):
+                if int(ans) == ans:
+                    ans = int(ans)
+                else:
+                    ans = Decimal(ans)
+        except OverflowError:
+            ans = Decimal(ans)
+        return ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1630,7 +1657,16 @@ class Tangent(UnaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) \
             -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return tan(self.child.evaluate(var_dict))
+        ans = tan(self.child.evaluate(var_dict))
+        try:
+            if isinstance(ans, float):
+                if int(ans) == ans:
+                    ans = int(ans)
+                else:
+                    ans = Decimal(ans)
+        except OverflowError:
+            ans = Decimal(ans)
+        return ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1662,7 +1698,16 @@ class ArcSine(UnaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) \
             -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return asin(self.child.evaluate(var_dict))
+        ans = asin(self.child.evaluate(var_dict))
+        try:
+            if isinstance(ans, float):
+                if int(ans) == ans:
+                    ans = int(ans)
+                else:
+                    ans = Decimal(ans)
+        except OverflowError:
+            ans = Decimal(ans)
+        return ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1698,7 +1743,16 @@ class ArcCosine(UnaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) \
             -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return acos(self.child.evaluate(var_dict))
+        ans = acos(self.child.evaluate(var_dict))
+        try:
+            if isinstance(ans, float):
+                if int(ans) == ans:
+                    ans = int(ans)
+                else:
+                    ans = Decimal(ans)
+        except OverflowError:
+            ans = Decimal(ans)
+        return ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1732,7 +1786,16 @@ class ArcTangent(UnaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) \
             -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return atan(self.child.evaluate(var_dict))
+        ans = atan(self.child.evaluate(var_dict))
+        try:
+            if isinstance(ans, float):
+                if int(ans) == ans:
+                    ans = int(ans)
+                else:
+                    ans = Decimal(ans)
+        except OverflowError:
+            ans = Decimal(ans)
+        return ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1875,7 +1938,16 @@ class Invert(UnaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) \
             -> Union[Number]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return 1 / self.child.evaluate(var_dict)
+        ans = 1 / self.child.evaluate(var_dict)
+        try:
+            if isinstance(ans, float):
+                if int(ans) == ans:
+                    ans = int(ans)
+                else:
+                    ans = Decimal(ans)
+        except OverflowError:
+            ans = Decimal(ans)
+        return ans
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -1938,7 +2010,7 @@ class Not(UnaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) \
             -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return int(not self.child.evaluate(var_dict))
+        return not self.child.evaluate(var_dict)
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
