@@ -7,8 +7,6 @@ from math import e, log, sin, cos, tan, asin, acos, atan, isclose
 from os import system
 from typing import Optional, Dict, Union, Tuple, List, Set, Type
 
-from IPython import get_ipython
-from IPython.display import HTML, display_html
 
 Number = Union[int, float]
 Variables = Dict[str, Number]
@@ -49,14 +47,22 @@ def generate_html_doc(expression: 'Node') -> str:
 
 def display(expression: 'Node') -> None:
     """Generates and opens html representation of expression"""
-    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
-        # noinspection PyTypeChecker
-        display_html(
-            HTML(
-                tag('math',
-                    expression.mathml(),
-                    'xmlns = "http://www.w3.org/1998/Math/MathML" id = "expr"')))
-    else:
+    try:
+        from IPython import get_ipython
+        from IPython.display import HTML, display_html
+        if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
+            # noinspection PyTypeChecker
+            display_html(
+                HTML(
+                    tag('math',
+                        expression.mathml(),
+                        'xmlns = "http://www.w3.org/1998/Math/MathML" id = "expr"')))
+        else:
+            html = generate_html_doc(expression)
+            with open('output.html', 'w') as file:
+                file.write(html)
+            system('output.html')
+    except ModuleNotFoundError:
         html = generate_html_doc(expression)
         with open('output.html', 'w') as file:
             file.write(html)
