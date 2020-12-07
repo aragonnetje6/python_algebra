@@ -462,6 +462,11 @@ class Constant(Term):
 
     def __init__(self, value: Union[Number, bool]) -> None:
         assert isinstance(value, (int, float, bool))
+        try:
+            if isinstance(value, float) and int(value) == value:
+                value = int(value)
+        except OverflowError:
+            pass
         super().__init__(value)
 
     def derivative(self, variable: str) -> 'Node':
@@ -522,7 +527,13 @@ class Variable(Term):
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         if var_dict is None:
             raise KeyError(f'None does not contain "{self.value}"')
-        return var_dict[self.value]
+        value = var_dict[self.value]
+        try:
+            if isinstance(value, float) and int(value) == value:
+                value = int(value)
+        except OverflowError:
+            pass
+        return value
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""

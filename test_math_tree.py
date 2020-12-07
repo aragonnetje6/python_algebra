@@ -43,45 +43,117 @@ math_expression = deferred(lambda: constant_number
                                               for operator in binary_operators]))
 
 
-class TestAlgebraProperties:
-    """Property based testing for algebraic operators"""
+@given(val1=constant_any, val2=constant_any)
+def test_equality(val1: Node, val2: Node):
+    assert (val1 == val2).evaluate() == (val1.evaluate() == val2.evaluate())
 
-    @given(val1=constant_any, val2=constant_any)
-    def test_equality(self, val1: Node, val2: Node):
-        assert (val1 == val2).evaluate() == (val1.evaluate() == val2.evaluate())
+
+class TestIdentities:
+    @given(var_dict=variables_dict('xy'))
+    def test_1(self, var_dict):
+        assert (x + y == y + x).evaluate(var_dict)
 
     @given(var_dict=variables_dict('xyz'))
-    def test_identities(self, var_dict):
-        assert (x + y == y + x).evaluate(var_dict)
+    def test_2(self, var_dict):
         assert ((x + y) + z == x + (y + z)).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('x'))
+    def test_3(self, var_dict):
         assert (x + 0 == x).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('x'))
+    def test_4(self, var_dict):
         assert (x + -x == 0).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('xy'))
+    def test_5(self, var_dict):
         assert (x + -y == x - y).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('x'))
+    def test_6(self, var_dict):
         assert (x - 0 == x).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('x'))
+    def test_7(self, var_dict):
         assert (x + x == x * 2).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('xy'))
+    def test_8(self, var_dict):
         assert (x * y == y * x).evaluate(var_dict)
-        assert ((x * y) * z == x * (y * z)).evaluate(var_dict)
-        assert (x * (y + z) == x * y + x * z).evaluate(var_dict)
-        assert (x * 1 == x).evaluate(var_dict)
-        assert (x * 0 == 0).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('xyz'))
+    def test_9(self, var_dict):
         try:
+            assert ((x * y) * z == x * (y * z)).evaluate(var_dict)
+        except OverflowError:
+            pass
+
+    @given(var_dict=variables_dict('xyz'))
+    def test_10(self, var_dict):
+        try:
+            assert (x * (y + z) == x * y + x * z).evaluate(var_dict)
+        except OverflowError:
+            pass
+
+    @given(var_dict=variables_dict('x'))
+    def test_11(self, var_dict):
+        assert (x * 1 == x).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('x'))
+    def test_12(self, var_dict):
+        assert (x * 0 == 0).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('x'))
+    def test_13(self, var_dict):
+        if x.evaluate(var_dict) != 0:
             assert (x * Invert(x) == 1).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('xy'))
+    def test_14(self, var_dict):
+        if y.evaluate(var_dict) != 0:
             assert (x * Invert(y) == x / y).evaluate(var_dict)
-        except ArithmeticError:
-            assert x.evaluate(var_dict) == 0
+
+    @given(var_dict=variables_dict('x'))
+    def test_15(self, var_dict):
         assert (x / 1 == x).evaluate(var_dict)
-        assert (x * x == x ** 2).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('x'))
+    def test_16(self, var_dict):
+        try:
+            assert (x * x == x ** 2).evaluate(var_dict)
+        except OverflowError:
+            pass
+
+    @given(var_dict=variables_dict('x'))
+    def test_17(self, var_dict):
         assert ((x ** 1 == x) | (x == 0)).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('x'))
+    def test_18(self, var_dict):
         assert (x ** 0 == 1).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('xy'))
+    def test_19(self, var_dict):
         try:
             assert ((x + y) ** 2 == x ** 2 + y ** 2 + 2 * x * y).evaluate(var_dict)
         except OverflowError:
             pass
+
+    # @given(var_dict=variables_dict('xy'))
+    # def test_20(self, var_dict):
+    #     try:
+    #         assert (Logarithm(x ** y, x) == y).evaluate(var_dict)
+    #     except (ValueError, ArithmeticError):
+    #         assert x.evaluate(var_dict) <= 0 or x.evaluate(var_dict) == 1
+    #     except OverflowError:
+    #         pass
+
+    @given(var_dict=variables_dict('x'))
+    def test_21(self, var_dict):
         try:
-            assert (Logarithm(x ^ y, x) == y).evaluate(var_dict)
             assert (Logarithm(x, x) == 1).evaluate(var_dict)
-        except ArithmeticError:
-            assert x.evaluate(var_dict) <= 0
+        except (ValueError, ArithmeticError):
+            assert x.evaluate(var_dict) <= 0 or x.evaluate(var_dict) == 1
 
 # class TestTransformation:
 #     @settings(deadline=10000)
