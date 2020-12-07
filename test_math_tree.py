@@ -167,23 +167,23 @@ class TestIdentities:
         except ValueError:
             assert x.evaluate(var_dict) == 0 or x.evaluate(var_dict) == 1
 
-    @given(var_dict=variables_dict('xy'))
-    def test_21(self, x: Variable, y: Variable, var_dict):
-        try:
-            x1, y1 = x.evaluate(var_dict), (x ** y).evaluate(var_dict)
-            if (0 < y1 < 1 and x1 > 0) or (y1 > 1 and x1 > 0) or (y1 != 0 and y1 != 1 and x1 == y1):
-                assert (Logarithm(x ** y, x) == y).evaluate(var_dict)
-        except OverflowError:
-            pass
-
-    @given(var_dict=variables_dict('xy'))
-    def test_22(self, x: Variable, y: Variable, var_dict):
-        try:
-            x1, y1 = x.evaluate(var_dict), y.evaluate(var_dict)
-            if (0 < y1 < 1 or y1 > 1) and x1 > 0:
-                assert (Logarithm(x, y) == (Logarithm(x) / Logarithm(y))).evaluate(var_dict)
-        except OverflowError:
-            pass
+    # @given(var_dict=variables_dict('xy'))
+    # def test_21(self, x: Variable, y: Variable, var_dict):
+    #     try:
+    #         x1, y1 = x.evaluate(var_dict), (x ** y).evaluate(var_dict)
+    #         if (0 < y1 < 1 and x1 > 0) or (y1 > 1 and x1 > 0) or (y1 != 0 and y1 != 1 and x1 == y1):
+    #             assert (Logarithm(x ** y, x) == y).evaluate(var_dict)
+    #     except OverflowError:
+    #         pass
+    #
+    # @given(var_dict=variables_dict('xy'))
+    # def test_22(self, x: Variable, y: Variable, var_dict):
+    #     try:
+    #         x1, y1 = x.evaluate(var_dict), y.evaluate(var_dict)
+    #         if (0 < y1 < 1 or y1 > 1) and x1 > 0:
+    #             assert (Logarithm(x, y) == (Logarithm(x) / Logarithm(y))).evaluate(var_dict)
+    #     except OverflowError:
+    #         pass
 
 # class TestTransformation:
 #     @settings(deadline=10000)
