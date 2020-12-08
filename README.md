@@ -4,4 +4,4 @@
 
 # python_algebra
 
-simple expression tree with derivatives and basic integrals implemented in python
+simple expression tree with derivatives, basic integrals and simplification implemented in python
