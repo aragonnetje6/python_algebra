@@ -38,7 +38,9 @@ misc_operators = [Piecewise]
 
 def variables_dict(keys: str, bools: bool = False) -> SearchStrategy[Variables]:
     if bools:
-        return dictionaries(sampled_from(keys), booleans())
+        return dictionaries(sampled_from(keys),
+                            booleans(),
+                            min_size=len(keys))
     else:
         return dictionaries(sampled_from(keys),
                             one_of(integers(), floats(allow_nan=False, allow_infinity=False)),
@@ -70,7 +72,7 @@ def test_no_floats(expr: Node, var_dict: Variables) -> None:
         pass
 
 
-class TestIdentities:
+class TestBinaryOperators:
     @given(var_dict=variables_dict('xy'))
     def test_1(self, x: Variable, y: Variable, var_dict: Variables) -> None:
         assert Equal(x + y, y + x).evaluate(var_dict)
@@ -168,37 +170,20 @@ class TestIdentities:
         except ValueError:
             assert x.evaluate(var_dict) == 0 or x.evaluate(var_dict) == 1
 
-    # @given(var_dict=variables_dict('xy'))
-    # def test_21(self, x: Variable, y: Variable, var_dict: Variables) -> None:
-    #     try:
-    #         x1, y1 = x.evaluate(var_dict), (x ** y).evaluate(var_dict)
-    #         if (0 < y1 < 1 and x1 > 0) or (y1 > 1 and x1 > 0) or (y1 != 0 and y1 != 1 and x1 == y1):
-    #             assert (Logarithm(x ** y, x) == y).evaluate(var_dict)
-    #     except OverflowError:
-    #         pass
-    #
-    # @given(var_dict=variables_dict('xy'))
-    # def test_22(self, x: Variable, y: Variable, var_dict: Variables) -> None:
-    #     try:
-    #         x1, y1 = x.evaluate(var_dict), y.evaluate(var_dict)
-    #         if (0 < y1 < 1 or y1 > 1) and x1 > 0:
-    #             assert (Logarithm(x, y) == (Logarithm(x) / Logarithm(y))).evaluate(var_dict)
-    #     except OverflowError:
-    #         pass
 
-# class TestTransformation:
-#     @settings(deadline=10000)
-#     @given(expr=math_expression)
-#     def test_simplify(self, expr: Node) -> None:
-#         try:
-#             assert expr.evaluate() == expr.simplify().evaluate()
-#         except (ValueError, ArithmeticError):
-#             pass
-#
-#     @settings(deadline=10000)
-#     @given(expr=math_expression)
-#     def test_polynomial(self, expr: Node) -> None:
-#         try:
-#             assert expr.evaluate() == expr.polynomial().evaluate()
-#         except (ValueError, ArithmeticError):
-#             pass
+class TestLogicOperators:
+    @given(var_dict=variables_dict('x', True))
+    def test_not(self, x: Variable, var_dict: Variables) -> None:
+        assert Equal(Not(x), Nand(x, x)).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('xy', True))
+    def test_and(self, x: Variable, y: Variable, var_dict: Variables) -> None:
+        assert Equal(And(x, y), Not(Nand(x, y))).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('xy', True))
+    def test_or(self, x: Variable, y: Variable, var_dict: Variables) -> None:
+        assert Equal(Or(x, y), Nand(Not(x), Not(y))).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('xy', True))
+    def test_xor(self, x: Variable, y: Variable, var_dict: Variables) -> None:
+        assert Equal(Xor(x, y), And(Or(x, y), Nand(x, y))).evaluate(var_dict)
