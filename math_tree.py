@@ -1280,6 +1280,31 @@ class Or(ComparisonLogicalOperator):
             return Nor(simple_child1, simple_child2)
 
 
+class Xor(ComparisonLogicalOperator):
+    """logical XOR operator node"""
+    __slots__ = ()
+    symbol = '^'
+    wolfram_func = 'Xor'
+
+    @staticmethod
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
+        """Compare both numbers"""
+        return bool(x) ^ bool(y)
+
+    def simplify(self) -> Node:
+        """returns a simplified version of the tree"""
+        try:
+            return Constant(self.evaluate())
+        except KeyError:
+            pass
+        simple_child1 = self.child1.simplify()
+        simple_child2 = self.child2.simplify()
+        if isinstance(simple_child1, Not) and isinstance(simple_child2, Not):
+            return Xor(simple_child1.child, simple_child2.child).simplify()
+        else:
+            return Xor(simple_child1, simple_child2)
+
+
 class Nand(ComparisonLogicalOperator):
     """logical NAND operator node"""
     __slots__ = ()
@@ -1368,31 +1393,6 @@ class Nor(ComparisonLogicalOperator):
             return And(simple_child1.child, simple_child2.child).simplify()
         else:
             return Nor(simple_child1, simple_child2)
-
-
-class Xor(ComparisonLogicalOperator):
-    """logical XOR operator node"""
-    __slots__ = ()
-    symbol = '^'
-    wolfram_func = 'Xor'
-
-    @staticmethod
-    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
-        """Compare both numbers"""
-        return bool(x) ^ bool(y)
-
-    def simplify(self) -> Node:
-        """returns a simplified version of the tree"""
-        try:
-            return Constant(self.evaluate())
-        except KeyError:
-            pass
-        simple_child1 = self.child1.simplify()
-        simple_child2 = self.child2.simplify()
-        if isinstance(simple_child1, Not) and isinstance(simple_child2, Not):
-            return Xor(simple_child1.child, simple_child2.child).simplify()
-        else:
-            return Xor(simple_child1, simple_child2)
 
 
 class Xnor(ComparisonLogicalOperator):
