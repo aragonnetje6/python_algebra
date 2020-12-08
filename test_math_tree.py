@@ -173,17 +173,17 @@ class TestBinaryOperators:
 
 class TestLogicOperators:
     @given(var_dict=variables_dict('x', True))
-    def test_not(self, x: Variable, var_dict: Variables):
+    def test_not(self, x: Variable, var_dict: Variables) -> None:
         assert Equal(Not(x), Nand(x, x)).evaluate(var_dict)
 
     @given(var_dict=variables_dict('xy', True))
-    def test_and(self, x: Variable, y: Variable, var_dict: Variables):
+    def test_and(self, x: Variable, y: Variable, var_dict: Variables) -> None:
         assert Equal(And(x, y), Not(Nand(x, y))).evaluate(var_dict)
 
     @given(var_dict=variables_dict('xy', True))
-    def test_or(self, x: Variable, y: Variable, var_dict: Variables):
+    def test_or(self, x: Variable, y: Variable, var_dict: Variables) -> None:
         assert Equal(Or(x, y), Nand(Not(x), Not(y))).evaluate(var_dict)
 
     @given(var_dict=variables_dict('xy', True))
-    def test_xor(self, x: Variable, y: Variable, var_dict: Variables):
+    def test_xor(self, x: Variable, y: Variable, var_dict: Variables) -> None:
         assert Equal(Xor(x, y), And(Or(x, y), Nand(x, y))).evaluate(var_dict)
