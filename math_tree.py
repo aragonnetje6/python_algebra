@@ -6,21 +6,15 @@ from abc import ABCMeta, abstractmethod
 from decimal import Decimal, getcontext
 from math import e, log, sin, cos, tan, asin, acos, atan, isclose
 from os import system
-from typing import Optional, Dict, Union, Tuple, List, Set
+from typing import Optional, Dict, Union, Tuple, List, Set, Any
 
 getcontext().prec = 1000
 
-Number = Union[int, float, Decimal]
-Variables = Dict[str, Number]
-Expression = Union[Tuple[Union[tuple, Number, str], Union[tuple, Number, str], Union[tuple, Number, str], Union[
-    tuple, Number, str], str],
-                   Tuple[Union[tuple, Number, str], Union[tuple, Number, str], str],
-                   Tuple[Union[tuple, Number, str], str],
-                   Number,
-                   str]
+Number = Union[int, Decimal]
+Variables = Dict[str, Union[Number, float, bool]]
 
 
-def tag(xml_tag: str, content: str, args: Optional[str] = None):
+def tag(xml_tag: str, content: str, args: Optional[str] = None) -> str:
     """XML tag wrapping function"""
     if args is None:
         return f'<{xml_tag}>{content}</{xml_tag}>'
@@ -28,7 +22,7 @@ def tag(xml_tag: str, content: str, args: Optional[str] = None):
         return f'<{xml_tag} {args}>{content}</{xml_tag}>'
 
 
-def mathml_tag(xml_tag: str, content: str, args: Optional[str] = None):
+def mathml_tag(xml_tag: str, content: str, args: Optional[str] = None) -> str:
     """Mathml tag wrapping function"""
     return tag('m' + xml_tag, content, args)
 
@@ -49,8 +43,8 @@ def generate_html_doc(expression: 'Node') -> str:
 def display(expression: 'Node') -> None:
     """Generates and opens html representation of expression"""
     try:
-        from IPython import get_ipython
-        from IPython.display import HTML, display_html
+        from IPython import get_ipython  # type: ignore
+        from IPython.display import HTML, display_html  # type: ignore
         if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
             # noinspection PyTypeChecker
             display_html(
@@ -85,160 +79,137 @@ class Node(metaclass=ABCMeta):
     def __str__(self) -> str:
         return self.infix()
 
-    def __eq__(self, other: Union[str, Number, 'Node']) -> 'Equal':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __bool__(self) -> bool:
+        return bool(self.evaluate())
+
+    def __float__(self) -> float:
+        return float(self.evaluate())
+
+    def __int__(self) -> int:
+        return int(self.evaluate())
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
-            return Equal(self, other)
+            return Equal(self, other).evaluate()
         else:
             return NotImplemented
 
-    def __ne__(self, other: Union[str, Number, 'Node']) -> 'NotEqual':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __ne__(self, other: Any) -> bool:
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
-            return NotEqual(self, other)
+            return NotEqual(self, other).evaluate()
         else:
             return NotImplemented
 
-    def __gt__(self, other: Union[str, Number, 'Node']) -> 'GreaterThan':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __gt__(self, other: Any) -> bool:
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
-            return GreaterThan(self, other)
+            return GreaterThan(self, other).evaluate()
         else:
             return NotImplemented
 
-    def __ge__(self, other: Union[str, Number, 'Node']) -> 'GreaterEqual':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __ge__(self, other: Any) -> bool:
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
-            return GreaterEqual(self, other)
+            return GreaterEqual(self, other).evaluate()
         else:
             return NotImplemented
 
-    def __lt__(self, other: Union[str, Number, 'Node']) -> 'LessThan':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __lt__(self, other: Any) -> bool:
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
-            return LessThan(self, other)
+            return LessThan(self, other).evaluate()
         else:
             return NotImplemented
 
-    def __le__(self, other: Union[str, Number, 'Node']) -> 'LessEqual':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __le__(self, other: Any) -> bool:
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
-            return LessEqual(self, other)
+            return LessEqual(self, other).evaluate()
         else:
             return NotImplemented
 
-    def __add__(self, other: Union[str, Number, 'Node']) -> 'Addition':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __add__(self, other: Union[Number, 'Node']) -> 'Addition':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Addition(self, other)
         else:
             return NotImplemented
 
-    def __radd__(self, other: Union[str, Number, 'Node']) -> 'Addition':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __radd__(self, other: Union[Number, 'Node']) -> 'Addition':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Addition(other, self)
         else:
             return NotImplemented
 
-    def __sub__(self, other: Union[str, Number, 'Node']) -> 'Subtraction':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __sub__(self, other: Union[Number, 'Node']) -> 'Subtraction':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Subtraction(self, other)
         else:
             return NotImplemented
 
-    def __rsub__(self, other: Union[str, Number, 'Node']) -> 'Subtraction':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __rsub__(self, other: Union[Number, 'Node']) -> 'Subtraction':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Subtraction(other, self)
         else:
             return NotImplemented
 
-    def __mul__(self, other: Union[str, Number, 'Node']) -> 'Product':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __mul__(self, other: Union[Number, 'Node']) -> 'Product':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Product(self, other)
         else:
             return NotImplemented
 
-    def __rmul__(self, other: Union[str, Number, 'Node']) -> 'Product':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __rmul__(self, other: Union[Number, 'Node']) -> 'Product':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Product(other, self)
         else:
             return NotImplemented
 
-    def __truediv__(self, other: Union[str, Number, 'Node']) -> 'Division':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __truediv__(self, other: Union[Number, 'Node']) -> 'Division':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Division(self, other)
         else:
             return NotImplemented
 
-    def __rtruediv__(self, other: Union[str, Number, 'Node']) -> 'Division':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __rtruediv__(self, other: Union[Number, 'Node']) -> 'Division':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Division(other, self)
         else:
             return NotImplemented
 
-    def __pow__(self, other: Union[str, Number, 'Node']) -> 'Exponent':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __pow__(self, other: Union[Number, 'Node']) -> 'Exponent':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Exponent(self, other)
         else:
             return NotImplemented
 
-    def __rpow__(self, other: Union[str, Number, 'Node']) -> 'Exponent':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __rpow__(self, other: Union[Number, 'Node']) -> 'Exponent':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Exponent(other, self)
@@ -251,74 +222,61 @@ class Node(metaclass=ABCMeta):
     def __invert__(self) -> 'Not':
         return Not(self)
 
-    def __and__(self, other: Union[str, Number, 'Node']) -> 'And':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __and__(self, other: Union[Number, 'Node']) -> 'And':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return And(self, other)
         else:
             return NotImplemented
 
-    def __rand__(self, other: Union[str, Number, 'Node']) -> 'And':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __rand__(self, other: Union[Number, 'Node']) -> 'And':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return And(other, self)
         else:
             return NotImplemented
 
-    def __or__(self, other: Union[str, Number, 'Node']) -> 'Or':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __or__(self, other: Union[Number, 'Node']) -> 'Or':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Or(self, other)
         else:
             return NotImplemented
 
-    def __ror__(self, other: Union[str, Number, 'Node']) -> 'Or':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __ror__(self, other: Union[Number, 'Node']) -> 'Or':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Or(other, self)
         else:
             return NotImplemented
 
-    def __xor__(self, other: Union[str, Number, 'Node']) -> 'Xor':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __xor__(self, other: Union[Number, 'Node']) -> 'Xor':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Xor(self, other)
         else:
             return NotImplemented
 
-    def __rxor__(self, other: Union[str, Number, 'Node']) -> 'Xor':
-        if isinstance(other, str):
-            other = Variable(other)
-        elif isinstance(other, (float, int, bool)):
+    def __rxor__(self, other: Union[Number, 'Node']) -> 'Xor':
+        if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
             return Xor(other, self)
         else:
             return NotImplemented
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value: Any) -> None:
         if not hasattr(self, '_finished') or not self._finished or key == 'parent':
             super().__setattr__(key, value)
         else:
             raise AttributeError(f'\'{self.__class__.__name__}\' object is read-only')
 
-    @staticmethod
-    def dependencies() -> Set[str]:
+    def dependencies(self) -> Set[str]:
         """returns set of all variables present in the tree"""
         return set()
 
@@ -363,10 +321,6 @@ class Node(metaclass=ABCMeta):
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
 
     @abstractmethod
-    def tuple(self) -> Expression:
-        """DEPRECATED -- returns the tuple representation of the tree"""
-
-    @abstractmethod
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
 
@@ -374,7 +328,7 @@ class Node(metaclass=ABCMeta):
         """returns a copy of this tree"""
         return self.__class__()
 
-    def display(self):
+    def display(self) -> None:
         """shows graphical representation of expression"""
         display(self)
 
@@ -401,17 +355,42 @@ class Node(metaclass=ABCMeta):
 
 class Term(Node, metaclass=ABCMeta):
     """Abstract Base Class for any value (leaf node) in the expression tree"""
-    __slots__ = 'value',
+    __slots__ = ()
 
-    def __init__(self, value: Union[str, Number]) -> None:
+    def __init__(self) -> None:
+        super().__init__()
+
+    def list_nodes(self) -> List[Node]:
+        """returns a list of all nodes in the tree"""
+        return [self]
+
+    def polynomial(self) -> 'Node':
+        """expands the expression into polynomial form"""
+        return self.copy()
+
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        return self.copy()
+
+
+class Constant(Term):
+    """Real numerical constant in expression tree, """
+    __slots__ = ('value',)
+
+    def __init__(self, value: Union[Number, float, bool]) -> None:
+        try:
+            if isinstance(value, float):
+                if int(value) == value:
+                    value = int(value)
+                else:
+                    value = Decimal(value)
+        except OverflowError:
+            value = Decimal(value)
         self.value = value
         super().__init__()
 
     def __repr__(self) -> str:
-        if isinstance(self.value, str):
-            return f'{self.__class__.__name__}(\'{self.value}\')'
-        else:
-            return f'{self.__class__.__name__}({self.value})'
+        return f'{self.__class__.__name__}({self.value})'
 
     def copy(self) -> 'Node':
         """returns a copy of this tree"""
@@ -425,45 +404,11 @@ class Term(Node, metaclass=ABCMeta):
         """return latex language representation of the tree"""
         return str(self.value)
 
-    def list_nodes(self) -> List[Node]:
-        """returns a list of all nodes in the tree"""
-        return [self]
-
-    def polynomial(self) -> 'Node':
-        """expands the expression into polynomial form"""
-        return self
-
-    def simplify(self) -> 'Node':
-        """returns a simplified version of the tree"""
-        return self.copy()
-
-    def tuple(self) -> Expression:
-        """DEPRECATED -- returns the tuple representation of the tree"""
-        return self.value
-
-
-class Constant(Term):
-    """Real numerical constant in expression tree, """
-    __slots__ = ()
-
-    def __init__(self, value: Union[Number, bool]) -> None:
-        assert isinstance(value, (int, float, bool, Decimal))
-        try:
-            if isinstance(value, float):
-                if int(value) == value:
-                    value = int(value)
-                else:
-                    value = Decimal(value)
-        except OverflowError:
-            value = Decimal(value)
-        super().__init__(value)
-
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Constant(0)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.value
 
@@ -493,13 +438,27 @@ class Constant(Term):
 
 class Variable(Term):
     """Named variable in expression tree"""
-    __slots__ = ('boolean',)
+    __slots__ = ('value',)
 
-    def __init__(self, value: str, boolean: bool = False) -> None:
+    def __init__(self, value: str) -> None:
         assert isinstance(value, str)
-        assert isinstance(boolean, bool)
-        self.boolean = boolean
-        super().__init__(value)
+        self.value = value
+        super().__init__()
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(\'{self.value}\')'
+
+    def copy(self) -> 'Node':
+        """returns a copy of this tree"""
+        return self.__class__(self.value)
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        return str(self.value)
+
+    def latex(self) -> str:
+        """return latex language representation of the tree"""
+        return str(self.value)
 
     def dependencies(self) -> Set[str]:
         """returns set of all variables present in the tree"""
@@ -511,8 +470,7 @@ class Variable(Term):
             return Constant(1)
         return Constant(0)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         if var_dict is None:
             raise KeyError(f'None does not contain "{self.value}"')
@@ -634,10 +592,6 @@ class BinaryOperator(Node, metaclass=ABCMeta):
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child1.substitute(var, sub), self.child2.substitute(var, sub))
 
-    def tuple(self) -> Expression:
-        """DEPRECATED -- returns the tuple representation of the tree"""
-        return self.child1.tuple(), self.child2.tuple(), self.symbol
-
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child1.wolfram()}, {self.child2.wolfram()}]'
@@ -653,8 +607,7 @@ class Addition(BinaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Addition(self.child1.derivative(variable), self.child2.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.child1.evaluate(var_dict) + self.child2.evaluate(var_dict)
 
@@ -668,9 +621,8 @@ class Addition(BinaryOperator):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        if var in self.dependencies():
-            return Addition(self.child1.integral(var),
-                            self.child2.integral(var))
+        return Addition(self.child1.integral(var),
+                        self.child2.integral(var))
 
     def latex(self) -> str:
         """return latex language representation of the tree"""
@@ -727,8 +679,7 @@ class Subtraction(BinaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Subtraction(self.child1.derivative(variable), self.child2.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.child1.evaluate(var_dict) - self.child2.evaluate(var_dict)
 
@@ -769,8 +720,7 @@ class Product(BinaryOperator):
         return Addition(Product(self.child1, self.child2.derivative(variable)),
                         Product(self.child1.derivative(variable), self.child2))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         try:
             return self.child1.evaluate(var_dict) * self.child2.evaluate(var_dict)
@@ -849,8 +799,7 @@ class Division(BinaryOperator):
                                     Product(self.child1, self.child2.derivative(variable))),
                         Exponent(self.child2, Constant(2)))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         ans = self.child1.evaluate(var_dict) / self.child2.evaluate(var_dict)
         try:
@@ -938,8 +887,7 @@ class Exponent(BinaryOperator):
                                         Logarithm(self.child1,
                                                   Constant(e)))))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         try:
             ans: Union[Number, complex] = self.child1.evaluate(var_dict) ** self.child2.evaluate(var_dict)
@@ -1153,7 +1101,7 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
         """Compare both numbers"""
 
     def derivative(self, variable: str) -> 'Node':
@@ -1217,7 +1165,7 @@ class Equal(ComparisonLogicalOperator):
     wolfram_func = 'EqualTo'
 
     @staticmethod
-    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
         """Compare both numbers"""
         return x == y or isclose(x, y)
 
@@ -1229,7 +1177,7 @@ class NotEqual(ComparisonLogicalOperator):
     wolfram_func = 'UnequalTo'
 
     @staticmethod
-    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
         """Compare both numbers"""
         return x != y
 
@@ -1241,7 +1189,7 @@ class GreaterThan(ComparisonLogicalOperator):
     wolfram_func = 'GreaterThan'
 
     @staticmethod
-    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
         """Compare both numbers"""
         return x > y
 
@@ -1253,7 +1201,7 @@ class LessThan(ComparisonLogicalOperator):
     wolfram_func = 'LessThan'
 
     @staticmethod
-    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
         """Compare both numbers"""
         return x < y
 
@@ -1265,7 +1213,7 @@ class GreaterEqual(ComparisonLogicalOperator):
     wolfram_func = 'GreaterEqual'
 
     @staticmethod
-    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
         """Compare both numbers"""
         return x >= y
 
@@ -1277,7 +1225,7 @@ class LessEqual(ComparisonLogicalOperator):
     wolfram_func = 'LessEqual'
 
     @staticmethod
-    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
         """Compare both numbers"""
         return x <= y
 
@@ -1289,7 +1237,7 @@ class And(ComparisonLogicalOperator):
     wolfram_func = 'And'
 
     @staticmethod
-    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
         """Compare both numbers"""
         return bool(x) & bool(y)
 
@@ -1314,7 +1262,7 @@ class Or(ComparisonLogicalOperator):
     wolfram_func = 'Or'
 
     @staticmethod
-    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
         """Compare both numbers"""
         return bool(x) | bool(y)
 
@@ -1338,7 +1286,7 @@ class Nand(ComparisonLogicalOperator):
     wolfram_func = 'Nand'
 
     @staticmethod
-    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
         """Compare both numbers"""
         return not (bool(x) & bool(y))
 
@@ -1383,7 +1331,7 @@ class Nor(ComparisonLogicalOperator):
     wolfram_func = 'Nor'
 
     @staticmethod
-    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
         """Compare both numbers"""
         return not (bool(x) | bool(y))
 
@@ -1429,7 +1377,7 @@ class Xor(ComparisonLogicalOperator):
     wolfram_func = 'Xor'
 
     @staticmethod
-    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
         """Compare both numbers"""
         return bool(x) ^ bool(y)
 
@@ -1453,7 +1401,7 @@ class Xnor(ComparisonLogicalOperator):
     wolfram_func = 'Xnor'
 
     @staticmethod
-    def _comparison_function(x: Union[Number, bool], y: Union[Number, bool]) -> bool:
+    def _comparison_function(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
         """Compare both numbers"""
         return not (bool(x) ^ bool(y))
 
@@ -1553,11 +1501,6 @@ class UnaryOperator(Node, metaclass=ABCMeta):
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
-        return self.__class__(self.child.substitute(var, sub))
-
-    def tuple(self) -> Expression:
-        """DEPRECATED -- returns the tuple representation of the tree"""
-        return self.child.tuple(), self.symbol
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
@@ -1576,19 +1519,17 @@ class Sine(UnaryOperator):
         return Product(Cosine(self.child),
                        self.child.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         ans = sin(self.child.evaluate(var_dict))
         try:
-            if isinstance(ans, float):
-                if int(ans) == ans:
-                    ans = int(ans)
-                else:
-                    ans = Decimal(ans)
+            if int(ans) == ans:
+                final_ans = int(ans)  # type: Number
+            else:
+                final_ans = Decimal(ans)
         except OverflowError:
-            ans = Decimal(ans)
-        return ans
+            final_ans = Decimal(ans)
+        return final_ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1614,19 +1555,17 @@ class Cosine(UnaryOperator):
                            Product(Sine(self.child),
                                    self.child.derivative(variable)))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         ans = cos(self.child.evaluate(var_dict))
         try:
-            if isinstance(ans, float):
-                if int(ans) == ans:
-                    ans = int(ans)
-                else:
-                    ans = Decimal(ans)
+            if int(ans) == ans:
+                final_ans = int(ans)  # type: Number
+            else:
+                final_ans = Decimal(ans)
         except OverflowError:
-            ans = Decimal(ans)
-        return ans
+            final_ans = Decimal(ans)
+        return final_ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1651,19 +1590,17 @@ class Tangent(UnaryOperator):
                         Exponent(Cosine(self.child),
                                  Constant(2)))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         ans = tan(self.child.evaluate(var_dict))
         try:
-            if isinstance(ans, float):
-                if int(ans) == ans:
-                    ans = int(ans)
-                else:
-                    ans = Decimal(ans)
+            if int(ans) == ans:
+                final_ans = int(ans)  # type: Number
+            else:
+                final_ans = Decimal(ans)
         except OverflowError:
-            ans = Decimal(ans)
-        return ans
+            final_ans = Decimal(ans)
+        return final_ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1692,19 +1629,17 @@ class ArcSine(UnaryOperator):
                                                       Constant(2))),
                                  Constant(1 / 2)))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         ans = asin(self.child.evaluate(var_dict))
         try:
-            if isinstance(ans, float):
-                if int(ans) == ans:
-                    ans = int(ans)
-                else:
-                    ans = Decimal(ans)
+            if int(ans) == ans:
+                final_ans = int(ans)  # type: Number
+            else:
+                final_ans = Decimal(ans)
         except OverflowError:
-            ans = Decimal(ans)
-        return ans
+            final_ans = Decimal(ans)
+        return final_ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1737,19 +1672,17 @@ class ArcCosine(UnaryOperator):
                                                                   Constant(2))),
                                              Constant(1 / 2))))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         ans = acos(self.child.evaluate(var_dict))
         try:
-            if isinstance(ans, float):
-                if int(ans) == ans:
-                    ans = int(ans)
-                else:
-                    ans = Decimal(ans)
+            if int(ans) == ans:
+                final_ans = int(ans)  # type: Number
+            else:
+                final_ans = Decimal(ans)
         except OverflowError:
-            ans = Decimal(ans)
-        return ans
+            final_ans = Decimal(ans)
+        return final_ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1780,19 +1713,17 @@ class ArcTangent(UnaryOperator):
                                  Exponent(self.child,
                                           Constant(2))))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         ans = atan(self.child.evaluate(var_dict))
         try:
-            if isinstance(ans, float):
-                if int(ans) == ans:
-                    ans = int(ans)
-                else:
-                    ans = Decimal(ans)
+            if int(ans) == ans:
+                final_ans = int(ans)  # type: Number
+            else:
+                final_ans = Decimal(ans)
         except OverflowError:
-            ans = Decimal(ans)
-        return ans
+            final_ans = Decimal(ans)
+        return final_ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1822,10 +1753,13 @@ class Absolute(UnaryOperator):
                                 self.child.derivative(variable)),
                         Absolute(self.child))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return abs(self.child.evaluate(var_dict))
+        ans = self.child.evaluate(var_dict)
+        if ans >= 0:
+            return ans
+        else:
+            return -ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1872,8 +1806,7 @@ class Negate(UnaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Negate(self.child.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return -self.child.evaluate(var_dict)
 
@@ -1932,19 +1865,17 @@ class Invert(UnaryOperator):
         else:
             return Constant(0)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         ans = 1 / self.child.evaluate(var_dict)
         try:
-            if isinstance(ans, float):
-                if int(ans) == ans:
-                    ans = int(ans)
-                else:
-                    ans = Decimal(ans)
+            if int(ans) == ans:
+                final_ans = int(ans)  # type: Number
+            else:
+                final_ans = Decimal(ans)
         except OverflowError:
-            ans = Decimal(ans)
-        return ans
+            final_ans = Decimal(ans)
+        return final_ans
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -2004,8 +1935,7 @@ class Not(UnaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Not(self.child.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> bool:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return not self.child.evaluate(var_dict)
 
@@ -2074,7 +2004,7 @@ class CalculusOperator(Node, metaclass=ABCMeta):
         self.variable = variable
         super().__init__()
 
-    def copy(self):
+    def copy(self) -> 'Node':
         """returns a copy of this tree"""
         return self.__class__(self.child, self.variable)
 
@@ -2090,10 +2020,6 @@ class CalculusOperator(Node, metaclass=ABCMeta):
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child.substitute(var, sub), self.variable)
-
-    def tuple(self) -> Expression:
-        """DEPRECATED -- returns the tuple representation of the tree"""
-        return self.child.tuple(), self.variable, self.symbol
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
@@ -2113,8 +2039,7 @@ class Derivative(CalculusOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Derivative(self, variable)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.child.derivative(self.variable).evaluate(var_dict)
 
@@ -2170,8 +2095,7 @@ class IndefiniteIntegral(CalculusOperator):
         else:
             return Derivative(self, variable)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.child.simplify().integral(self.variable).evaluate(var_dict)
 
@@ -2222,7 +2146,7 @@ class DefiniteIntegral(CalculusOperator):
         self.lower = lower.copy()
         self.upper = upper.copy()
 
-    def copy(self):
+    def copy(self) -> 'Node':
         """returns a copy of this tree"""
         return self.__class__(self.child, self.variable, self.lower, self.upper)
 
@@ -2237,8 +2161,7 @@ class DefiniteIntegral(CalculusOperator):
         else:
             return Derivative(self, variable)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         indefinite = self.child.integral(self.variable)
         return (indefinite.substitute(self.variable, self.upper).evaluate(var_dict)
@@ -2279,10 +2202,6 @@ class DefiniteIntegral(CalculusOperator):
                                indefinite.substitute(self.variable, self.lower))
         return expanded.simplify()
 
-    def tuple(self) -> Expression:
-        """DEPRECATED -- returns the tuple representation of the tree"""
-        return self.child.tuple(), self.variable, self.lower.tuple(), self.upper.tuple(), self.symbol
-
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child.wolfram()},' \
@@ -2309,8 +2228,7 @@ class Piecewise(Node):
         return Piecewise([(expr.derivative(variable), cond) for expr, cond in self.expressions],
                          self.default.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) \
-            -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         for expression, condition in self.expressions:
             if condition.evaluate(var_dict):
@@ -2378,12 +2296,6 @@ class Piecewise(Node):
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return Piecewise([(expr.substitute(var, sub), cond.substitute(var, sub)) for expr, cond in self.expressions],
                          self.default.substitute(var, sub))
-
-    def tuple(self) -> Expression:
-        """DEPRECATED -- returns the tuple representation of the tree"""
-        # noinspection PyTypeChecker
-        return (tuple((expr.tuple(), cond.tuple()) for expr, cond in self.expressions)
-                + (self.default.tuple(), self.symbol))
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
