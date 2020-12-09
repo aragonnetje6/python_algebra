@@ -134,8 +134,11 @@ class TestBinaryOperators:
 
     @given(var_dict=variables_dict('xy'))
     def test_14(self, x: Variable, y: Variable, var_dict: Variables) -> None:
-        if y.evaluate(var_dict) != 0:
-            assert Equal(x * Invert(y), x / y).evaluate(var_dict)
+        try:
+            if y.evaluate(var_dict) != 0:
+                assert Equal(x * Invert(y), x / y).evaluate(var_dict)
+        except OverflowError:
+            pass
 
     @given(var_dict=variables_dict('x'))
     def test_15(self, x: Variable, var_dict: Variables) -> None:
@@ -187,3 +190,48 @@ class TestLogicOperators:
     @given(var_dict=variables_dict('xy', True))
     def test_xor(self, x: Variable, y: Variable, var_dict: Variables) -> None:
         assert Equal(Xor(x, y), And(Or(x, y), Nand(x, y))).evaluate(var_dict)
+
+
+class TestUnaryOperators:
+    @given(var_dict=variables_dict('x'))
+    def test_1(self, x: Variable, var_dict: Variables) -> None:
+        assert GreaterEqual(Absolute(x), Constant(0)).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('x'))
+    def test_2(self, x: Variable, var_dict: Variables) -> None:
+        assert Equal(Absolute(x), Absolute(Absolute(x))).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('x'))
+    def test_3(self, x: Variable, var_dict: Variables) -> None:
+        assert Xnor(GreaterEqual(Negate(x), Constant(0)), LessEqual(x, Constant(0))).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('x'))
+    def test_4(self, x: Variable, var_dict: Variables) -> None:
+        assert Equal(Negate(Negate(x)), x).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('x'))
+    def test_5(self, x: Variable, var_dict: Variables) -> None:
+        assert Equal(Absolute(Negate(x)), Absolute(x)).evaluate(var_dict)
+
+    @given(var_dict=variables_dict('x'))
+    def test_6(self, x: Variable, var_dict: Variables) -> None:
+        try:
+            assert Xnor(GreaterEqual(Absolute(Invert(x)), Constant(1)),
+                        LessEqual(Absolute(x), Constant(1))).evaluate(var_dict)
+        except ZeroDivisionError:
+            assert x.evaluate(var_dict) == 0
+
+    @given(var_dict=variables_dict('x'))
+    def test_7(self, x: Variable, var_dict: Variables) -> None:
+        try:
+            assert Xnor(GreaterEqual(Invert(x), Constant(0)),
+                        GreaterEqual(x, Constant(0))).evaluate(var_dict)
+        except ZeroDivisionError:
+            assert x.evaluate(var_dict) == 0
+
+    @given(var_dict=variables_dict('x'))
+    def test_8(self, x: Variable, var_dict: Variables) -> None:
+        try:
+            assert Equal(Invert(Invert(x)), x).evaluate(var_dict)
+        except ZeroDivisionError:
+            assert x.evaluate(var_dict) == 0
