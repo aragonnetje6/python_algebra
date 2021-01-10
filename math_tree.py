@@ -92,7 +92,7 @@ class Node(metaclass=ABCMeta):
         if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
-            return Equal(self, other).evaluate()
+            return IsEqual(self, other).evaluate()
         else:
             return NotImplemented
 
@@ -1158,7 +1158,7 @@ class ComparisonLogicalOperator(BinaryOperator, metaclass=ABCMeta):
         return f'{self.wolfram_func}[{self.child1.wolfram()}][{self.child2.wolfram()}]'
 
 
-class Equal(ComparisonLogicalOperator):
+class IsEqual(ComparisonLogicalOperator):
     """Equality operator node"""
     __slots__ = ()
     symbol = '=='
