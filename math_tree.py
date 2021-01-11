@@ -1522,7 +1522,7 @@ class Sine(UnaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         child_ans = self.child.evaluate(var_dict)
-        if (mod2pi := child_ans % 2 * pi) == 0 or mod2pi == pi:
+        if (mod2pi := child_ans % Decimal(2 * pi)) == 0 or mod2pi == pi:
             return 0
         elif mod2pi == pi / 2:
             return 1
@@ -1558,7 +1558,7 @@ class Cosine(UnaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         child_ans = self.child.evaluate(var_dict)
-        if (mod2pi := child_ans % 2 * pi) == 0:
+        if (mod2pi := child_ans % Decimal(2 * pi)) == 0:
             return 1
         elif mod2pi == pi:
             return -1
@@ -1593,7 +1593,7 @@ class Tangent(UnaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         child_ans = self.child.evaluate(var_dict)
-        if (mod_pi := child_ans % pi) == 0:
+        if (mod_pi := child_ans % Decimal(pi)) == 0:
             return 0
         elif mod_pi == pi / 2:
             raise ValueError('tan of k*pi+pi/2 is infinity')
