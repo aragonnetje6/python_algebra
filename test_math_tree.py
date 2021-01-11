@@ -5,10 +5,10 @@ Unittests for math_tree using pytest
 from hypothesis import given
 from hypothesis.strategies import SearchStrategy, deferred, one_of, builds, sampled_from, booleans, integers, floats, \
     dictionaries
-from math_tree import Node, Constant, Variable, Addition, Subtraction, Product, Division, Exponent, Logarithm, IsEqual, \
-    NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor, Xnor, Sine, Cosine, Tangent, \
-    ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, IndefiniteIntegral, DefiniteIntegral, \
-    Piecewise, Variables
+from math_tree import Node, Constant, Variable, Addition, Subtraction, Product, Division, Exponent, Logarithm, \
+    IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor, Xnor, Sine, Cosine, \
+    Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, IndefiniteIntegral, \
+    DefiniteIntegral, Piecewise, Variables
 from pytest import fixture
 
 
