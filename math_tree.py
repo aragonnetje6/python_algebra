@@ -4,7 +4,7 @@ basic expression tree with evaluation and derivation
 
 from abc import ABCMeta, abstractmethod
 from decimal import Decimal, getcontext
-from math import e, log, sin, cos, tan, asin, acos, atan, isclose
+from math import pi, e, log, sin, cos, tan, asin, acos, atan, isclose
 from os import system
 from typing import Optional, Dict, Union, Tuple, List, Set, Any
 
@@ -1521,15 +1521,15 @@ class Sine(UnaryOperator):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        ans = sin(self.child.evaluate(var_dict))
-        try:
-            if int(ans) == ans:
-                final_ans = int(ans)  # type: Number
-            else:
-                final_ans = Decimal(ans)
-        except OverflowError:
-            final_ans = Decimal(ans)
-        return final_ans
+        child_ans = self.child.evaluate(var_dict)
+        if (mod2pi := child_ans % 2 * pi) == 0 or mod2pi == pi:
+            return 0
+        elif mod2pi == pi / 2:
+            return 1
+        elif mod2pi == pi + pi / 2:
+            return -1
+        else:
+            return Decimal(sin(child_ans))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1557,15 +1557,15 @@ class Cosine(UnaryOperator):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        ans = cos(self.child.evaluate(var_dict))
-        try:
-            if int(ans) == ans:
-                final_ans = int(ans)  # type: Number
-            else:
-                final_ans = Decimal(ans)
-        except OverflowError:
-            final_ans = Decimal(ans)
-        return final_ans
+        child_ans = self.child.evaluate(var_dict)
+        if (mod2pi := child_ans % 2 * pi) == 0:
+            return 1
+        elif mod2pi == pi:
+            return -1
+        elif mod2pi == pi / 2 or mod2pi == pi + pi / 2:
+            return 0
+        else:
+            return Decimal(cos(child_ans))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1592,15 +1592,13 @@ class Tangent(UnaryOperator):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        ans = tan(self.child.evaluate(var_dict))
-        try:
-            if int(ans) == ans:
-                final_ans = int(ans)  # type: Number
-            else:
-                final_ans = Decimal(ans)
-        except OverflowError:
-            final_ans = Decimal(ans)
-        return final_ans
+        child_ans = self.child.evaluate(var_dict)
+        if (mod_pi := child_ans % pi) == 0:
+            return 0
+        elif mod_pi == pi / 2:
+            raise ValueError('tan of k*pi+pi/2 is infinity')
+        else:
+            return Decimal(tan(child_ans))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1631,15 +1629,13 @@ class ArcSine(UnaryOperator):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        ans = asin(self.child.evaluate(var_dict))
-        try:
-            if int(ans) == ans:
-                final_ans = int(ans)  # type: Number
-            else:
-                final_ans = Decimal(ans)
-        except OverflowError:
-            final_ans = Decimal(ans)
-        return final_ans
+        child_ans = self.child.evaluate(var_dict)
+        if child_ans == 0:
+            return 0
+        elif child_ans == 1:
+            return Decimal(pi / 2)
+        else:
+            return Decimal(asin(child_ans))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1674,15 +1670,15 @@ class ArcCosine(UnaryOperator):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        ans = acos(self.child.evaluate(var_dict))
-        try:
-            if int(ans) == ans:
-                final_ans = int(ans)  # type: Number
-            else:
-                final_ans = Decimal(ans)
-        except OverflowError:
-            final_ans = Decimal(ans)
-        return final_ans
+        child_ans = self.child.evaluate(var_dict)
+        if child_ans == 0:
+            return Decimal(pi / 2)
+        elif child_ans == 1:
+            return 0
+        elif child_ans == -1:
+            return Decimal(pi)
+        else:
+            return Decimal(acos(child_ans))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1715,15 +1711,11 @@ class ArcTangent(UnaryOperator):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        ans = atan(self.child.evaluate(var_dict))
-        try:
-            if int(ans) == ans:
-                final_ans = int(ans)  # type: Number
-            else:
-                final_ans = Decimal(ans)
-        except OverflowError:
-            final_ans = Decimal(ans)
-        return final_ans
+        child_ans = self.child.evaluate(var_dict)
+        if child_ans == 0:
+            return 0
+        else:
+            return Decimal(atan(child_ans))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
