@@ -519,7 +519,7 @@ class Variable(Term):
 
 
 class ArbitraryOperator(Node, metaclass=ABCMeta):
-    """Abstract Base Class for 2-input operator in expression tree"""
+    """Abstract Base Class for multi-input operator in expression tree"""
     __slots__ = 'children',
     symbol = ''
     wolfram_func = ''
@@ -539,7 +539,8 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
 
     def dependencies(self) -> Set[str]:
         """returns set of all variables present in the tree"""
-        return set().union(*(child.dependencies() for child in self.children))
+        # ugly but at least mypy shuts up
+        return set('').union(*(child.dependencies() for child in self.children)).difference(set(''))
 
     @staticmethod
     @abstractmethod
@@ -547,9 +548,9 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         """calculation function for 2 elements"""
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Union[Number, bool]:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return reduce(self._eval_func, (child.evaluate(var_dict) for child in self.children))
 
-    # todo: fix when inevitably breaks during rewrite
     def infix(self) -> str:
         """returns infix representation of the tree"""
         if isinstance(self.parent, Invert) or isinstance(self.parent, Exponent):
@@ -567,7 +568,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
 
     def list_nodes(self) -> List[Node]:
         """returns a list of all nodes in the tree"""
-        return sum((child.list_nodes for child in self.children), [self])
+        return sum((child.list_nodes() for child in self.children), [self])
 
     # todo: reimplement
     # def mathml(self) -> str:
@@ -666,6 +667,7 @@ class Sum(ArbitraryOperator):
 
 
 def Subtraction(*args: Node) -> Sum:
+    """Addition operator node"""
     return Sum(args[0], Negate(*args[1:]))
 
 
@@ -680,6 +682,9 @@ class Product(ArbitraryOperator):
         if len(self.children) > 2:
             return Sum(Product(self.children[0], Product(*self.children[1:]).derivative(variable)),
                        Product(self.children[0].derivative(variable), *self.children))
+        else:
+            return Sum(Product(self.children[0], self.children[1].derivative(variable)),
+                       Product(self.children[0].derivative(variable), self.children[1]))
 
     @staticmethod
     def _eval_func(x: Union[Number, bool], y: Union[Number, bool]) -> Union[Number, bool]:
@@ -713,7 +718,7 @@ class Product(ArbitraryOperator):
                         return Product(*children[:i], *children[i + 1:j], *children[j + 1:],
                                        Invert(Product(child.child, child2.child))).simplify()
             elif isinstance(child, Sum):
-                return Sum(*(Product(subchild, *children[:i], *children[i + 1:]) for subchild in
+                return Sum(*(Product(sub_child, *children[:i], *children[i + 1:]) for sub_child in
                              child.children)).simplify()
             elif isinstance(child, Constant):
                 if child.evaluate() == 1:
@@ -748,10 +753,12 @@ class Product(ArbitraryOperator):
 
 
 def Division(*args: Node) -> Product:
+    """Addition operator node"""
     return Product(args[0], Invert(*args[1:]))
 
 
 class BinaryOperator(ArbitraryOperator, metaclass=ABCMeta):
+    """Abstract Base Class for 2-input operator in expression tree"""
     __slots__ = 'child1', 'child2'
 
     def __init__(self, *args: Node):
@@ -1179,13 +1186,16 @@ class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
     __slots__ = ()
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> bool:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return all(self._eval_func(x.evaluate(var_dict), y.evaluate(var_dict))
                    for x, y in zip(self.children[:-1], self.children[1:]))
 
     def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Constant(0)
 
     def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         raise ArithmeticError("Integration of logical operators not supported")
 
 
