@@ -157,7 +157,7 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
-    def __sub__(self, other: Union[Number, 'Node']) -> 'Subtraction':
+    def __sub__(self, other: Union[Number, 'Node']) -> 'Sum':
         if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
@@ -165,7 +165,7 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
-    def __rsub__(self, other: Union[Number, 'Node']) -> 'Subtraction':
+    def __rsub__(self, other: Union[Number, 'Node']) -> 'Sum':
         if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
@@ -189,7 +189,7 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
-    def __truediv__(self, other: Union[Number, 'Node']) -> 'Division':
+    def __truediv__(self, other: Union[Number, 'Node']) -> 'Product':
         if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
@@ -197,7 +197,7 @@ class Node(metaclass=ABCMeta):
         else:
             return NotImplemented
 
-    def __rtruediv__(self, other: Union[Number, 'Node']) -> 'Division':
+    def __rtruediv__(self, other: Union[Number, 'Node']) -> 'Product':
         if isinstance(other, (float, int, bool)):
             other = Constant(other)
         if isinstance(other, Node):
@@ -1178,7 +1178,7 @@ class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
     __slots__ = ()
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> bool:
         return all(self._eval_func(x.evaluate(var_dict), y.evaluate(var_dict))
                    for x, y in zip(self.children[:-1], self.children[1:]))
 
