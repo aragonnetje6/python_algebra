@@ -303,7 +303,7 @@ class Node(metaclass=ABCMeta):
 
     @abstractmethod
     def list_nodes(self) -> List['Node']:
-        """return latex language representation of the tree"""
+        """return a list of all nodes in the tree"""
 
     # todo:reimplement
     # @abstractmethod
@@ -1731,7 +1731,7 @@ class CalculusOperator(Node, metaclass=ABCMeta):
         return self.__class__(self.child, self.variable)
 
     def list_nodes(self) -> List['Node']:
-        """return latex language representation of the tree"""
+        """returns a list of all nodes in the tree"""
         out = [self]  # type: List[Node]
         return out + self.child.list_nodes()
 
@@ -1957,7 +1957,7 @@ class Piecewise(Node):
         return Piecewise([(expr.integral(var), cond) for expr, cond in self.expressions], self.default.integral(var))
 
     def list_nodes(self) -> List['Node']:
-        """return latex language representation of the tree"""
+        """returns a list of all nodes in the tree"""
         out = [self]  # type: List[Node]
         for expr, cond in self.expressions:
             out += expr.list_nodes()
