@@ -301,11 +301,6 @@ class Node(metaclass=ABCMeta):
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
 
-    # todo:reimplement
-    # @abstractmethod
-    # def latex(self) -> str:
-    #     """return latex language representation of the tree"""
-
     @abstractmethod
     def list_nodes(self) -> List['Node']:
         """return latex language representation of the tree"""
@@ -401,11 +396,6 @@ class Constant(Term):
         """returns infix representation of the tree"""
         return str(self.value)
 
-    # todo:reimplement
-    # def latex(self) -> str:
-    #     """return latex language representation of the tree"""
-    #     return str(self.value)
-
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Constant(0)
@@ -458,11 +448,6 @@ class Variable(Term):
     def infix(self) -> str:
         """returns infix representation of the tree"""
         return str(self.value)
-
-    # todo:reimplement
-    # def latex(self) -> str:
-    #     """return latex language representation of the tree"""
-    #     return str(self.value)
 
     def dependencies(self) -> Set[str]:
         """returns set of all variables present in the tree"""
@@ -558,14 +543,6 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         else:
             return self.symbol.join(*(child.infix() for child in self.children))
 
-    # todo: reimplement
-    # def latex(self) -> str:
-    #     """return latex language representation of the tree"""
-    #     if (isinstance(self.parent, Division) and self.parent.child2 is self) or isinstance(self.parent, Exponent):
-    #         return f'({self.child1.latex()} {self.symbol} {self.child2.latex()})'
-    #     else:
-    #         return f'{self.child1.latex()} {self.symbol} {self.child2.latex()}'
-
     def list_nodes(self) -> List[Node]:
         """returns a list of all nodes in the tree"""
         return sum((child.list_nodes() for child in self.children), [self])
@@ -634,15 +611,6 @@ class Sum(ArbitraryOperator):
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         return Sum(*(child.integral(var) for child in self.children))
-
-    # todo: reimplement
-    # def latex(self) -> str:
-    #     """return latex language representation of the tree"""
-    #     if self.parent is None or isinstance(self.parent, (Sum, Logarithm, UnaryOperator)) or (
-    #             isinstance(self.parent, Subtraction) and self.parent.child1 is self):
-    #         return f'{self.child1.latex()} {self.symbol} {self.child2.latex()}'
-    #     else:
-    #         return f'({self.child1.latex()} {self.symbol} {self.child2.latex()})'
 
     # todo: reimplement
     # def mathml(self) -> str:
@@ -815,14 +783,6 @@ class Exponent(BinaryOperator):
             raise NotImplementedError('Integration not supported for this expression')
 
     # todo: reimplement
-    # def latex(self) -> str:
-    #     """returns latex representation of the tree"""
-    #     if isinstance(self.parent, Exponent):
-    #         return f'({self.child1.latex()} {self.symbol} {self.child2.latex()})'
-    #     else:
-    #         return f'{self.child1.latex()} {self.symbol} {self.child2.latex()}'
-
-    # todo: reimplement
     # def mathml(self) -> str:
     #     """returns the MathML representation of the tree"""
     #     if isinstance(self.parent, Exponent):
@@ -890,11 +850,6 @@ class Logarithm(BinaryOperator):
             raise NotImplementedError('Integration not supported for this expression')
 
     # todo: reimplement
-    # def latex(self) -> str:
-    #     """returns latex language representation of the tree"""
-    #     return f'\\log{{{self.child2.latex()}}}({self.child1.latex()}'
-
-    # todo: reimplement
     # def mathml(self) -> str:
     #     """returns the MathML representation of the tree"""
     #     return mathml_tag('row',
@@ -922,14 +877,6 @@ class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         raise ArithmeticError("Integration of logical operators not supported")
-
-    # todo: reimplement
-    # def latex(self) -> str:
-    #     """returns latex representation of the tree"""
-    #     if self.parent is not None:
-    #         return f'({self.child1.infix()} {self.symbol} {self.child2.infix()})'
-    #     else:
-    #         return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
 
     # todo: reimplement
     # def mathml(self) -> str:
@@ -1054,11 +1001,6 @@ class Nand(ArbitraryLogicalOperator):
             return 'not ' + super().infix()
 
     # todo: reimplement
-    # def latex(self) -> str:
-    #     """returns latex representation of the tree"""
-    #     return f'~({self.child1.infix()} & {self.child2.infix()})'
-
-    # todo: reimplement
     # def mathml(self) -> str:
     #     """returns the MathML representation of the tree"""
     #     return mathml_tag('row',
@@ -1103,11 +1045,6 @@ class Nor(ArbitraryLogicalOperator):
             return 'not ' + super().infix()
 
     # todo: reimplement
-    # def latex(self) -> str:
-    #     """returns latex representation of the tree"""
-    #     return f'~({self.child1.infix()} | {self.child2.infix()})'
-
-    # todo: reimplement
     # def mathml(self) -> str:
     #     """returns the MathML representation of the tree"""
     #     return mathml_tag('row',
@@ -1149,11 +1086,6 @@ class Xnor(ArbitraryLogicalOperator):
             return '(not ' + super().infix() + ')'
         else:
             return 'not ' + super().infix()
-
-    # todo: reimplement
-    # def latex(self) -> str:
-    #     """returns latex representation of the tree"""
-    #     return f'~({self.child1.infix()} ^ {self.child2.infix()})'
 
     # todo: reimplement
     # def mathml(self) -> str:
@@ -1276,7 +1208,6 @@ class UnaryOperator(Node, metaclass=ABCMeta):
     __slots__ = 'child',
     symbol = ''
     wolfram_func = ''
-    latex_func = ''
 
     def __init__(self, child: Node) -> None:
         assert isinstance(child, Node)
@@ -1297,11 +1228,6 @@ class UnaryOperator(Node, metaclass=ABCMeta):
     def infix(self) -> str:
         """returns infix representation of the tree"""
         return f'{self.symbol}({self.child.infix()})'
-
-    # todo: reimplement
-    # def latex(self) -> str:
-    #     """return latex language representation of the tree"""
-    #     return f'{self.latex_func}({self.child.latex()})'
 
     def list_nodes(self) -> List[Node]:
         """returns a list of all nodes in the tree"""
@@ -1343,7 +1269,6 @@ class Sine(UnaryOperator):
     __slots__ = ()
     symbol = 'sin'
     wolfram_func = 'Sin'
-    latex_func = '\\sin'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1378,7 +1303,6 @@ class Cosine(UnaryOperator):
     __slots__ = ()
     symbol = 'cos'
     wolfram_func = 'Cos'
-    latex_func = '\\cos'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1413,7 +1337,6 @@ class Tangent(UnaryOperator):
     __slots__ = ()
     symbol = 'tan'
     wolfram_func = 'Tan'
-    latex_func = '\\tan'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1448,7 +1371,6 @@ class ArcSine(UnaryOperator):
     __slots__ = ()
     symbol = 'asin'
     wolfram_func = 'ArcSin'
-    latex_func = '\\arcsin'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1488,7 +1410,6 @@ class ArcCosine(UnaryOperator):
     __slots__ = ()
     symbol = 'acos'
     wolfram_func = 'ArcCos'
-    latex_func = '\\arccos'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1531,7 +1452,6 @@ class ArcTangent(UnaryOperator):
     __slots__ = ()
     symbol = 'atan'
     wolfram_func = 'ArcTan'
-    latex_func = '\\arctan'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1596,11 +1516,6 @@ class Absolute(UnaryOperator):
             raise NotImplementedError('Integration not supported for this expression')
 
     # todo: reimplement
-    # def latex(self) -> str:
-    #     """return latex language representation of the tree"""
-    #     return f'|{self.child.latex()}|'
-
-    # todo: reimplement
     # def mathml(self) -> str:
     #     """returns the MathML representation of the tree"""
     #     return mathml_tag('row',
@@ -1625,7 +1540,6 @@ class Negate(UnaryOperator):
     __slots__ = ()
     symbol = '-'
     wolfram_func = 'Minus'
-    latex_func = '-'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1645,14 +1559,6 @@ class Negate(UnaryOperator):
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         return Negate(self.child.integral(var))
-
-    # todo: reimplement
-    # def latex(self) -> str:
-    #     """return latex language representation of the tree"""
-    #     if len(self.child.list_nodes()) > 1:
-    #         return f'{self.latex_func}({self.child.latex()})'
-    #     else:
-    #         return f'{self.latex_func}{self.child.latex()}'
 
     # todo: reimplement
     # def mathml(self) -> str:
@@ -1683,7 +1589,6 @@ class Invert(UnaryOperator):
     """Unary inversion operator"""
     __slots__ = ()
     symbol = '1/'
-    latex_func = '\\frac'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1721,11 +1626,6 @@ class Invert(UnaryOperator):
             raise NotImplementedError('Integral too complex')
 
     # todo: reimplement
-    # def latex(self) -> str:
-    #     """return the latex language representation of the expression"""
-    #     return f'\\frac{{1}}{{{self.child.latex()}}}'
-
-    # todo: reimplement
     # def mathml(self) -> str:
     #     """returns the MathML representation of the tree"""
     #     return mathml_tag('row',
@@ -1757,7 +1657,6 @@ class Not(UnaryOperator):
     __slots__ = ()
     symbol = '~'
     wolfram_func = 'Not'
-    latex_func = '~'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1777,14 +1676,6 @@ class Not(UnaryOperator):
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         return Piecewise([(Variable(var), self)])
-
-    # todo: reimplement
-    # def latex(self) -> str:
-    #     """return latex language representation of the tree"""
-    #     if len(self.child.list_nodes()) > 1:
-    #         return f'{self.latex_func}({self.child.latex()})'
-    #     else:
-    #         return f'{self.latex_func}{self.child.latex()}'
 
     # todo: reimplement
     # def mathml(self) -> str:
@@ -1887,11 +1778,6 @@ class Derivative(CalculusOperator):
             return IndefiniteIntegral(self, var)
 
     # todo: reimplement
-    # def latex(self) -> str:
-    #     """return latex language representation of the tree"""
-    #     return f'\\frac{{d}}{{d{self.variable}}}\\left({self.child.latex()}\\right)'
-
-    # todo: reimplement
     # def mathml(self) -> str:
     #     """returns the MathML representation of the tree"""
     #     return mathml_tag('row',
@@ -1940,11 +1826,6 @@ class IndefiniteIntegral(CalculusOperator):
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         return IndefiniteIntegral(self, var)
-
-    # todo: reimplement
-    # def latex(self) -> str:
-    #     """return latex language representation of the tree"""
-    #     return f'\\int\\left[{self.child.latex()}\\right]d{self.variable}'
 
     # todo: reimplement
     # def mathml(self) -> str:
@@ -2013,12 +1894,6 @@ class DefiniteIntegral(CalculusOperator):
         return IndefiniteIntegral(self, var)
 
     # todo: reimplement
-    # def latex(self) -> str:
-    #     """return latex language representation of the tree"""
-    #     return f'\\int_{{{self.lower.latex()}}}^{{{self.upper.latex()}}}' \
-    #            f'\\left[{self.child.latex()}\\right]d{self.variable}'
-
-    # todo: reimplement
     # def mathml(self) -> str:
     #     """returns the MathML representation of the tree"""
     #     return mathml_tag('row',
@@ -2080,11 +1955,6 @@ class Piecewise(Node):
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         return Piecewise([(expr.integral(var), cond) for expr, cond in self.expressions], self.default.integral(var))
-
-    # todo: reimplement
-    # def latex(self) -> str:
-    #     """return latex language representation of the tree"""
-    #     raise NotImplementedError('Latex representation of piecewise functions not supported')
 
     def list_nodes(self) -> List['Node']:
         """return latex language representation of the tree"""
