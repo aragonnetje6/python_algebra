@@ -629,6 +629,7 @@ class Sum(ArbitraryOperator):
     #                                                 + mathml_tag('o', self.symbol)
     #                                                 + self.child2.mathml())))
 
+    # todo: reimplement
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
         return self.copy()
@@ -671,33 +672,42 @@ class Product(ArbitraryOperator):
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
         children = [child.simplify() for child in self.children]
+        # evaluate full expression
         try:
             return Constant(self.evaluate())
         except KeyError:
             pass
+        # return only child
         if len(children) == 1:
             return children[0]
         for i, child in enumerate(children):
+            # flatten nested product nodes
             if isinstance(child, Product):
                 return Product(*children[:i], *children[i + 1:], *child.children).simplify()
+            # consolidate Invert nodes
             elif isinstance(child, Invert) and len(children) > i + 1:
                 for j, child2 in enumerate(children[i + 1:]):
                     if isinstance(child2, Invert):
                         return Product(*children[:i], *children[i + 1:j], *children[j + 1:],
                                        Invert(Product(child.child, child2.child))).simplify()
+            # distribute over sums
             elif isinstance(child, Sum):
                 return Sum(*(Product(sub_child, *children[:i], *children[i + 1:]) for sub_child in
                              child.children)).simplify()
             elif isinstance(child, Constant):
+                # eliminate multiplying by one
                 if child.evaluate() == 1:
                     return Product(*children[:i], *children[i + 1:]).simplify()
+                # return zero if a term equals zero
                 elif child.evaluate() == 0:
                     return Constant(0)
+                # attempt to consolidate constants
                 else:
                     for j, child2 in enumerate(children[i + 1:]):
                         if isinstance(child2, Constant):
                             return Product(Constant(Product(child, child2).evaluate()),
                                            *children[:i], *children[i + 1:j], *children[j + 1:]).simplify()
+            # consolidate variables into exponents
             elif isinstance(child, Variable):
                 for j, child2 in enumerate(children[i + 1:]):
                     if isinstance(child2, Variable) and child.value == child2.value:
@@ -706,8 +716,10 @@ class Product(ArbitraryOperator):
                     elif isinstance(child2, Exponent) and isinstance(child2.child1, Variable) and \
                             child2.child1.value == child.value:
                         return Product(Exponent(child, Sum(child2.child2, Constant(1))), *children[:i],
-                                       *children[i + 1:j], *children[j + 1:])
+                                       *children[i + 1:j], *children[j + 1:]).simplify()
+            # consolidate exponents
             elif isinstance(child, Exponent):
+                # consolidate exponents of variables
                 if isinstance(child.child1, Variable):
                     for j, child2 in enumerate(children[i + 1:]):
                         if isinstance(child2, Variable) and child2.value == child.child1.value:
@@ -716,7 +728,7 @@ class Product(ArbitraryOperator):
                         elif isinstance(child2, Exponent) and isinstance(child2.child1, Variable) and \
                                 child2.child1.value == child.child1.value:
                             return Product(Exponent(child.child1, Sum(child.child2, child2.child2)), *children[:i],
-                                           *children[i + 1:j], *children[j + 1:])
+                                           *children[i + 1:j], *children[j + 1:]).simplify()
         return self.copy()
 
 
