@@ -629,14 +629,49 @@ class Sum(ArbitraryOperator):
     #                                                 + mathml_tag('o', self.symbol)
     #                                                 + self.child2.mathml())))
 
-    # todo: reimplement
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
-        return self.copy()
+        children = [child.simplify() for child in self.children]
+        # # evaluate full expression
+        # try:
+        #     return Constant(self.evaluate())
+        # except KeyError:
+        #     pass
+        # # return only child
+        # if len(children) == 1:
+        #     return children[0]
+        # while True:
+        #     # flatten nested sum nodes
+        #     if sums := [child for child in children if isinstance(child, Sum)]:
+        #         children = [child for child in children if child not in sums]
+        #         for sum_node in sums:
+        #             children += sum_node.children
+        #         continue
+        #     # consolidate Negate nodes
+        #     if len(negations := [child for child in children if isinstance(child, Negate)]) > 1:
+        #         children = [child for child in children if child not in negations] + \
+        #                    [Negate(*(negate.child for negate in negations)).simplify()]
+        #         continue
+        #     # consolidate constants
+        #     if len(constants := [child for child in children if isinstance(child, Constant)]) > 1:
+        #         total = Sum(*constants).evaluate()
+        #         if total == 0:
+        #             children = [child for child in children if child not in constants] + [Constant(total)]
+        #         else:
+        #             children = [child for child in children if child not in constants]
+        #         continue
+        #     # consolidate variables into products
+        #     if len(variables := [child for child in children if isinstance(child, Variable)]) > 1:
+        #         pass
+        #         # separate variables
+        #     # consolidate products
+        #         # consolidate exponents of variables
+        #     break
+        return Sum(*children)
 
 
 def Subtraction(*args: Node) -> Sum:
-    """Addition operator node"""
+    """Subtraction operator node"""
     return Sum(args[0], Negate(*args[1:]))
 
 
@@ -669,71 +704,72 @@ class Product(ArbitraryOperator):
         else:
             raise NotImplementedError('Integration not supported for this expression')
 
+    # todo: fix blatant looping error
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
         children = [child.simplify() for child in self.children]
-        # evaluate full expression
-        try:
-            return Constant(self.evaluate())
-        except KeyError:
-            pass
-        # return only child
-        if len(children) == 1:
-            return children[0]
-        for i, child in enumerate(children):
-            # flatten nested product nodes
-            if isinstance(child, Product):
-                return Product(*children[:i], *children[i + 1:], *child.children).simplify()
-            # consolidate Invert nodes
-            elif isinstance(child, Invert) and len(children) > i + 1:
-                for j, child2 in enumerate(children[i + 1:]):
-                    if isinstance(child2, Invert):
-                        return Product(*children[:i], *children[i + 1:j], *children[j + 1:],
-                                       Invert(Product(child.child, child2.child))).simplify()
-            # distribute over sums
-            elif isinstance(child, Sum):
-                return Sum(*(Product(sub_child, *children[:i], *children[i + 1:]) for sub_child in
-                             child.children)).simplify()
-            elif isinstance(child, Constant):
-                # eliminate multiplying by one
-                if child.evaluate() == 1:
-                    return Product(*children[:i], *children[i + 1:]).simplify()
-                # return zero if a term equals zero
-                elif child.evaluate() == 0:
-                    return Constant(0)
-                # attempt to consolidate constants
-                else:
-                    for j, child2 in enumerate(children[i + 1:]):
-                        if isinstance(child2, Constant):
-                            return Product(Constant(Product(child, child2).evaluate()),
-                                           *children[:i], *children[i + 1:j], *children[j + 1:]).simplify()
-            # consolidate variables into exponents
-            elif isinstance(child, Variable):
-                for j, child2 in enumerate(children[i + 1:]):
-                    if isinstance(child2, Variable) and child.value == child2.value:
-                        return Product(Exponent(child, Constant(2)), *children[:i], *children[i + 1:j],
-                                       *children[j + 1:]).simplify()
-                    elif isinstance(child2, Exponent) and isinstance(child2.child1, Variable) and \
-                            child2.child1.value == child.value:
-                        return Product(Exponent(child, Sum(child2.child2, Constant(1))), *children[:i],
-                                       *children[i + 1:j], *children[j + 1:]).simplify()
-            # consolidate exponents
-            elif isinstance(child, Exponent):
-                # consolidate exponents of variables
-                if isinstance(child.child1, Variable):
-                    for j, child2 in enumerate(children[i + 1:]):
-                        if isinstance(child2, Variable) and child2.value == child.child1.value:
-                            return Product(Exponent(child2, Sum(child.child2, Constant(1))), *children[:i],
-                                           *children[i + 1:j], *children[j + 1:]).simplify()
-                        elif isinstance(child2, Exponent) and isinstance(child2.child1, Variable) and \
-                                child2.child1.value == child.child1.value:
-                            return Product(Exponent(child.child1, Sum(child.child2, child2.child2)), *children[:i],
-                                           *children[i + 1:j], *children[j + 1:]).simplify()
-        return self.copy()
+        # # evaluate full expression
+        # try:
+        #     return Constant(self.evaluate())
+        # except KeyError:
+        #     pass
+        # # return only child
+        # if len(children) == 1:
+        #     return children[0]
+        # for i, child in enumerate(children):
+        #     # flatten nested product nodes
+        #     if isinstance(child, Product):
+        #         return Product(*children[:i], *children[i + 1:], *child.children).simplify()
+        #     # consolidate Invert nodes
+        #     elif isinstance(child, Invert):
+        #         for j, child2 in enumerate(children[i + 1:]):
+        #             if isinstance(child2, Invert):
+        #                 return Product(*children[:i], *children[i + 1:j], *children[j + 1:],
+        #                                Invert(Product(child.child, child2.child))).simplify()
+        #     # distribute over sums
+        #     elif isinstance(child, Sum):
+        #         return Sum(*(Product(sub_child, *children[:i], *children[i + 1:]) for sub_child in
+        #                      child.children)).simplify()
+        #     elif isinstance(child, Constant):
+        #         # eliminate multiplying by one
+        #         if child.evaluate() == 1:
+        #             return Product(*children[:i], *children[i + 1:]).simplify()
+        #         # return zero if a term equals zero
+        #         elif child.evaluate() == 0:
+        #             return Constant(0)
+        #         # attempt to consolidate constants
+        #         else:
+        #             for j, child2 in enumerate(children[i + 1:]):
+        #                 if isinstance(child2, Constant):
+        #                     return Product(Constant(Product(child, child2).evaluate()),
+        #                                    *children[:i], *children[i + 1:j], *children[j + 1:]).simplify()
+        #     # consolidate variables into exponents
+        #     elif isinstance(child, Variable):
+        #         for j, child2 in enumerate(children[i + 1:]):
+        #             if isinstance(child2, Variable) and child.value == child2.value:
+        #                 return Product(Exponent(child, Constant(2)), *children[:i], *children[i + 1:j],
+        #                                *children[j + 1:]).simplify()
+        #             elif isinstance(child2, Exponent) and isinstance(child2.child1, Variable) and \
+        #                     child2.child1.value == child.value:
+        #                 return Product(Exponent(child, Sum(child2.child2, Constant(1))), *children[:i],
+        #                                *children[i + 1:j], *children[j + 1:]).simplify()
+        #     # consolidate exponents
+        #     elif isinstance(child, Exponent):
+        #         # consolidate exponents of variables
+        #         if isinstance(child.child1, Variable):
+        #             for j, child2 in enumerate(children[i + 1:]):
+        #                 if isinstance(child2, Variable) and child2.value == child.child1.value:
+        #                     return Product(Exponent(child2, Sum(child.child2, Constant(1))), *children[:i],
+        #                                    *children[i + 1:j], *children[j + 1:]).simplify()
+        #                 elif isinstance(child2, Exponent) and isinstance(child2.child1, Variable) and \
+        #                         child2.child1.value == child.child1.value:
+        #                     return Product(Exponent(child.child1, Sum(child.child2, child2.child2)), *children[:i],
+        #                                    *children[i + 1:j], *children[j + 1:]).simplify()
+        return Product(*children)
 
 
 def Division(*args: Node) -> Product:
-    """Addition operator node"""
+    """Division operator node"""
     return Product(args[0], Invert(*args[1:]))
 
 
@@ -908,7 +944,7 @@ class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
 
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
-        return self.copy()
+        return super().simplify()
 
     # todo: reimplement
     # def wolfram(self) -> str:
