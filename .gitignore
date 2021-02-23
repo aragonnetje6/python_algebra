@@ -5,3 +5,5 @@
 __pycache__
 output.html
 /.hypothesis/
+venv_38
+venv_39
