@@ -14,16 +14,19 @@ from pytest import fixture
 
 @fixture(scope="module")
 def x() -> Variable:
+    """variable x fixture"""
     return Variable('x')
 
 
 @fixture(scope="module")
 def y() -> Variable:
+    """variable x fixture"""
     return Variable('y')
 
 
 @fixture(scope="module")
 def z() -> Variable:
+    """variable x fixture"""
     return Variable('z')
 
 
@@ -36,8 +39,9 @@ calculus_operators = [Derivative, IndefiniteIntegral, DefiniteIntegral]
 misc_operators = [Piecewise]
 
 
-def variables_dict(keys: str, bools: bool = False) -> SearchStrategy[Variables]:
-    if bools:
+def variables_dict(keys: str, use_booleans: bool = False) -> SearchStrategy[Variables]:
+    """create variable dictionary with given keys and values chosen from either numbers or booleans"""
+    if use_booleans:
         return dictionaries(sampled_from(keys),
                             booleans(),
                             min_size=len(keys))
