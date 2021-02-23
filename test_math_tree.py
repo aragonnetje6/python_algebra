@@ -64,14 +64,6 @@ def test_equality(val1: Node, val2: Node) -> None:
     assert IsEqual(val1, val2).evaluate() == (val1.evaluate() == val2.evaluate())
 
 
-@given(expr=math_expression, var_dict=variables_dict('xyz'))
-def test_no_floats(expr: Node, var_dict: Variables) -> None:
-    try:
-        assert not isinstance(expr.evaluate(var_dict), float)
-    except (OverflowError, ValueError, ArithmeticError):
-        pass
-
-
 class TestBinaryOperators:
     @given(var_dict=variables_dict('xy'))
     def test_1(self, x: Variable, y: Variable, var_dict: Variables) -> None:
