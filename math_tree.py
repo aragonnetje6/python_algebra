@@ -7,12 +7,12 @@ from decimal import Decimal, getcontext
 from functools import reduce
 from math import pi, e, log, sin, cos, tan, asin, acos, atan, isclose
 # from os import system
-from typing import Optional, Dict, Union, Tuple, List, Set, Any
+from typing import Union, Optional, Any
 
 getcontext().prec = 1000
 
 Number = Union[int, Decimal]
-Variables = Dict[str, Union[Number, float, bool]]
+Variables = dict[str, Union[Number, float, bool]]
 
 
 # todo:reimplement
@@ -281,7 +281,7 @@ class Node(metaclass=ABCMeta):
         else:
             raise AttributeError(f'\'{self.__class__.__name__}\' object is read-only')
 
-    def dependencies(self) -> Set[str]:
+    def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
         return set()
 
@@ -302,7 +302,7 @@ class Node(metaclass=ABCMeta):
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
 
     @abstractmethod
-    def list_nodes(self) -> List['Node']:
+    def list_nodes(self) -> list['Node']:
         """return a list of all nodes in the tree"""
 
     # todo:reimplement
@@ -360,7 +360,7 @@ class Term(Node, metaclass=ABCMeta):
     def __init__(self) -> None:
         super().__init__()
 
-    def list_nodes(self) -> List[Node]:
+    def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
         return [self]
 
@@ -449,7 +449,7 @@ class Variable(Term):
         """returns infix representation of the tree"""
         return str(self.value)
 
-    def dependencies(self) -> Set[str]:
+    def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
         return {self.value}
 
@@ -522,7 +522,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         """returns a copy of this tree"""
         return self.__class__(*(child.copy() for child in self.children))
 
-    def dependencies(self) -> Set[str]:
+    def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
         # ugly but at least mypy shuts up
         return set('').union(*(child.dependencies() for child in self.children)).difference(set(''))
@@ -543,7 +543,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         else:
             return self.symbol.join(*(child.infix() for child in self.children))
 
-    def list_nodes(self) -> List[Node]:
+    def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
         return sum((child.list_nodes() for child in self.children), [self])
 
@@ -1269,7 +1269,7 @@ class UnaryOperator(Node, metaclass=ABCMeta):
         """returns a copy of this tree"""
         return self.__class__(self.child)
 
-    def dependencies(self) -> Set[str]:
+    def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
         return self.child.dependencies()
 
@@ -1277,9 +1277,9 @@ class UnaryOperator(Node, metaclass=ABCMeta):
         """returns infix representation of the tree"""
         return f'{self.symbol}({self.child.infix()})'
 
-    def list_nodes(self) -> List[Node]:
+    def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
-        out = [self]  # type: List[Node]
+        out = [self]  # type: list[Node]
         return out + self.child.list_nodes()
 
     # todo: reimplement
@@ -1778,9 +1778,9 @@ class CalculusOperator(Node, metaclass=ABCMeta):
         """returns a copy of this tree"""
         return self.__class__(self.child, self.variable)
 
-    def list_nodes(self) -> List['Node']:
+    def list_nodes(self) -> list['Node']:
         """returns a list of all nodes in the tree"""
-        out = [self]  # type: List[Node]
+        out = [self]  # type: list[Node]
         return out + self.child.list_nodes()
 
     def simplify(self) -> 'Node':
@@ -1802,7 +1802,7 @@ class Derivative(CalculusOperator):
     __slots__ = ()
     wolfram_func = 'Derivative'
 
-    def dependencies(self) -> Set[str]:
+    def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
         return self.child.derivative(self.variable).dependencies()
 
@@ -1852,7 +1852,7 @@ class IndefiniteIntegral(CalculusOperator):
     wolfram_func = 'Integrate'
     __slots__ = ()
 
-    def dependencies(self) -> Set[str]:
+    def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
         return self.child.dependencies() | {self.variable, }
 
@@ -1916,7 +1916,7 @@ class DefiniteIntegral(CalculusOperator):
         """returns a copy of this tree"""
         return self.__class__(self.child, self.variable, self.lower, self.upper)
 
-    def dependencies(self) -> Set[str]:
+    def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
         return self.child.dependencies() - {self.variable, }
 
@@ -1970,7 +1970,7 @@ class Piecewise(Node):
     symbol = 'piecewise'
     __slots__ = 'expressions', 'default'
 
-    def __init__(self, expressions: List[Tuple[Node, Node]], default: Optional[Node] = None):
+    def __init__(self, expressions: list[tuple[Node, Node]], default: Optional[Node] = None):
         self.default = default.copy() if default is not None else Constant(0)
         self.expressions = [(expr.copy(), cond.copy()) for expr, cond in expressions]
         super().__init__()
@@ -2004,9 +2004,9 @@ class Piecewise(Node):
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         return Piecewise([(expr.integral(var), cond) for expr, cond in self.expressions], self.default.integral(var))
 
-    def list_nodes(self) -> List['Node']:
+    def list_nodes(self) -> list['Node']:
         """returns a list of all nodes in the tree"""
-        out = [self]  # type: List[Node]
+        out = [self]  # type: list[Node]
         for expr, cond in self.expressions:
             out += expr.list_nodes()
             out += cond.list_nodes()
