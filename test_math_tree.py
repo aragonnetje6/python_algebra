@@ -237,5 +237,5 @@ class TestUnaryOperators:
 
 class TestDisplayMethods:
     @given(expr=math_expression)
-    def test_wolfram(self, expr: Node):
+    def test_wolfram_type(self, expr: Node):
         assert isinstance(expr.wolfram(), str)
