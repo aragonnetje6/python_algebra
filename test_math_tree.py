@@ -258,4 +258,4 @@ class TestDisplayMethods:
             assert expr.child.mathml() in expr.mathml()
         elif isinstance(expr, ArbitraryOperator):
             for child in expr.children:
-                assert child.mathml() in expr.mathml()
+                assert child.copy().mathml() in expr.mathml()
