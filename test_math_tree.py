@@ -239,3 +239,11 @@ class TestDisplayMethods:
     @given(expr=math_expression)
     def test_wolfram_type(self, expr: Node):
         assert isinstance(expr.wolfram(), str)
+
+    @given(expr=math_expression)
+    def test_wolfram_recursive(self, expr: Node):
+        if hasattr(expr, 'child'):
+            assert expr.child.wolfram() in expr.wolfram()
+        elif hasattr(expr, 'children'):
+            for child in expr.children:
+                assert child.wolfram() in expr.wolfram()
