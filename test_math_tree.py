@@ -233,3 +233,9 @@ class TestUnaryOperators:
             assert x.evaluate(var_dict) == 0
         except OverflowError:
             pass
+
+
+class TestDisplayMethods:
+    @given(expr=math_expression)
+    def test_wolfram(self, expr: Node):
+        assert isinstance(expr.wolfram(), str)
