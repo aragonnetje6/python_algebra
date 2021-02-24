@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from decimal import Decimal, getcontext
 from functools import reduce
 from math import pi, e, log, sin, cos, tan, asin, acos, atan, isclose
-# from os import system
+import webbrowser
 from typing import Union, Optional, Any
 
 getcontext().prec = 1000
@@ -28,43 +28,30 @@ def mathml_tag(xml_tag: str, content: str, args: Optional[str] = None) -> str:
     return tag('m' + xml_tag, content, args)
 
 
-# todo:reimplement generate_html_doc
-# def generate_html_doc(expression: 'Node') -> str:
-#     """generates html code for expression"""
-#     return '<!DOCTYPE html>' \
-#            + tag('html',
-#                  tag('head',
-#                      tag('title',
-#                          'python_algebra output'))
-#                  + tag('body',
-#                        tag('math',
-#                            expression.mathml(),
-#                            'xmlns = "http://www.w3.org/1998/Math/MathML" id = "expr"')))
+def generate_html_code(expression: 'Node') -> str:
+    """generates html code for expression"""
+    return '<!DOCTYPE html>' \
+           + tag('html',
+                 tag('head',
+                     tag('title',
+                         'python_algebra output'))
+                 + tag('body',
+                       tag('math',
+                           expression.mathml(),
+                           'xmlns = "http://www.w3.org/1998/Math/MathML" id = "expr"')))
 
 
-# todo:reimplement display
-# def display(expression: 'Node') -> None:
-#     """Generates and opens html representation of expression"""
-#     try:
-#         from IPython import get_ipython  # type: ignore
-#         from IPython.display import HTML, display_html  # type: ignore
-#         if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
-#             # noinspection PyTypeChecker
-#             display_html(
-#                 HTML(
-#                     tag('math',
-#                         expression.mathml(),
-#                         'xmlns = "http://www.w3.org/1998/Math/MathML" id = "expr"')))
-#         else:
-#             html = generate_html_doc(expression)
-#             with open('output.html', 'w') as file:
-#                 file.write(html)
-#             system('output.html')
-#     except ModuleNotFoundError:
-#         html = generate_html_doc(expression)
-#         with open('output.html', 'w') as file:
-#             file.write(html)
-#         system('output.html')
+def generate_html_doc(expression: 'Node') -> None:
+    """generates html document for expression"""
+    html = generate_html_code(expression)
+    with open('output.html', 'w') as file:
+        file.write(html)
+
+
+def display(expression: 'Node') -> None:
+    """Generates and opens html representation of expression"""
+    generate_html_doc(expression)
+    webbrowser.open('output.html')
 
 
 class Node(metaclass=ABCMeta):
