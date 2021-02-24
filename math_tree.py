@@ -318,10 +318,9 @@ class Node(metaclass=ABCMeta):
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
 
-    # todo:reimplement
-    # @abstractmethod
-    # def wolfram(self) -> str:
-    #     """return wolfram language representation of the tree"""
+    @abstractmethod
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
 
     def copy(self) -> 'Node':
         """returns a copy of this tree"""
@@ -355,10 +354,7 @@ class Node(metaclass=ABCMeta):
 
 class Term(Node, metaclass=ABCMeta):
     """Abstract Base Class for any value (leaf node) in the expression tree"""
-    __slots__ = ()
-
-    def __init__(self) -> None:
-        super().__init__()
+    __slots__ = ('value',)
 
     def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
@@ -371,18 +367,15 @@ class Term(Node, metaclass=ABCMeta):
 
 class Constant(Term):
     """Real numerical constant in expression tree, """
-    __slots__ = ('value',)
+    __slots__ = ()
 
     def __init__(self, value: Union[Number, float, bool]) -> None:
-        try:
-            if isinstance(value, float):
-                if int(value) == value:
-                    value = int(value)
-                else:
-                    value = Decimal(value)
-        except OverflowError:
-            value = Decimal(value)
-        self.value = value
+        if isinstance(value, float) and value != float('inf') and int(value) == value:
+            self.value: Union[Number, bool] = int(value)
+        elif isinstance(value, (bool, int)):
+            self.value = value
+        else:
+            self.value = Decimal(value)
         super().__init__()
 
     def __repr__(self) -> str:
@@ -426,7 +419,7 @@ class Constant(Term):
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
-        return f' {self.value} '
+        return f'{self.value}'
 
 
 class Variable(Term):
@@ -497,17 +490,20 @@ class Variable(Term):
             return sub.copy()
         return self.copy()
 
-    # todo:reimplement
-    # def wolfram(self) -> str:
-    #     """return wolfram language representation of the tree"""
-    #     return ' ' + self.value + ' '
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return self.value
 
 
 class ArbitraryOperator(Node, metaclass=ABCMeta):
     """Abstract Base Class for multi-input operator in expression tree"""
     __slots__ = 'children',
     symbol = ''
-    wolfram_func = ''
+
+    @property
+    @abstractmethod
+    def wolfram_func(self):
+        """abstract property, returns function name for wolfram language"""
 
     def __init__(self, *args: Node) -> None:
         assert len(args) > 1
@@ -539,9 +535,9 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def infix(self) -> str:
         """returns infix representation of the tree"""
         if isinstance(self.parent, Invert) or isinstance(self.parent, Exponent):
-            return '(' + self.symbol.join(*(child.infix() for child in self.children)) + ')'
+            return '(' + self.symbol.join(child.infix() for child in self.children) + ')'
         else:
-            return self.symbol.join(*(child.infix() for child in self.children))
+            return self.symbol.join(child.infix() for child in self.children)
 
     def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
@@ -580,10 +576,9 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(*(child.substitute(var, sub) for child in self.children))
 
-    # todo: reimplement
-    # def wolfram(self) -> str:
-    #     """return wolfram language representation of the tree"""
-    #     return f'{self.wolfram_func}[{self.child1.wolfram()}, {self.child2.wolfram()}]'
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[' + ', '.join(child.wolfram() for child in self.children) + ']'
 
 
 class Sum(ArbitraryOperator):
@@ -604,9 +599,9 @@ class Sum(ArbitraryOperator):
     def infix(self) -> str:
         """returns infix representation of the tree"""
         if self.parent is None or isinstance(self.parent, (Sum, Logarithm, UnaryOperator)):
-            return self.symbol.join(*(child.infix() for child in self.children))
+            return self.symbol.join(child.infix() for child in self.children)
         else:
-            return '(' + self.symbol.join(*(child.infix() for child in self.children)) + ')'
+            return '(' + self.symbol.join(child.infix() for child in self.children) + ')'
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -906,6 +901,10 @@ class Logarithm(BinaryOperator):
     #                                  + self.child2.mathml())
     #                       + mathml_tag('fenced', self.child1.mathml()))
 
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[{self.child2}, {self.child1}]'
+
 
 class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
@@ -945,11 +944,6 @@ class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
         return super().simplify()
-
-    # todo: reimplement
-    # def wolfram(self) -> str:
-    #     """return wolfram language representation of the tree"""
-    #     return f'{self.wolfram_func}[{self.child1.wolfram()}][{self.child2.wolfram()}]'
 
 
 class And(ArbitraryLogicalOperator):
@@ -1207,7 +1201,7 @@ class GreaterThan(ComparisonOperator):
     """Greater-than operator node"""
     __slots__ = ()
     symbol = '>'
-    wolfram_func = 'GreaterThan'
+    wolfram_func = 'Greater'
 
     @staticmethod
     def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
@@ -1219,7 +1213,7 @@ class LessThan(ComparisonOperator):
     """Less-than operator node"""
     __slots__ = ()
     symbol = '<'
-    wolfram_func = 'LessThan'
+    wolfram_func = 'Less'
 
     @staticmethod
     def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
@@ -1306,10 +1300,9 @@ class UnaryOperator(Node, metaclass=ABCMeta):
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child.substitute(var, sub))
 
-    # todo: reimplement
-    # def wolfram(self) -> str:
-    #     """return wolfram language representation of the tree"""
-    #     return f'{self.wolfram_func}[{self.child.wolfram()}]'
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[{self.child.wolfram()}]'
 
 
 class Sine(UnaryOperator):
@@ -1637,6 +1630,7 @@ class Invert(UnaryOperator):
     """Unary inversion operator"""
     __slots__ = ()
     symbol = '1/'
+    wolfram_func = 'Divide'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1694,10 +1688,9 @@ class Invert(UnaryOperator):
         else:
             return Invert(simple_child)
 
-    # todo: reimplement
-    # def wolfram(self) -> str:
-    #     """return wolfram language representation of the tree"""
-    #     return f'Divide[1, {self.child.wolfram()}]'
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'Divide[1, {self.child.wolfram()}]'
 
 
 class Not(UnaryOperator):
@@ -1791,16 +1784,11 @@ class CalculusOperator(Node, metaclass=ABCMeta):
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child.substitute(var, sub), self.variable)
 
-    # todo: reimplement
-    # def wolfram(self) -> str:
-    #     """return wolfram language representation of the tree"""
-    #     return f'{self.wolfram_func}[{self.child.wolfram()}, {self.variable}]'
-
 
 class Derivative(CalculusOperator):
     """Derivative operation node"""
     __slots__ = ()
-    wolfram_func = 'Derivative'
+    wolfram_func = 'D'
 
     def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
@@ -1845,6 +1833,10 @@ class Derivative(CalculusOperator):
             return result
         else:
             return result.simplify()
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[{self.child.wolfram()}, {self.variable}]'
 
 
 class IndefiniteIntegral(CalculusOperator):
@@ -1899,6 +1891,10 @@ class IndefiniteIntegral(CalculusOperator):
     #                                self.__class__(simple_child.child2, self.variable))
     #         else:
     #             return self.__class__(self.child.simplify(), self.variable)
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[{self.child.wolfram()}, {self.variable}]'
 
 
 class DefiniteIntegral(CalculusOperator):
@@ -1957,11 +1953,10 @@ class DefiniteIntegral(CalculusOperator):
         """returns a simplified version of the tree"""
         return self.__class__(self.child.simplify(), self.symbol, self.lower.simplify(), self.upper.simplify())
 
-    # todo: reimplement
-    # def wolfram(self) -> str:
-    #     """return wolfram language representation of the tree"""
-    #     return f'{self.wolfram_func}[{self.child.wolfram()},' \
-    #            f'{{{self.variable}, {self.lower.wolfram()}, {self.upper.wolfram()}}}]'
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[{self.child.wolfram()},' \
+               f'{{{self.variable}, {self.lower.wolfram()}, {self.upper.wolfram()}}}]'
 
 
 class Piecewise(Node):
@@ -2045,11 +2040,7 @@ class Piecewise(Node):
         return Piecewise([(expr.substitute(var, sub), cond.substitute(var, sub)) for expr, cond in self.expressions],
                          self.default.substitute(var, sub))
 
-    # todo: reimplement
-    # def wolfram(self) -> str:
-    #     """return wolfram language representation of the tree"""
-    #     expression_part = '{'
-    #     for expr, cond in self.expressions:
-    #         expression_part += f'{{{expr.infix()}, {cond.infix()}}}, '
-    #     expression_part += '}, ' + self.default.infix()
-    #     return f'{self.wolfram_func}[{expression_part}]'
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        expressions = ', '.join(f'{{{expr.wolfram()}, {cond.wolfram()}}}' for expr, cond in self.expressions)
+        return f'{self.wolfram_func}[{{{expressions}}}, {self.default.wolfram()}]'
