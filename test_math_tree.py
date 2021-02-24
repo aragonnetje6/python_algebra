@@ -8,7 +8,7 @@ from hypothesis.strategies import SearchStrategy, deferred, one_of, builds, samp
 from math_tree import Node, Constant, Variable, Sum, Subtraction, Product, Division, Exponent, Logarithm, \
     IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor, Xnor, Sine, Cosine, \
     Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, IndefiniteIntegral, \
-    DefiniteIntegral, Piecewise, Variables
+    DefiniteIntegral, Piecewise, Variables, UnaryOperator, CalculusOperator, ArbitraryOperator
 from pytest import fixture
 
 
@@ -233,3 +233,17 @@ class TestUnaryOperators:
             assert x.evaluate(var_dict) == 0
         except OverflowError:
             pass
+
+
+class TestDisplayMethods:
+    @given(expr=math_expression)
+    def test_wolfram_type(self, expr: Node) -> None:
+        assert isinstance(expr.wolfram(), str)
+
+    @given(expr=math_expression)
+    def test_wolfram_recursive(self, expr: Node) -> None:
+        if isinstance(expr, (UnaryOperator, CalculusOperator)):
+            assert expr.child.wolfram() in expr.wolfram()
+        elif isinstance(expr, ArbitraryOperator):
+            for child in expr.children:
+                assert child.wolfram() in expr.wolfram()
