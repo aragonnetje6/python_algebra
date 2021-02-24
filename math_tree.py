@@ -406,39 +406,39 @@ class Constant(Term):
 
 class Variable(Term):
     """Named variable in expression tree"""
-    __slots__ = ('value',)
+    __slots__ = ('name',)
 
     def __init__(self, value: str) -> None:
         assert isinstance(value, str)
-        self.value = value
+        self.name = value
         super().__init__()
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(\'{self.value}\')'
+        return f'{self.__class__.__name__}(\'{self.name}\')'
 
     def copy(self) -> 'Node':
         """returns a copy of this tree"""
-        return self.__class__(self.value)
+        return self.__class__(self.name)
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        return str(self.value)
+        return str(self.name)
 
     def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
-        return {self.value}
+        return {self.name}
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        if self.value == variable:
+        if self.name == variable:
             return Constant(1)
         return Constant(0)
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> Union[Number, bool]:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         if var_dict is None:
-            raise KeyError(f'None does not contain "{self.value}"')
-        value = var_dict[self.value]
+            raise KeyError(f'None does not contain "{self.name}"')
+        value = var_dict[self.name]
         try:
             if isinstance(value, float):
                 if int(value) == value:
@@ -451,7 +451,7 @@ class Variable(Term):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        if self.value == var:
+        if self.name == var:
             if self.parent is None or isinstance(self.parent, Sum):
                 return Division(Exponent(self, Constant(2)), Constant(2))
             else:
@@ -463,17 +463,17 @@ class Variable(Term):
         """returns the MathML representation of the tree"""
         return mathml_tag('row',
                           mathml_tag('i',
-                                     str(self.value)))
+                                     str(self.name)))
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
-        if self.value == var:
+        if self.name == var:
             return sub.copy()
         return self.copy()
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
-        return self.value
+        return self.name
 
 
 class ArbitraryOperator(Node, metaclass=ABCMeta):
