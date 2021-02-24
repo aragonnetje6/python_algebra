@@ -247,3 +247,15 @@ class TestDisplayMethods:
         elif isinstance(expr, ArbitraryOperator):
             for child in expr.children:
                 assert child.wolfram() in expr.wolfram()
+
+    @given(expr=math_expression)
+    def test_mathml_type(self, expr: Node) -> None:
+        assert isinstance(expr.mathml(), str)
+
+    @given(expr=math_expression)
+    def test_mathml_recursive(self, expr: Node) -> None:
+        if isinstance(expr, (UnaryOperator, CalculusOperator)):
+            assert expr.child.mathml() in expr.mathml()
+        elif isinstance(expr, ArbitraryOperator):
+            for child in expr.children:
+                assert child.mathml() in expr.mathml()
