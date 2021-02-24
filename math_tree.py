@@ -310,10 +310,9 @@ class Node(metaclass=ABCMeta):
         """returns a copy of this tree"""
         return self.__class__()
 
-    # todo:reimplement display
-    # def display(self) -> None:
-    #     """shows graphical representation of expression"""
-    #     display(self)
+    def display(self) -> None:
+        """shows graphical representation of expression"""
+        display(self)
 
     def get_root(self) -> 'Node':
         """Returns the root node of the expression tree"""
