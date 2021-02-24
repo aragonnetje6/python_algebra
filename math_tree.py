@@ -903,7 +903,7 @@ class Logarithm(BinaryOperator):
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
-        return f'{self.wolfram_func}[{self.child2}, {self.child1}]'
+        return f'{self.wolfram_func}[{self.child2.wolfram()}, {self.child1.wolfram()}]'
 
 
 class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
