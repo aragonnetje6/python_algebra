@@ -502,7 +502,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def wolfram_func(self):
+    def wolfram_func(self) -> str:
         """abstract property, returns function name for wolfram language"""
 
     def __init__(self, *args: Node) -> None:
