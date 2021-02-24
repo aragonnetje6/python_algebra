@@ -596,6 +596,7 @@ class Sum(ArbitraryOperator):
                                                     mathml_tag('o', self.symbol).join(
                                                         child.mathml() for child in self.children))))
 
+    # todo: reimplement Sum.simplify
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
         children = [child.simplify() for child in self.children]
@@ -671,7 +672,7 @@ class Product(ArbitraryOperator):
         else:
             raise NotImplementedError('Integration not supported for this expression')
 
-    # todo: fix blatant looping error
+    # todo: reimplement Product.simplify
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
         children = [child.simplify() for child in self.children]
@@ -812,9 +813,7 @@ class Exponent(BinaryOperator):
                                          self.child1.mathml()
                                          + self.child2.mathml()))
 
-    def simplify(self) -> 'Node':
-        """returns a simplified version of the tree"""
-        return super().simplify()
+    # todo: reimplement Exponent.simplify
 
 
 class Logarithm(BinaryOperator):
@@ -895,10 +894,6 @@ class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         raise ArithmeticError("Integration of logical operators not supported")
 
-    def simplify(self) -> 'Node':
-        """returns a simplified version of the tree"""
-        return super().simplify()
-
 
 class And(ArbitraryLogicalOperator):
     """logical AND operator node"""
@@ -911,7 +906,7 @@ class And(ArbitraryLogicalOperator):
         """calculation function for 2 elements"""
         return bool(x) & bool(y)
 
-    # todo: reimplement
+    # todo: reimplement And.simplify
     # def simplify(self) -> Node:
     #     """returns a simplified version of the tree"""
     #     try:
@@ -937,7 +932,7 @@ class Or(ArbitraryLogicalOperator):
         """calculation function for 2 elements"""
         return bool(x) | bool(y)
 
-    # todo: reimplement
+    # todo: reimplement Or.simplify
     # def simplify(self) -> Node:
     #     """returns a simplified version of the tree"""
     #     try:
@@ -963,7 +958,7 @@ class Xor(ArbitraryLogicalOperator):
         """calculation function for 2 elements"""
         return bool(x) ^ bool(y)
 
-    # todo: reimplement
+    # todo: reimplement Xor.simplify
     # def simplify(self) -> Node:
     #     """returns a simplified version of the tree"""
     #     try:
@@ -1005,7 +1000,7 @@ class Nand(ArbitraryLogicalOperator):
                                                   mathml_tag('o', '&').join(
                                                       child.mathml() for child in self.children))))
 
-    # todo: reimplement
+    # todo: reimplement Nand.simplify
     # def simplify(self) -> Node:
     #     """returns a simplified version of the tree"""
     #     try:
@@ -1047,7 +1042,7 @@ class Nor(ArbitraryLogicalOperator):
                                                   mathml_tag('o', '|').join(
                                                       child.mathml() for child in self.children))))
 
-    # todo: reimplement
+    # todo: reimplement Nor.simplify
     # def simplify(self) -> Node:
     #     """returns a simplified version of the tree"""
     #     try:
@@ -1088,7 +1083,7 @@ class Xnor(ArbitraryLogicalOperator):
                                                   mathml_tag('o', '^').join(
                                                       child.mathml() for child in self.children))))
 
-    # todo: reimplement
+    # todo: reimplement Xnor.simplify
     # def simplify(self) -> Node:
     #     """returns a simplified version of the tree"""
     #     try:
@@ -1673,7 +1668,7 @@ class Not(UnaryOperator):
                               mathml_tag('i', self.symbol)
                               + self.child.mathml())
 
-    # todo: reimplement
+    # todo: reimplement Not.simplify
     # def simplify(self) -> 'Node':
     #     """returns a simplified version of the tree"""
     #     simple_child = self.child.simplify()
@@ -1817,7 +1812,7 @@ class IndefiniteIntegral(CalculusOperator):
                           + mathml_tag('i', 'd')
                           + mathml_tag('i', self.variable))
 
-    # todo: reimplement
+    # todo: reimplement IndefiniteIntegral.simplify
     # def simplify(self) -> 'Node':
     #     """returns a simplified version of the tree"""
     #     simple_child = self.child.simplify()
