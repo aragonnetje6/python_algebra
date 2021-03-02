@@ -2,17 +2,15 @@
 basic expression tree with evaluation and derivation
 """
 
+import webbrowser
 from abc import ABCMeta, abstractmethod
-from decimal import Decimal, getcontext
+from fractions import Fraction
 from functools import reduce
 from math import pi, e, log, sin, cos, tan, asin, acos, atan, isclose
-import webbrowser
 from typing import Union, Optional, Any
 
-getcontext().prec = 1000
-
-Number = Union[int, Decimal]
-Variables = dict[str, Union[Number, float, bool]]
+ConstantType = Union[int, Fraction, float, complex, bool]
+Variables = dict[str, ConstantType]
 
 
 def tag(xml_tag: str, content: str, args: Optional[str] = None) -> str:
@@ -38,7 +36,7 @@ def generate_html_code(expression: 'Node') -> str:
                  + tag('body',
                        tag('math',
                            expression.mathml(),
-                           'xmlns = "http://www.w3.org/1998/Math/MathML" id = "expr"')))
+                           'xmlns = "http://www.w3.org/1998/Math/MathML" id = "expr"')), 'lang=\'en\'')
 
 
 def generate_html_doc(expression: 'Node') -> None:
@@ -52,6 +50,36 @@ def display(expression: 'Node') -> None:
     """Generates and opens html representation of expression"""
     generate_html_doc(expression)
     webbrowser.open('output.html')
+
+
+def Nodeify(other: Union['Node', ConstantType, str]) -> 'Node':
+    """turn given input into constant or variable leaf node"""
+    if isinstance(other, Node):
+        return other.copy()
+    elif isinstance(other, int):
+        return Integer(other)
+    elif isinstance(other, Fraction):
+        if other.denominator == 1:
+            return Integer(int(other))
+        elif other.denominator >= 1e6:
+            return Real(float(other))
+        else:
+            return Rational(other)
+    elif isinstance(other, float):
+        if other.is_integer():
+            return Integer(int(other))
+        elif other.as_integer_ratio()[1] < 1e6:
+            return Rational(Fraction(other))
+        else:
+            return Real(other)
+    elif isinstance(other, complex):
+        return Complex(other)
+    elif isinstance(other, bool):
+        return Boolean(other)
+    elif isinstance(other, str):
+        return Variable(other)
+    else:
+        raise ValueError(f'Unsupported term type {type(other)} of {other}')
 
 
 class Node(metaclass=ABCMeta):
@@ -73,137 +101,96 @@ class Node(metaclass=ABCMeta):
         return bool(self.evaluate())
 
     def __float__(self) -> float:
-        return float(self.evaluate())
+        if isinstance(value := self.evaluate(), complex):
+            return float(value.real)
+        else:
+            return float(value)
 
     def __int__(self) -> int:
-        return int(self.evaluate())
+        if isinstance(value := self.evaluate(), complex):
+            return int(value.real)
+        else:
+            return int(value)
+
+    def __complex__(self) -> complex:
+        return complex(self.evaluate())
 
     def __eq__(self, other: Any) -> bool:
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return IsEqual(self, other).evaluate()
-        else:
-            return NotImplemented
+        return IsEqual(self, Nodeify(other)).evaluate()
 
     def __ne__(self, other: Any) -> bool:
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return NotEqual(self, other).evaluate()
-        else:
-            return NotImplemented
+        return NotEqual(self, Nodeify(other)).evaluate()
 
     def __gt__(self, other: Any) -> bool:
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return GreaterThan(self, other).evaluate()
-        else:
-            return NotImplemented
+        return GreaterThan(self, Nodeify(other)).evaluate()
 
     def __ge__(self, other: Any) -> bool:
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return GreaterEqual(self, other).evaluate()
-        else:
-            return NotImplemented
+        return GreaterEqual(self, Nodeify(other)).evaluate()
 
     def __lt__(self, other: Any) -> bool:
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return LessThan(self, other).evaluate()
-        else:
-            return NotImplemented
+        return LessThan(self, Nodeify(other)).evaluate()
 
     def __le__(self, other: Any) -> bool:
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return LessEqual(self, other).evaluate()
-        else:
+        return LessEqual(self, Nodeify(other)).evaluate()
+
+    def __add__(self, other: Union['Node', ConstantType, str]) -> 'Sum':
+        try:
+            return Sum(self, Nodeify(other))
+        except ValueError:
             return NotImplemented
 
-    def __add__(self, other: Union[Number, 'Node']) -> 'Sum':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Sum(self, other)
-        else:
+    def __radd__(self, other: Union['Node', ConstantType, str]) -> 'Sum':
+        try:
+            return Sum(Nodeify(other), self)
+        except ValueError:
             return NotImplemented
 
-    def __radd__(self, other: Union[Number, 'Node']) -> 'Sum':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Sum(other, self)
-        else:
+    def __sub__(self, other: Union['Node', ConstantType, str]) -> 'Sum':
+        try:
+            return Subtraction(self, Nodeify(other))
+        except ValueError:
             return NotImplemented
 
-    def __sub__(self, other: Union[Number, 'Node']) -> 'Sum':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Subtraction(self, other)
-        else:
+    def __rsub__(self, other: Union['Node', ConstantType, str]) -> 'Sum':
+        try:
+            return Subtraction(Nodeify(other), self)
+        except ValueError:
             return NotImplemented
 
-    def __rsub__(self, other: Union[Number, 'Node']) -> 'Sum':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Subtraction(other, self)
-        else:
+    def __mul__(self, other: Union['Node', ConstantType, str]) -> 'Product':
+        try:
+            return Product(self, Nodeify(other))
+        except ValueError:
             return NotImplemented
 
-    def __mul__(self, other: Union[Number, 'Node']) -> 'Product':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Product(self, other)
-        else:
+    def __rmul__(self, other: Union['Node', ConstantType, str]) -> 'Product':
+        try:
+            return Product(Nodeify(other), self)
+        except ValueError:
             return NotImplemented
 
-    def __rmul__(self, other: Union[Number, 'Node']) -> 'Product':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Product(other, self)
-        else:
+    def __truediv__(self, other: Union['Node', ConstantType, str]) -> 'Product':
+        try:
+            return Division(self, Nodeify(other))
+        except ValueError:
             return NotImplemented
 
-    def __truediv__(self, other: Union[Number, 'Node']) -> 'Product':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Division(self, other)
-        else:
+    def __rtruediv__(self, other: Union['Node', ConstantType, str]) -> 'Product':
+        try:
+            return Division(Nodeify(other), self)
+        except ValueError:
             return NotImplemented
 
-    def __rtruediv__(self, other: Union[Number, 'Node']) -> 'Product':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Division(other, self)
-        else:
+    def __pow__(self, other: Union['Node', ConstantType, str]) -> 'Exponent':
+        try:
+            return Exponent(self, Nodeify(other))
+        except ValueError:
             return NotImplemented
 
-    def __pow__(self, other: Union[Number, 'Node']) -> 'Exponent':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Exponent(self, other)
-        else:
-            return NotImplemented
-
-    def __rpow__(self, other: Union[Number, 'Node']) -> 'Exponent':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Exponent(other, self)
-        else:
+    def __rpow__(self, other: Union['Node', ConstantType, str]) -> 'Exponent':
+        try:
+            return Exponent(Nodeify(other), self)
+        except ValueError:
             return NotImplemented
 
     def __neg__(self) -> 'Negate':
@@ -212,52 +199,40 @@ class Node(metaclass=ABCMeta):
     def __invert__(self) -> 'Not':
         return Not(self)
 
-    def __and__(self, other: Union[Number, 'Node']) -> 'And':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return And(self, other)
-        else:
+    def __and__(self, other: Union['Node', ConstantType, str]) -> 'And':
+        try:
+            return And(self, Nodeify(other))
+        except ValueError:
             return NotImplemented
 
-    def __rand__(self, other: Union[Number, 'Node']) -> 'And':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return And(other, self)
-        else:
+    def __rand__(self, other: Union['Node', ConstantType, str]) -> 'And':
+        try:
+            return And(Nodeify(other), self)
+        except ValueError:
             return NotImplemented
 
-    def __or__(self, other: Union[Number, 'Node']) -> 'Or':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Or(self, other)
-        else:
+    def __or__(self, other: Union['Node', ConstantType, str]) -> 'Or':
+        try:
+            return Or(self, Nodeify(other))
+        except ValueError:
             return NotImplemented
 
-    def __ror__(self, other: Union[Number, 'Node']) -> 'Or':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Or(other, self)
-        else:
+    def __ror__(self, other: Union['Node', ConstantType, str]) -> 'Or':
+        try:
+            return Or(Nodeify(other), self)
+        except ValueError:
             return NotImplemented
 
-    def __xor__(self, other: Union[Number, 'Node']) -> 'Xor':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Xor(self, other)
-        else:
+    def __xor__(self, other: Union['Node', ConstantType, str]) -> 'Xor':
+        try:
+            return Xor(self, Nodeify(other))
+        except ValueError:
             return NotImplemented
 
-    def __rxor__(self, other: Union[Number, 'Node']) -> 'Xor':
-        if isinstance(other, (float, int, bool)):
-            other = Constant(other)
-        if isinstance(other, Node):
-            return Xor(other, self)
-        else:
+    def __rxor__(self, other: Union['Node', ConstantType, str]) -> 'Xor':
+        try:
+            return Xor(Nodeify(other), self)
+        except ValueError:
             return NotImplemented
 
     def __setattr__(self, key: str, value: Any) -> None:
@@ -275,7 +250,7 @@ class Node(metaclass=ABCMeta):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
 
     @abstractmethod
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
 
     @abstractmethod
@@ -329,15 +304,13 @@ class Node(metaclass=ABCMeta):
         returns an expression tree representing the total derivative of this tree.
         the total derivative of f is defined as sum(f.derivative(var) for var in f.dependencies)
         """
-        out: Node = Constant(0)
-        for variable in self.dependencies():
-            out = Sum(out, self.derivative(variable))
+        out = Sum(*(self.derivative(variable) for variable in self.dependencies()))
         return out
 
 
 class Term(Node, metaclass=ABCMeta):
     """Abstract Base Class for any value (leaf node) in the expression tree"""
-    __slots__ = ('value',)
+    __slots__ = ()
 
     def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
@@ -348,60 +321,280 @@ class Term(Node, metaclass=ABCMeta):
         return self.copy()
 
 
-class Constant(Term):
-    """Real numerical constant in expression tree, """
+class Constant(Term, metaclass=ABCMeta):
+    """constant term in expression tree"""
     __slots__ = ()
-
-    def __init__(self, value: Union[Number, float, bool]) -> None:
-        if isinstance(value, float) and value != float('inf') and int(value) == value:
-            self.value: Union[Number, bool] = int(value)
-        elif isinstance(value, (bool, int)):
-            self.value = value
-        else:
-            self.value = Decimal(value)
-        super().__init__()
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.value})'
-
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__(self.value)
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        return str(self.value)
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Constant(0)
-
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Union[Number, bool]:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return self.value
-
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return Product(self, Variable(var))
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        if isinstance(self.value, bool):
-            return mathml_tag('row',
-                              mathml_tag('i',
-                                         str(self.value)))
-        else:
-            return mathml_tag('row',
-                              mathml_tag('n',
-                                         str(self.value)))
+        return Integer(0)
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.copy()
 
+
+class Integer(Constant):
+    """integer number in expression tree"""
+    __slots__ = ('value',)
+
+    def __init__(self, value: int) -> None:
+        self.value = value
+        super().__init__()
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}({self.value})'
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        return str(self.value)
+
+    def copy(self) -> 'Node':
+        """returns a copy of this tree"""
+        return self.__class__(self.value)
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return self.value
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Product(self, Variable(var)).simplify()
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('n',
+                                     str(self.value)))
+
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
-        return f'{self.value}'
+        return str(self.value)
+
+
+class Rational(Constant):
+    """rational number in expression tree"""
+    __slots__ = ('value',)
+
+    def __init__(self, value: Fraction) -> None:
+        self.value = value
+        super().__init__()
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}({self.value})'
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        return str(self.value)
+
+    def copy(self) -> 'Node':
+        """returns a copy of this tree"""
+        return self.__class__(self.value)
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return self.value
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Product(self, Variable(var)).simplify()
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('frac',
+                                     tag('row',
+                                         tag('n', str(self.value.numerator)))
+                                     + tag('row',
+                                           tag('n', str(self.value.denominator)))))
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'FractionBox[{self.value.numerator}, {self.value.denominator})'
+
+
+class Real(Constant):
+    """real number in expression tree"""
+    __slots__ = ('value',)
+
+    def __init__(self, value: float) -> None:
+        self.value = value
+        super().__init__()
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}({self.value})'
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        return str(self.value)
+
+    def copy(self) -> 'Node':
+        """returns a copy of this tree"""
+        return self.__class__(self.value)
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return self.value
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Product(self, Variable(var)).simplify()
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('n',
+                                     str(self.value)))
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return str(self.value)
+
+
+class Complex(Constant):
+    """real number in expression tree"""
+    __slots__ = ('value',)
+
+    def __init__(self, value: complex) -> None:
+        self.value = value
+        super().__init__()
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}({self.value})'
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        return f'({self.value})'
+
+    def copy(self) -> 'Node':
+        """returns a copy of this tree"""
+        return self.__class__(self.value)
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return self.value
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Product(self, Variable(var)).simplify()
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('n',
+                                     str(self.value.real))
+                          + mathml_tag('o', '+')
+                          + mathml_tag('row',
+                                       mathml_tag('n', str(self.value.imag))
+                                       + mathml_tag('i', 'i')))
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.value.real} + {self.value.imag} \\[ImaginaryI]'
+
+
+class Pi(Constant):
+    """mathematical constant in expression tree"""
+    __slots__ = ('value',)
+
+    def __init__(self) -> None:
+        self.value = pi
+        super().__init__()
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}()'
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        return 'pi'
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return self.value
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Product(self, Variable(var)).simplify()
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('n', 'PI'))
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return 'Pi'
+
+
+class E(Constant):
+    """mathematical constant in expression tree"""
+    __slots__ = ('value',)
+
+    def __init__(self) -> None:
+        self.value = e
+        super().__init__()
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}()'
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        return 'e'
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return self.value
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        return Product(self, Variable(var)).simplify()
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('n', 'E'))
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return 'E'
+
+
+class Boolean(Constant):
+    """real number in expression tree"""
+    __slots__ = ('value',)
+
+    def __init__(self, value: bool) -> None:
+        self.value = value
+        super().__init__()
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}({self.value})'
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        return str(self.value)
+
+    def copy(self) -> 'Node':
+        """returns a copy of this tree"""
+        return self.__class__(self.value)
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        return self.value
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        raise TypeError('Integral of boolean expression')
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('i',
+                                     str(self.value)))
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return str(self.value)
 
 
 class Variable(Term):
@@ -431,33 +624,24 @@ class Variable(Term):
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         if self.name == variable:
-            return Constant(1)
-        return Constant(0)
+            return Integer(1)
+        return Integer(0)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         if var_dict is None:
             raise KeyError(f'None does not contain "{self.name}"')
-        value = var_dict[self.name]
-        try:
-            if isinstance(value, float):
-                if int(value) == value:
-                    value = int(value)
-                else:
-                    value = Decimal(value)
-        except OverflowError:
-            value = Decimal(value)
-        return value
+        return Nodeify(var_dict[self.name]).evaluate()
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if self.name == var:
             if self.parent is None or isinstance(self.parent, Sum):
-                return Division(Exponent(self, Constant(2)), Constant(2))
+                return Division(Exponent(self, Integer(2)), Integer(2)).simplify()
             else:
-                return self.copy()
+                return self.copy().simplify()
         else:
-            return Constant(0)
+            return Integer(0)
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
@@ -506,10 +690,10 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def _eval_func(x: Union[Number, bool], y: Union[Number, bool]) -> Union[Number, bool]:
+    def _eval_func(x: ConstantType, y: ConstantType) -> ConstantType:
         """calculation function for 2 elements"""
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return reduce(self._eval_func, (child.evaluate(var_dict) for child in self.children))
 
@@ -545,8 +729,8 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def simplify(self) -> Node:
         """returns a simplified version of the tree"""
         try:
-            return Constant(self.evaluate())
-        except KeyError:
+            return Nodeify(self.evaluate())
+        except (KeyError, ValueError):
             return self.__class__(*(child.simplify() for child in self.children))
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
@@ -569,7 +753,7 @@ class Sum(ArbitraryOperator):
         return Sum(*(child.derivative(variable) for child in self.children))
 
     @staticmethod
-    def _eval_func(x: Union[Number, bool], y: Union[Number, bool]) -> Union[Number, bool]:
+    def _eval_func(x: ConstantType, y: ConstantType) -> ConstantType:
         """calculation function for 2 elements"""
         return x + y
 
@@ -582,7 +766,7 @@ class Sum(ArbitraryOperator):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return Sum(*(child.integral(var) for child in self.children))
+        return Sum(*(child.integral(var) for child in self.children)).simplify()
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
@@ -659,16 +843,17 @@ class Product(ArbitraryOperator):
                        Product(self.children[0].derivative(variable), self.children[1]))
 
     @staticmethod
-    def _eval_func(x: Union[Number, bool], y: Union[Number, bool]) -> Union[Number, bool]:
+    def _eval_func(x: ConstantType, y: ConstantType) -> ConstantType:
         """calculation function for 2 elements"""
         return x * y
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var not in self.dependencies():
-            return Product(self, Variable(var))
+            return Product(self, Variable(var)).simplify()
         elif len(tup := tuple(filter(lambda x: var in x.dependencies(), self.children))) == 1:
-            return Product(*filter(lambda x: var not in x.dependencies(), self.children), tup[0].integral(var))
+            return Product(*filter(lambda x: var not in x.dependencies(), self.children),
+                           tup[0].integral(var)).simplify()
         else:
             raise NotImplementedError('Integration not supported for this expression')
 
@@ -704,7 +889,7 @@ class Product(ArbitraryOperator):
         #             return Product(*children[:i], *children[i + 1:]).simplify()
         #         # return zero if a term equals zero
         #         elif child.evaluate() == 0:
-        #             return Constant(0)
+        #             return Integer(0)
         #         # attempt to consolidate constants
         #         else:
         #             for j, child2 in enumerate(children[i + 1:]):
@@ -715,11 +900,11 @@ class Product(ArbitraryOperator):
         #     elif isinstance(child, Variable):
         #         for j, child2 in enumerate(children[i + 1:]):
         #             if isinstance(child2, Variable) and child.value == child2.value:
-        #                 return Product(Exponent(child, Constant(2)), *children[:i], *children[i + 1:j],
+        #                 return Product(Exponent(child, Integer(2)), *children[:i], *children[i + 1:j],
         #                                *children[j + 1:]).simplify()
         #             elif isinstance(child2, Exponent) and isinstance(child2.child1, Variable) and \
         #                     child2.child1.value == child.value:
-        #                 return Product(Exponent(child, Sum(child2.child2, Constant(1))), *children[:i],
+        #                 return Product(Exponent(child, Sum(child2.child2, Integer(1))), *children[:i],
         #                                *children[i + 1:j], *children[j + 1:]).simplify()
         #     # consolidate exponents
         #     elif isinstance(child, Exponent):
@@ -727,7 +912,7 @@ class Product(ArbitraryOperator):
         #         if isinstance(child.child1, Variable):
         #             for j, child2 in enumerate(children[i + 1:]):
         #                 if isinstance(child2, Variable) and child2.value == child.child1.value:
-        #                     return Product(Exponent(child2, Sum(child.child2, Constant(1))), *children[:i],
+        #                     return Product(Exponent(child2, Sum(child.child2, Integer(1))), *children[:i],
         #                                    *children[i + 1:j], *children[j + 1:]).simplify()
         #                 elif isinstance(child2, Exponent) and isinstance(child2.child1, Variable) and \
         #                         child2.child1.value == child.child1.value:
@@ -766,10 +951,10 @@ class Exponent(BinaryOperator):
                                             self.child1)),
                            Product(self.child2.derivative(variable),
                                    Logarithm(self.child1,
-                                             Constant(e)))))
+                                             E()))))
 
     @staticmethod
-    def _eval_func(x: Union[Number, bool], y: Union[Number, bool]) -> Union[Number, bool]:
+    def _eval_func(x: ConstantType, y: ConstantType) -> ConstantType:
         """calculation function for 2 elements"""
         return x ** y
 
@@ -783,18 +968,18 @@ class Exponent(BinaryOperator):
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var not in self.dependencies():
-            return Product(self, Variable(var))
+            return Product(self, Variable(var)).simplify()
         elif var not in self.child1.dependencies() and self.child2 == Variable(var):
             return Division(Exponent(self.child1,
                                      Variable(var)),
                             Logarithm(self.child1,
-                                      Constant(e)))
+                                      E())).simplify()
         elif var not in self.child2.dependencies() and self.child1 == Variable(var):
             return Division(Exponent(Variable(var),
                                      Sum(self.child2,
-                                         Constant(1))),
+                                         Integer(1))),
                             Sum(self.child2,
-                                Constant(1)))
+                                Integer(1))).simplify()
         else:
             raise NotImplementedError('Integration not supported for this expression')
 
@@ -817,34 +1002,36 @@ class Exponent(BinaryOperator):
 
 
 class Logarithm(BinaryOperator):
-    """Logarithm operator node, child 2 is base"""
+    """Logarithm operator node, child 2 is base. default base is e"""
     __slots__ = ()
     symbol = 'log'
     wolfram_func = 'Log'
 
     def __init__(self, child1: Node, child2: Optional[Node] = None):
         if child2 is None:
-            child2 = Constant(e)
+            child2 = E()
         super().__init__(child1, child2)
 
     @staticmethod
-    def _eval_func(x: Union[Number, bool], y: Union[Number, bool]) -> Union[Number, bool]:
+    def _eval_func(x: ConstantType, y: ConstantType) -> ConstantType:
         """calculation function for 2 elements"""
-        return Decimal(log(x, y))
+        if isinstance(x, complex) or isinstance(y, complex):
+            raise NotImplementedError('complex values of logarithms not supported')
+        return log(x, y)
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(Subtraction(Division(Product(self.child1.derivative(variable),
                                                      Logarithm(self.child2,
-                                                               Constant(e))),
+                                                               E())),
                                              self.child1),
                                     Division(Product(self.child2.derivative(variable),
                                                      Logarithm(self.child1,
-                                                               Constant(e))),
+                                                               E())),
                                              self.child2)),
                         Exponent(Logarithm(self.child2,
-                                           Constant(e)),
-                                 Constant(2)))
+                                           E()),
+                                 Integer(2)))
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -853,12 +1040,12 @@ class Logarithm(BinaryOperator):
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var not in self.dependencies():
-            return Product(self, Variable(var))
+            return Product(self, Variable(var)).simplify()
         elif self.child1 == Variable(var) and len(self.child2.dependencies()) == 0 and self.child2.evaluate() == e:
             return Subtraction(Product(Variable(var),
                                        Logarithm(Variable(var),
-                                                 Constant(e))),
-                               Variable(var))
+                                                 E())),
+                               Variable(var)).simplify()
         else:
             raise NotImplementedError('Integration not supported for this expression')
 
@@ -881,7 +1068,7 @@ class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Constant(0)
+        return Integer(0)
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -892,7 +1079,7 @@ class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        raise ArithmeticError("Integration of logical operators not supported")
+        raise TypeError('Integral of boolean expression')
 
 
 class And(ArbitraryLogicalOperator):
@@ -902,7 +1089,7 @@ class And(ArbitraryLogicalOperator):
     wolfram_func = 'And'
 
     @staticmethod
-    def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
+    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
         return bool(x) & bool(y)
 
@@ -928,7 +1115,7 @@ class Or(ArbitraryLogicalOperator):
     wolfram_func = 'Or'
 
     @staticmethod
-    def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
+    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
         return bool(x) | bool(y)
 
@@ -954,7 +1141,7 @@ class Xor(ArbitraryLogicalOperator):
     wolfram_func = 'Xor'
 
     @staticmethod
-    def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
+    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
         return bool(x) ^ bool(y)
 
@@ -980,7 +1167,7 @@ class Nand(ArbitraryLogicalOperator):
     symbol = '&'
 
     @staticmethod
-    def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
+    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
         return not (bool(x) & bool(y))
 
@@ -1022,7 +1209,7 @@ class Nor(ArbitraryLogicalOperator):
     symbol = '|'
 
     @staticmethod
-    def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
+    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
         return not (bool(x) | bool(y))
 
@@ -1063,7 +1250,7 @@ class Xnor(ArbitraryLogicalOperator):
     wolfram_func = 'Xnor'
 
     @staticmethod
-    def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
+    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
         return not (bool(x) ^ bool(y))
 
@@ -1109,7 +1296,7 @@ class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Constant(0)
+        return Integer(0)
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1123,9 +1310,18 @@ class IsEqual(ComparisonOperator):
     wolfram_func = 'EqualTo'
 
     @staticmethod
-    def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
+    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
-        return x == y or isclose(x, y)
+        if isinstance(x, complex) and x.imag == 0:
+            x = x.real
+        if isinstance(y, complex) and y.imag == 0:
+            y = y.real
+        if isinstance(x, bool) or isinstance(y, bool):
+            return x == y
+        elif not (isinstance(x, (complex, bool)) or isinstance(y, (complex, bool))):
+            return x == y or isclose(x, y)
+        else:
+            raise TypeError('Comparison not defined in complex space')
 
 
 class NotEqual(ComparisonOperator):
@@ -1135,7 +1331,7 @@ class NotEqual(ComparisonOperator):
     wolfram_func = 'UnequalTo'
 
     @staticmethod
-    def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
+    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
         return x != y
 
@@ -1147,9 +1343,16 @@ class GreaterThan(ComparisonOperator):
     wolfram_func = 'Greater'
 
     @staticmethod
-    def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
+    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
-        return x > y
+        if isinstance(x, complex) and x.imag == 0:
+            x = x.real
+        if isinstance(y, complex) and y.imag == 0:
+            y = y.real
+        if not (isinstance(x, complex) or isinstance(y, complex)):
+            return x > y
+        else:
+            raise TypeError('Comparison not defined in complex space')
 
 
 class LessThan(ComparisonOperator):
@@ -1159,9 +1362,16 @@ class LessThan(ComparisonOperator):
     wolfram_func = 'Less'
 
     @staticmethod
-    def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
+    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
-        return x < y
+        if isinstance(x, complex) and x.imag == 0:
+            x = x.real
+        if isinstance(y, complex) and y.imag == 0:
+            y = y.real
+        if not (isinstance(x, complex) or isinstance(y, complex)):
+            return x < y
+        else:
+            raise TypeError('Comparison not defined in complex space')
 
 
 class GreaterEqual(ComparisonOperator):
@@ -1171,9 +1381,16 @@ class GreaterEqual(ComparisonOperator):
     wolfram_func = 'GreaterEqual'
 
     @staticmethod
-    def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
+    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
-        return x >= y
+        if isinstance(x, complex) and x.imag == 0:
+            x = x.real
+        if isinstance(y, complex) and y.imag == 0:
+            y = y.real
+        if not (isinstance(x, complex) or isinstance(y, complex)):
+            return x >= y
+        else:
+            raise TypeError('Comparison not defined in complex space')
 
 
 class LessEqual(ComparisonOperator):
@@ -1183,9 +1400,17 @@ class LessEqual(ComparisonOperator):
     wolfram_func = 'LessEqual'
 
     @staticmethod
-    def _eval_func(x: Union[Number, float, bool], y: Union[Number, float, bool]) -> bool:
+    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
-        return x <= y
+        """calculation function for 2 elements"""
+        if isinstance(x, complex) and x.imag == 0:
+            x = x.real
+        if isinstance(y, complex) and y.imag == 0:
+            y = y.real
+        if not (isinstance(x, complex) or isinstance(y, complex)):
+            return x <= y
+        else:
+            raise TypeError('Comparison not defined in complex space')
 
 
 class UnaryOperator(Node, metaclass=ABCMeta):
@@ -1233,10 +1458,9 @@ class UnaryOperator(Node, metaclass=ABCMeta):
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
         try:
-            return Constant(self.evaluate())
-        except KeyError:
-            pass
-        return self.__class__(self.child.simplify())
+            return Nodeify(self.evaluate())
+        except (KeyError, ValueError):
+            return self.__class__(self.child.simplify())
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
@@ -1258,27 +1482,34 @@ class Sine(UnaryOperator):
         return Product(Cosine(self.child),
                        self.child.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         child_ans = self.child.evaluate(var_dict)
-        if (mod2pi := child_ans % Decimal(2 * pi)) == 0 or mod2pi == pi:
+        if isinstance(child_ans, complex):
+            if child_ans.imag == 0:
+                child_ans = child_ans.real
+            else:
+                raise TypeError('Sine of complex number')
+        if (mod2pi := child_ans % 2 * pi) == 0 or mod2pi == pi:
             return 0
         elif mod2pi == pi / 2:
             return 1
         elif mod2pi == pi + pi / 2:
             return -1
         else:
-            return Decimal(sin(child_ans))
+            return sin(child_ans)
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var not in self.dependencies():
-            return Product(self, Variable(var))
+            return Product(self, Variable(var)).simplify()
         elif self.child == Variable(var):
-            return Product(Constant(-1),
-                           Cosine(Variable(var)))
+            return Product(Integer(-1),
+                           Cosine(Variable(var))).simplify()
         else:
             raise NotImplementedError('Integration not supported for this expression')
+
+    # todo: implement Sine.simplify
 
 
 class Cosine(UnaryOperator):
@@ -1289,30 +1520,37 @@ class Cosine(UnaryOperator):
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Subtraction(Constant(0),
+        return Subtraction(Integer(0),
                            Product(Sine(self.child),
                                    self.child.derivative(variable)))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         child_ans = self.child.evaluate(var_dict)
-        if (mod2pi := child_ans % Decimal(2 * pi)) == 0:
+        if isinstance(child_ans, complex):
+            if child_ans.imag == 0:
+                child_ans = child_ans.real
+            else:
+                raise TypeError('Cosine of complex number')
+        if (mod2pi := child_ans % 2 * pi) == 0:
             return 1
         elif mod2pi == pi:
             return -1
         elif mod2pi == pi / 2 or mod2pi == pi + pi / 2:
             return 0
         else:
-            return Decimal(cos(child_ans))
+            return cos(child_ans)
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var not in self.dependencies():
-            return Product(self, Variable(var))
+            return Product(self, Variable(var)).simplify()
         elif self.child == Variable(var):
-            return Sine(Variable(var))
+            return Sine(Variable(var)).simplify()
         else:
             raise NotImplementedError('Integration not supported for this expression')
+
+    # todo: implement Cosine.simplify
 
 
 class Tangent(UnaryOperator):
@@ -1325,28 +1563,35 @@ class Tangent(UnaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(self.child.derivative(variable),
                         Exponent(Cosine(self.child),
-                                 Constant(2)))
+                                 Integer(2)))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         child_ans = self.child.evaluate(var_dict)
-        if (mod_pi := child_ans % Decimal(pi)) == 0:
+        if isinstance(child_ans, complex):
+            if child_ans.imag == 0:
+                child_ans = child_ans.real
+            else:
+                raise TypeError('Tangent of complex number')
+        if (mod_pi := child_ans % pi) == 0:
             return 0
         elif mod_pi == pi / 2:
             raise ValueError('tan of k*pi+pi/2 is infinity')
         else:
-            return Decimal(tan(child_ans))
+            return tan(child_ans)
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var not in self.dependencies():
-            return Product(self, Variable(var))
+            return Product(self, Variable(var)).simplify()
         elif self.child == Variable(var):
-            return Product(Constant(-1),
+            return Product(Integer(-1),
                            Logarithm(Cosine(Variable(var)),
-                                     Constant(e)))
+                                     E())).simplify()
         else:
             raise NotImplementedError('Integration not supported for this expression')
+
+    # todo: implement Tangent.simplify
 
 
 class ArcSine(UnaryOperator):
@@ -1358,34 +1603,41 @@ class ArcSine(UnaryOperator):
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(self.child.derivative(variable),
-                        Exponent(Subtraction(Constant(1),
+                        Exponent(Subtraction(Integer(1),
                                              Exponent(self.child,
-                                                      Constant(2))),
-                                 Constant(1 / 2)))
+                                                      Integer(2))),
+                                 Rational(Fraction(1 / 2))))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         child_ans = self.child.evaluate(var_dict)
+        if isinstance(child_ans, complex):
+            if child_ans.imag == 0:
+                child_ans = child_ans.real
+            else:
+                raise TypeError('ArcSine of complex number')
         if child_ans == 0:
             return 0
         elif child_ans == 1:
-            return Decimal(pi / 2)
+            return pi / 2
         else:
-            return Decimal(asin(child_ans))
+            return asin(child_ans)
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var not in self.dependencies():
-            return Product(self, Variable(var))
+            return Product(self, Variable(var)).simplify()
         elif self.child == Variable(var):
             return Sum(Product(Variable(var),
                                self),
-                       Exponent(Subtraction(Constant(1),
+                       Exponent(Subtraction(Integer(1),
                                             Exponent(Variable(var),
-                                                     Constant(2))),
-                                Constant(1 / 2)))
+                                                     Integer(2))),
+                                Rational(Fraction(1 / 2)))).simplify()
         else:
             raise NotImplementedError('Integration not supported for this expression')
+
+    # todo: implement ArcSine.simplify
 
 
 class ArcCosine(UnaryOperator):
@@ -1396,38 +1648,45 @@ class ArcCosine(UnaryOperator):
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Subtraction(Constant(0),
+        return Subtraction(Integer(0),
                            Division(self.child.derivative(variable),
-                                    Exponent(Subtraction(Constant(1),
+                                    Exponent(Subtraction(Integer(1),
                                                          Exponent(self.child,
-                                                                  Constant(2))),
-                                             Constant(1 / 2))))
+                                                                  Integer(2))),
+                                             Rational(Fraction(1 / 2)))))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         child_ans = self.child.evaluate(var_dict)
+        if isinstance(child_ans, complex):
+            if child_ans.imag == 0:
+                child_ans = child_ans.real
+            else:
+                raise TypeError('ArcCosine of complex number')
         if child_ans == 0:
-            return Decimal(pi / 2)
+            return pi / 2
         elif child_ans == 1:
             return 0
         elif child_ans == -1:
-            return Decimal(pi)
+            return pi
         else:
-            return Decimal(acos(child_ans))
+            return acos(child_ans)
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var not in self.dependencies():
-            return Product(self, Variable(var))
+            return Product(self, Variable(var)).simplify()
         elif self.child == Variable(var):
             return Subtraction(Product(Variable(var),
                                        self),
-                               Exponent(Subtraction(Constant(1),
+                               Exponent(Subtraction(Integer(1),
                                                     Exponent(Variable(var),
-                                                             Constant(2))),
-                                        Constant(1 / 2)))
+                                                             Integer(2))),
+                                        Rational(Fraction(1 / 2)))).simplify()
         else:
             raise NotImplementedError('Integration not supported for this expression')
+
+    # todo: implement ArcCosine.simplify
 
 
 class ArcTangent(UnaryOperator):
@@ -1439,32 +1698,39 @@ class ArcTangent(UnaryOperator):
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(self.child.derivative(variable),
-                        Sum(Constant(1),
+                        Sum(Integer(1),
                             Exponent(self.child,
-                                     Constant(2))))
+                                     Integer(2))))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         child_ans = self.child.evaluate(var_dict)
+        if isinstance(child_ans, complex):
+            if child_ans.imag == 0:
+                child_ans = child_ans.real
+            else:
+                raise TypeError('ArcTangent of complex number')
         if child_ans == 0:
             return 0
         else:
-            return Decimal(atan(child_ans))
+            return atan(child_ans)
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var not in self.dependencies():
-            return Product(self, Variable(var))
+            return Product(self, Variable(var)).simplify()
         elif self.child == Variable(var):
             return Sum(Product(Variable(var),
                                self),
-                       Product(Constant(1 / 2),
+                       Product(Rational(Fraction(1 / 2)),
                                Logarithm(Sum(Exponent(Variable(var),
-                                                      Constant(2)),
-                                             Constant(1)),
-                                         Constant(e))))
+                                                      Integer(2)),
+                                             Integer(1)),
+                                         E()))).simplify()
         else:
             raise NotImplementedError('Integration not supported for this expression')
+
+    # todo: implement ArcTangent.simplify
 
 
 class Absolute(UnaryOperator):
@@ -1479,22 +1745,27 @@ class Absolute(UnaryOperator):
                                 self.child.derivative(variable)),
                         Absolute(self.child))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        ans = self.child.evaluate(var_dict)
-        if ans >= 0:
-            return ans
+        child_ans = self.child.evaluate(var_dict)
+        if isinstance(child_ans, complex):
+            if child_ans.imag == 0:
+                child_ans = child_ans.real
+            else:
+                return (child_ans.real ** 2 + child_ans.imag ** 2) ** 0.5
+        if child_ans >= 0:
+            return child_ans
         else:
-            return -ans
+            return -child_ans
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var not in self.dependencies():
-            return Product(self, Variable(var))
+            return Product(self, Variable(var)).simplify()
         elif self.child == Variable(var):
             return Division(Product(Variable(var),
                                     Absolute(Variable(var))),
-                            Constant(2))
+                            Integer(2)).simplify()
         else:
             raise NotImplementedError('Integration not supported for this expression')
 
@@ -1508,11 +1779,11 @@ class Absolute(UnaryOperator):
     def simplify(self) -> 'Node':
         """returns a simplified version of the tree"""
         try:
-            return Constant(self.evaluate())
+            return Nodeify(self.evaluate())
         except KeyError:
             pass
         child = self.child.simplify()
-        if isinstance(child, Absolute):
+        if isinstance(child, (Absolute, Negate)):
             return Absolute(child.child)
         return Absolute(child)
 
@@ -1527,7 +1798,7 @@ class Negate(UnaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Negate(self.child.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return -self.child.evaluate(var_dict)
 
@@ -1540,7 +1811,7 @@ class Negate(UnaryOperator):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return Negate(self.child.integral(var))
+        return Negate(self.child.integral(var)).simplify()
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
@@ -1557,7 +1828,7 @@ class Negate(UnaryOperator):
         """returns a simplified version of the tree"""
         simple_child = self.child.simplify()
         try:
-            return Constant(-simple_child.evaluate())
+            return Nodeify(-simple_child.evaluate())
         except KeyError:
             pass
         if isinstance(simple_child, Negate):
@@ -1575,20 +1846,25 @@ class Invert(UnaryOperator):
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         if variable in self.dependencies():
-            return Division(self.child.derivative(variable), Exponent(self.child, Constant(2)))
+            return Division(self.child.derivative(variable), Exponent(self.child, Integer(2)))
         else:
-            return Constant(0)
+            return Integer(0)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         ans = 1 / self.child.evaluate(var_dict)
+        if isinstance(ans, complex):
+            if ans.imag == 0:
+                ans = ans.real
+            else:
+                return ans
         try:
             if int(ans) == ans:
-                final_ans = int(ans)  # type: Number
+                final_ans = int(ans)  # type: ConstantType
             else:
-                final_ans = Decimal(ans)
+                final_ans = ans
         except OverflowError:
-            final_ans = Decimal(ans)
+            final_ans = ans
         return final_ans
 
     def infix(self) -> str:
@@ -1601,9 +1877,9 @@ class Invert(UnaryOperator):
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var not in self.dependencies():
-            return Division(Variable(var), self.child)
+            return Division(Variable(var), self.child).simplify()
         elif isinstance(self.child, Variable):
-            return Logarithm(Absolute(self.child))
+            return Logarithm(Absolute(self.child)).simplify()
         else:
             raise NotImplementedError('Integral too complex')
 
@@ -1619,7 +1895,7 @@ class Invert(UnaryOperator):
         """returns a simplified version of the tree"""
         simple_child = self.child.simplify()
         try:
-            return Constant(1 / simple_child.evaluate())
+            return Nodeify(1 / simple_child.evaluate())
         except KeyError:
             pass
         if isinstance(simple_child, Invert):
@@ -1655,7 +1931,7 @@ class Not(UnaryOperator):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return Piecewise([(Variable(var), self)])
+        return Piecewise([(Variable(var), self)]).simplify()
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
@@ -1736,7 +2012,7 @@ class Derivative(CalculusOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Derivative(self, variable)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.child.derivative(self.variable).evaluate(var_dict)
 
@@ -1747,9 +2023,9 @@ class Derivative(CalculusOperator):
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
         if var == self.variable:
-            return self.child.copy()
+            return self.child.copy().simplify()
         else:
-            return IndefiniteIntegral(self, var)
+            return IndefiniteIntegral(self, var).simplify()
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
@@ -1792,7 +2068,7 @@ class IndefiniteIntegral(CalculusOperator):
         else:
             return Derivative(self, variable)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.child.simplify().integral(self.variable).evaluate(var_dict)
 
@@ -1802,7 +2078,7 @@ class IndefiniteIntegral(CalculusOperator):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return IndefiniteIntegral(self, var)
+        return IndefiniteIntegral(self, var).simplify()
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
@@ -1855,11 +2131,11 @@ class DefiniteIntegral(CalculusOperator):
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         if variable == self.variable:
-            return Constant(0)
+            return Integer(0)
         else:
             return Derivative(self, variable)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Number:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         indefinite = self.child.integral(self.variable)
         return (indefinite.substitute(self.variable, self.upper).evaluate(var_dict)
@@ -1871,7 +2147,7 @@ class DefiniteIntegral(CalculusOperator):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return IndefiniteIntegral(self, var)
+        return IndefiniteIntegral(self, var).simplify()
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
@@ -1901,7 +2177,7 @@ class Piecewise(Node):
     __slots__ = 'expressions', 'default'
 
     def __init__(self, expressions: list[tuple[Node, Node]], default: Optional[Node] = None):
-        self.default = default.copy() if default is not None else Constant(0)
+        self.default = default.copy() if default is not None else Integer(0)
         self.expressions = [(expr.copy(), cond.copy()) for expr, cond in expressions]
         super().__init__()
 
@@ -1914,7 +2190,7 @@ class Piecewise(Node):
         return Piecewise([(expr.derivative(variable), cond) for expr, cond in self.expressions],
                          self.default.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Union[Number, bool]:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         for expression, condition in self.expressions:
             if condition.evaluate(var_dict):
@@ -1932,7 +2208,8 @@ class Piecewise(Node):
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return Piecewise([(expr.integral(var), cond) for expr, cond in self.expressions], self.default.integral(var))
+        return Piecewise([(expr.integral(var), cond) for expr, cond in self.expressions],
+                         self.default.integral(var)).simplify()
 
     def list_nodes(self) -> list['Node']:
         """returns a list of all nodes in the tree"""

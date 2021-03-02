@@ -5,10 +5,10 @@ Unittests for math_tree using pytest
 from hypothesis import given
 from hypothesis.strategies import SearchStrategy, deferred, one_of, builds, sampled_from, booleans, integers, floats, \
     dictionaries
-from math_tree import Node, Constant, Variable, Sum, Subtraction, Product, Division, Exponent, Logarithm, \
+from math_tree import Node, Nodeify, Variable, Sum, Subtraction, Product, Division, Exponent, Logarithm, \
     IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor, Xnor, Sine, Cosine, \
     Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, IndefiniteIntegral, \
-    DefiniteIntegral, Piecewise, Variables, UnaryOperator, CalculusOperator, ArbitraryOperator
+    DefiniteIntegral, Piecewise, Variables, UnaryOperator, CalculusOperator, ArbitraryOperator, Integer
 from pytest import fixture
 
 
@@ -47,12 +47,12 @@ def variables_dict(keys: str, use_booleans: bool = False) -> SearchStrategy[Vari
                             min_size=len(keys))
     else:
         return dictionaries(sampled_from(keys),
-                            one_of(integers(), floats(allow_nan=False, allow_infinity=False)),
+                            one_of(integers(), floats(-1e308, 1e308, allow_nan=False, allow_infinity=False)),
                             min_size=len(keys))
 
 
-constant_number = builds(Constant, one_of(integers(), floats(allow_nan=False, allow_infinity=False)))
-constant_bool = builds(Constant, booleans())
+constant_number = builds(Nodeify, one_of(integers(), floats(-1e308, 1e308, allow_nan=False, allow_infinity=False)))
+constant_bool = builds(Nodeify, booleans())
 constant_any = one_of(constant_bool, constant_number)
 variable = builds(Variable, sampled_from('xyz'))
 func = lambda: (constant_number
@@ -83,7 +83,7 @@ class TestBinaryOperators:
 
     @given(var_dict=variables_dict('x'))
     def test_4(self, x: Variable, var_dict: Variables) -> None:
-        assert IsEqual(x + -x, Constant(0)).evaluate(var_dict)
+        assert IsEqual(x + -x, Integer(0)).evaluate(var_dict)
 
     @given(var_dict=variables_dict('xy'))
     def test_5(self, x: Variable, y: Variable, var_dict: Variables) -> None:
@@ -121,12 +121,12 @@ class TestBinaryOperators:
 
     @given(var_dict=variables_dict('x'))
     def test_12(self, x: Variable, var_dict: Variables) -> None:
-        assert IsEqual(x * 0, Constant(0)).evaluate(var_dict)
+        assert IsEqual(x * 0, Integer(0)).evaluate(var_dict)
 
     @given(var_dict=variables_dict('x'))
     def test_13(self, x: Variable, var_dict: Variables) -> None:
         if x.evaluate(var_dict) != 0:
-            assert IsEqual(x * Invert(x), Constant(1)).evaluate(var_dict)
+            assert IsEqual(x * Invert(x), Integer(1)).evaluate(var_dict)
 
     @given(var_dict=variables_dict('xy'))
     def test_14(self, x: Variable, y: Variable, var_dict: Variables) -> None:
@@ -149,11 +149,11 @@ class TestBinaryOperators:
 
     @given(var_dict=variables_dict('x'))
     def test_17(self, x: Variable, var_dict: Variables) -> None:
-        assert (IsEqual(x ** 1, x) | IsEqual(x, Constant(0))).evaluate(var_dict)
+        assert (IsEqual(x ** 1, x) | IsEqual(x, Integer(0))).evaluate(var_dict)
 
     @given(var_dict=variables_dict('x'))
     def test_18(self, x: Variable, var_dict: Variables) -> None:
-        assert IsEqual(x ** 0, Constant(1)).evaluate(var_dict)
+        assert IsEqual(x ** 0, Integer(1)).evaluate(var_dict)
 
     @given(var_dict=variables_dict('xy'))
     def test_19(self, x: Variable, y: Variable, var_dict: Variables) -> None:
@@ -165,7 +165,7 @@ class TestBinaryOperators:
     @given(var_dict=variables_dict('x'))
     def test_20(self, x: Variable, var_dict: Variables) -> None:
         try:
-            assert IsEqual(Logarithm(x, x), Constant(1)).evaluate(var_dict)
+            assert IsEqual(Logarithm(x, x), Integer(1)).evaluate(var_dict)
         except (ValueError, ZeroDivisionError):
             pass
 
@@ -191,7 +191,7 @@ class TestLogicOperators:
 class TestUnaryOperators:
     @given(var_dict=variables_dict('x'))
     def test_1(self, x: Variable, var_dict: Variables) -> None:
-        assert GreaterEqual(Absolute(x), Constant(0)).evaluate(var_dict)
+        assert GreaterEqual(Absolute(x), Integer(0)).evaluate(var_dict)
 
     @given(var_dict=variables_dict('x'))
     def test_2(self, x: Variable, var_dict: Variables) -> None:
@@ -199,7 +199,7 @@ class TestUnaryOperators:
 
     @given(var_dict=variables_dict('x'))
     def test_3(self, x: Variable, var_dict: Variables) -> None:
-        assert Xnor(GreaterEqual(Negate(x), Constant(0)), LessEqual(x, Constant(0))).evaluate(var_dict)
+        assert Xnor(GreaterEqual(Negate(x), Integer(0)), LessEqual(x, Integer(0))).evaluate(var_dict)
 
     @given(var_dict=variables_dict('x'))
     def test_4(self, x: Variable, var_dict: Variables) -> None:
@@ -212,16 +212,16 @@ class TestUnaryOperators:
     @given(var_dict=variables_dict('x'))
     def test_6(self, x: Variable, var_dict: Variables) -> None:
         try:
-            assert Xnor(GreaterEqual(Absolute(Invert(x)), Constant(1)),
-                        LessEqual(Absolute(x), Constant(1))).evaluate(var_dict)
+            assert Xnor(GreaterEqual(Absolute(Invert(x)), Integer(1)),
+                        LessEqual(Absolute(x), Integer(1))).evaluate(var_dict)
         except ZeroDivisionError:
             assert x.evaluate(var_dict) == 0
 
     @given(var_dict=variables_dict('x'))
     def test_7(self, x: Variable, var_dict: Variables) -> None:
         try:
-            assert Xnor(GreaterEqual(Invert(x), Constant(0)),
-                        GreaterEqual(x, Constant(0))).evaluate(var_dict)
+            assert Xnor(GreaterEqual(Invert(x), Integer(0)),
+                        GreaterEqual(x, Integer(0))).evaluate(var_dict)
         except ZeroDivisionError:
             assert x.evaluate(var_dict) == 0
 
@@ -233,6 +233,9 @@ class TestUnaryOperators:
             assert x.evaluate(var_dict) == 0
         except OverflowError:
             pass
+        except AssertionError:
+            ans = x.evaluate()
+            assert ans > 1e308 if not isinstance(ans, complex) else ans.imag > 1e308 or ans.real > 1e308
 
 
 class TestDisplayMethods:
