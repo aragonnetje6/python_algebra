@@ -234,7 +234,8 @@ class TestUnaryOperators:
         except OverflowError:
             pass
         except AssertionError:
-            assert x.evaluate() > 1e308
+            ans = x.evaluate()
+            assert ans > 1e308 if not isinstance(ans, complex) else ans.imag > 1e308 or ans.real > 1e308
 
 
 class TestDisplayMethods:
