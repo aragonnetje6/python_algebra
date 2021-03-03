@@ -926,6 +926,35 @@ def Division(*args: Node) -> Product:
     return Product(args[0], Invert(*args[1:]))
 
 
+class Modulus(ArbitraryOperator):
+    """Modulo operator node"""
+    __slots__ = ()
+    symbol = '*'
+    wolfram_func = 'Mod'
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        out = self.children[0].derivative(variable)
+        for i, child in self.children[1:]:
+            out = Subtraction(out, Product(child.derivative(variable),
+                                           Floor(Division(Modulus(*self.children[:i + 1], Integer(1)), child))))
+        return out.simplify()
+
+    @staticmethod
+    def _eval_func(x: ConstantType, y: ConstantType) -> ConstantType:
+        """calculation function for 2 elements"""
+        if not (isinstance(x, complex) or isinstance(y, complex)):
+            return x % y
+        elif isinstance(x, complex) and not isinstance(y, complex):
+            return x.real % y + x.imag % y
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        raise NotImplementedError('Integration not supported for this expression')
+
+    # todo: implement Modulus.simplify
+
+
 class BinaryOperator(ArbitraryOperator, metaclass=ABCMeta):
     """Abstract Base Class for 2-input operator in expression tree"""
     __slots__ = 'child1', 'child2'
