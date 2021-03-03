@@ -2049,12 +2049,14 @@ class Factorial(UnaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         ans = self.child.evaluate(var_dict)
-        if isinstance(ans, int) or (isinstance(ans, float) and ans % 1 == 0):
+        if isinstance(ans, int):
             return factorial(ans)
         elif isinstance(ans, complex) and ans.imag == 0 and ans.real % 1 == 0:
             return factorial(ans.real)
-        else:
+        elif not isinstance(ans, complex):
             return gamma(1 + ans)
+        else:
+            raise TypeError('factorial not defined for complex number')
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -2078,7 +2080,10 @@ class Factorial(UnaryOperator):
         simple_child = self.child.simplify(var_dict)
         try:
             ans = simple_child.evaluate(var_dict)
-            return Nodeify(factorial(ans) if isinstance(ans, int) else gamma(ans))
+            if isinstance(ans, int):
+                return Nodeify(factorial(ans))
+            elif isinstance(ans, (float, Fraction)):
+                return Nodeify(gamma(ans))
         except KeyError:
             pass
         return Factorial(simple_child)
