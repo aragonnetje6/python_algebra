@@ -6,7 +6,7 @@ import webbrowser
 from abc import ABCMeta, abstractmethod
 from fractions import Fraction
 from functools import reduce
-from math import pi, e, log, sin, cos, tan, asin, acos, atan, isclose, floor, ceil
+from math import pi, e, log, sin, cos, tan, asin, acos, atan, isclose, floor, ceil, factorial, gamma
 from typing import Union, Optional, Any
 
 ConstantType = Union[int, Fraction, float, complex, bool]
@@ -2034,6 +2034,63 @@ class Ceiling(UnaryOperator):
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child.wolfram()}]'
+
+
+class Factorial(UnaryOperator):
+    """factorial operator"""
+    __slots__ = ()
+    symbol = '!'
+    wolfram_func = 'Factorial'
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        raise NotImplementedError('derivative of factorial not implemented')
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        ans = self.child.evaluate(var_dict)
+        if isinstance(ans, int):
+            return factorial(ans)
+        elif isinstance(ans, complex) and ans.imag == 0 and ans.real % 1 == 0:
+            return factorial(ans.real)
+        elif not isinstance(ans, complex):
+            return gamma(1 + ans)
+        else:
+            raise TypeError('factorial not defined for complex number')
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        if len(self.child.list_nodes()) > 1:
+            return f'({self.child.infix()}){self.symbol}'
+        else:
+            return f'{self.child.infix()}{self.symbol}'
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        raise NotImplementedError('Integral too complex')
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          self.child.mathml()
+                          + mathml_tag('o', '!'))
+
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simple_child = self.child.simplify(var_dict)
+        try:
+            ans = simple_child.evaluate(var_dict)
+            if isinstance(ans, int):
+                return Nodeify(factorial(ans))
+            elif isinstance(ans, (float, Fraction)):
+                return Nodeify(gamma(ans))
+        except KeyError:
+            pass
+        return Factorial(simple_child)
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'Factorial[{self.child.wolfram()}]'
 
 
 class Not(UnaryOperator):
