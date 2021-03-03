@@ -270,7 +270,7 @@ class Node(metaclass=ABCMeta):
         """returns the MathML representation of the tree"""
 
     @abstractmethod
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
 
     @abstractmethod
@@ -316,7 +316,7 @@ class Term(Node, metaclass=ABCMeta):
         """returns a list of all nodes in the tree"""
         return [self]
 
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         return self.copy()
 
@@ -726,7 +726,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         for child in self.children:
             child.reset_parents(self)
 
-    def simplify(self) -> Node:
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         try:
             return Nodeify(self.evaluate())
@@ -781,7 +781,7 @@ class Sum(ArbitraryOperator):
                                                         child.mathml() for child in self.children))))
 
     # todo: reimplement Sum.simplify
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         children = [child.simplify() for child in self.children]
         # # evaluate full expression
@@ -858,7 +858,7 @@ class Product(ArbitraryOperator):
             raise NotImplementedError('Integration not supported for this expression')
 
     # todo: reimplement Product.simplify
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         children = [child.simplify() for child in self.children]
         # # evaluate full expression
@@ -1125,7 +1125,7 @@ class And(ArbitraryLogicalOperator):
         return bool(x) & bool(y)
 
     # todo: reimplement And.simplify
-    # def simplify(self) -> Node:
+    # def simplify(self, var_dict: Optional[Variables] = None) -> Node:
     #     """returns a simplified version of the tree"""
     #     try:
     #         return Constant(self.evaluate())
@@ -1151,7 +1151,7 @@ class Or(ArbitraryLogicalOperator):
         return bool(x) | bool(y)
 
     # todo: reimplement Or.simplify
-    # def simplify(self) -> Node:
+    # def simplify(self, var_dict: Optional[Variables] = None) -> Node:
     #     """returns a simplified version of the tree"""
     #     try:
     #         return Constant(self.evaluate())
@@ -1177,7 +1177,7 @@ class Xor(ArbitraryLogicalOperator):
         return bool(x) ^ bool(y)
 
     # todo: reimplement Xor.simplify
-    # def simplify(self) -> Node:
+    # def simplify(self, var_dict: Optional[Variables] = None) -> Node:
     #     """returns a simplified version of the tree"""
     #     try:
     #         return Constant(self.evaluate())
@@ -1219,7 +1219,7 @@ class Nand(ArbitraryLogicalOperator):
                                                       child.mathml() for child in self.children))))
 
     # todo: reimplement Nand.simplify
-    # def simplify(self) -> Node:
+    # def simplify(self, var_dict: Optional[Variables] = None) -> Node:
     #     """returns a simplified version of the tree"""
     #     try:
     #         return Constant(self.evaluate())
@@ -1261,7 +1261,7 @@ class Nor(ArbitraryLogicalOperator):
                                                       child.mathml() for child in self.children))))
 
     # todo: reimplement Nor.simplify
-    # def simplify(self) -> Node:
+    # def simplify(self, var_dict: Optional[Variables] = None) -> Node:
     #     """returns a simplified version of the tree"""
     #     try:
     #         return Constant(self.evaluate())
@@ -1302,7 +1302,7 @@ class Xnor(ArbitraryLogicalOperator):
                                                       child.mathml() for child in self.children))))
 
     # todo: reimplement Xnor.simplify
-    # def simplify(self) -> Node:
+    # def simplify(self, var_dict: Optional[Variables] = None) -> Node:
     #     """returns a simplified version of the tree"""
     #     try:
     #         return Constant(self.evaluate())
@@ -1486,7 +1486,7 @@ class UnaryOperator(Node, metaclass=ABCMeta):
         super().reset_parents(parent)
         self.child.reset_parents(self)
 
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         try:
             return Nodeify(self.evaluate())
@@ -1807,7 +1807,7 @@ class Absolute(UnaryOperator):
                           + self.child.mathml()
                           + mathml_tag('o', '|'))
 
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         try:
             return Nodeify(self.evaluate())
@@ -1855,7 +1855,7 @@ class Negate(UnaryOperator):
                               mathml_tag('i', self.symbol)
                               + self.child.mathml())
 
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         simple_child = self.child.simplify()
         try:
@@ -1922,7 +1922,7 @@ class Invert(UnaryOperator):
                                                 mathml_tag('n', '1'))
                                      + self.child.mathml()))
 
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         simple_child = self.child.simplify()
         try:
@@ -1965,7 +1965,7 @@ class Floor(UnaryOperator):
                           + self.child.mathml()
                           + mathml_tag('o', '⌋'))
 
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         simple_child = self.child.simplify()
         try:
@@ -2009,7 +2009,7 @@ class Ceiling(UnaryOperator):
                           + self.child.mathml()
                           + mathml_tag('o', '⌉'))
 
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         simple_child = self.child.simplify()
         try:
@@ -2064,7 +2064,7 @@ class Not(UnaryOperator):
                               + self.child.mathml())
 
     # todo: reimplement Not.simplify
-    # def simplify(self) -> 'Node':
+    # def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
     #     """returns a simplified version of the tree"""
     #     simple_child = self.child.simplify()
     #     try:
@@ -2109,7 +2109,7 @@ class CalculusOperator(Node, metaclass=ABCMeta):
         out = [self]  # type: list[Node]
         return out + self.child.list_nodes()
 
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         return self.__class__(self.child.simplify(), self.variable)
 
@@ -2158,7 +2158,7 @@ class Derivative(CalculusOperator):
                                                   + mathml_tag('i', self.variable)))
                           + mathml_tag('fenced', self.child.mathml()))
 
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         result = self.child.simplify().derivative(self.variable)
         if isinstance(result, (IndefiniteIntegral, DefiniteIntegral)):
@@ -2208,7 +2208,7 @@ class IndefiniteIntegral(CalculusOperator):
                           + mathml_tag('i', self.variable))
 
     # todo: reimplement IndefiniteIntegral.simplify
-    # def simplify(self) -> 'Node':
+    # def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
     #     """returns a simplified version of the tree"""
     #     simple_child = self.child.simplify()
     #     try:
@@ -2279,7 +2279,7 @@ class DefiniteIntegral(CalculusOperator):
                           + mathml_tag('i', 'd')
                           + mathml_tag('i', self.variable))
 
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         return self.__class__(self.child.simplify(), self.symbol, self.lower.simplify(), self.upper.simplify())
 
@@ -2360,7 +2360,7 @@ class Piecewise(Node):
                           + mathml_tag('table',
                                        expression_part))
 
-    def simplify(self) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         return self.__class__([(x.simplify(), y.simplify()) for x, y in self.expressions],
                               self.default.simplify())
