@@ -649,6 +649,15 @@ class Variable(Term):
                           mathml_tag('i',
                                      str(self.name)))
 
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        if var_dict is None:
+            var_dict = {}
+        if self.name in var_dict.keys():
+            return Nodeify(var_dict[self.name])
+        else:
+            return self.copy()
+
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         if self.name == var:
@@ -731,7 +740,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         try:
             return Nodeify(self.evaluate())
         except (KeyError, ValueError):
-            return self.__class__(*(child.simplify() for child in self.children))
+            return self.__class__(*(child.simplify(var_dict) for child in self.children))
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
@@ -783,7 +792,7 @@ class Sum(ArbitraryOperator):
     # todo: reimplement Sum.simplify
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        children = [child.simplify() for child in self.children]
+        children = [child.simplify(var_dict) for child in self.children]
         # # evaluate full expression
         # try:
         #     return Constant(self.evaluate())
@@ -860,7 +869,7 @@ class Product(ArbitraryOperator):
     # todo: reimplement Product.simplify
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        children = [child.simplify() for child in self.children]
+        children = [child.simplify(var_dict) for child in self.children]
         # # evaluate full expression
         # try:
         #     return Constant(self.evaluate())
@@ -1491,7 +1500,7 @@ class UnaryOperator(Node, metaclass=ABCMeta):
         try:
             return Nodeify(self.evaluate())
         except (KeyError, ValueError):
-            return self.__class__(self.child.simplify())
+            return self.__class__(self.child.simplify(var_dict))
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
@@ -1813,7 +1822,7 @@ class Absolute(UnaryOperator):
             return Nodeify(self.evaluate())
         except KeyError:
             pass
-        child = self.child.simplify()
+        child = self.child.simplify(var_dict)
         if isinstance(child, (Absolute, Negate)):
             return Absolute(child.child)
         return Absolute(child)
@@ -1857,7 +1866,7 @@ class Negate(UnaryOperator):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        simple_child = self.child.simplify()
+        simple_child = self.child.simplify(var_dict)
         try:
             return Nodeify(-simple_child.evaluate())
         except KeyError:
@@ -1924,9 +1933,9 @@ class Invert(UnaryOperator):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        simple_child = self.child.simplify()
+        simple_child = self.child.simplify(var_dict)
         try:
-            return Nodeify(1 / simple_child.evaluate())
+            return Nodeify(1 / simple_child.evaluate(var_dict))
         except KeyError:
             pass
         if isinstance(simple_child, Invert):
@@ -1967,7 +1976,7 @@ class Floor(UnaryOperator):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        simple_child = self.child.simplify()
+        simple_child = self.child.simplify(var_dict)
         try:
             ans = simple_child.evaluate()
             return Nodeify(floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag)))
@@ -2011,7 +2020,7 @@ class Ceiling(UnaryOperator):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        simple_child = self.child.simplify()
+        simple_child = self.child.simplify(var_dict)
         try:
             ans = self.child.evaluate()
             return Nodeify(floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag)))
@@ -2111,7 +2120,7 @@ class CalculusOperator(Node, metaclass=ABCMeta):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        return self.__class__(self.child.simplify(), self.variable)
+        return self.__class__(self.child.simplify(var_dict), self.variable)
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
@@ -2160,11 +2169,11 @@ class Derivative(CalculusOperator):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        result = self.child.simplify().derivative(self.variable)
+        result = self.child.simplify(var_dict).derivative(self.variable)
         if isinstance(result, (IndefiniteIntegral, DefiniteIntegral)):
             return result
         else:
-            return result.simplify()
+            return result.simplify(var_dict)
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
@@ -2189,7 +2198,7 @@ class IndefiniteIntegral(CalculusOperator):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return self.child.simplify().integral(self.variable).evaluate(var_dict)
+        return self.child.simplify(var_dict).integral(self.variable).evaluate(var_dict)
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -2281,7 +2290,8 @@ class DefiniteIntegral(CalculusOperator):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        return self.__class__(self.child.simplify(), self.symbol, self.lower.simplify(), self.upper.simplify())
+        return self.__class__(self.child.simplify(var_dict), self.symbol, self.lower.simplify(var_dict),
+                              self.upper.simplify(var_dict))
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
@@ -2362,8 +2372,8 @@ class Piecewise(Node):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        return self.__class__([(x.simplify(), y.simplify()) for x, y in self.expressions],
-                              self.default.simplify())
+        return self.__class__([(x.simplify(var_dict), y.simplify(var_dict)) for x, y in self.expressions],
+                              self.default.simplify(var_dict))
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
