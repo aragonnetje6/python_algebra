@@ -241,10 +241,6 @@ class Node(metaclass=ABCMeta):
         else:
             raise AttributeError(f'\'{self.__class__.__name__}\' object is read-only')
 
-    def dependencies(self) -> set[str]:
-        """returns set of all variables present in the tree"""
-        return set()
-
     @abstractmethod
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -284,6 +280,10 @@ class Node(metaclass=ABCMeta):
     def copy(self) -> 'Node':
         """returns a copy of this tree"""
         return self.__class__()
+
+    def dependencies(self) -> set[str]:
+        """returns set of all variables present in the tree"""
+        return set()
 
     def display(self) -> None:
         """shows graphical representation of expression"""
