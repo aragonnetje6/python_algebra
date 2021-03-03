@@ -935,7 +935,7 @@ class Modulus(ArbitraryOperator):
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         out = self.children[0].derivative(variable)
-        for i, child in self.children[1:]:
+        for i, child in enumerate(self.children[1:]):
             out = Subtraction(out, Product(child.derivative(variable),
                                            Floor(Division(Modulus(*self.children[:i + 1], Integer(1)), child))))
         return out.simplify()
