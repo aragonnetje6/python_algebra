@@ -6,7 +6,7 @@ import webbrowser
 from abc import ABCMeta, abstractmethod
 from fractions import Fraction
 from functools import reduce
-from math import pi, e, log, sin, cos, tan, asin, acos, atan, isclose
+from math import pi, e, log, sin, cos, tan, asin, acos, atan, isclose, floor, ceil
 from typing import Union, Optional, Any
 
 ConstantType = Union[int, Fraction, float, complex, bool]
@@ -403,10 +403,10 @@ class Rational(Constant):
         """returns the MathML representation of the tree"""
         return mathml_tag('row',
                           mathml_tag('frac',
-                                     tag('row',
-                                         tag('n', str(self.value.numerator)))
-                                     + tag('row',
-                                           tag('n', str(self.value.denominator)))))
+                                     mathml_tag('row',
+                                                mathml_tag('n', str(self.value.numerator)))
+                                     + mathml_tag('row',
+                                                  mathml_tag('n', str(self.value.denominator)))))
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
@@ -924,6 +924,37 @@ class Product(ArbitraryOperator):
 def Division(*args: Node) -> Product:
     """Division operator node"""
     return Product(args[0], Invert(*args[1:]))
+
+
+class Modulus(ArbitraryOperator):
+    """Modulo operator node"""
+    __slots__ = ()
+    symbol = '*'
+    wolfram_func = 'Mod'
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        out = self.children[0].derivative(variable)
+        for i, child in enumerate(self.children[1:]):
+            out = Subtraction(out, Product(child.derivative(variable),
+                                           Floor(Division(Modulus(*self.children[:i + 1], Integer(1)), child))))
+        return out.simplify()
+
+    @staticmethod
+    def _eval_func(x: ConstantType, y: ConstantType) -> ConstantType:
+        """calculation function for 2 elements"""
+        if not (isinstance(x, complex) or isinstance(y, complex)):
+            return x % y
+        elif isinstance(x, complex) and not isinstance(y, complex):
+            return x.real % y + x.imag % y
+        else:
+            raise NotImplementedError('mod of complex numbers not implemented')
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        raise NotImplementedError('Integration not supported for this expression')
+
+    # todo: implement Modulus.simplify
 
 
 class BinaryOperator(ArbitraryOperator, metaclass=ABCMeta):
@@ -1887,8 +1918,8 @@ class Invert(UnaryOperator):
         """returns the MathML representation of the tree"""
         return mathml_tag('row',
                           mathml_tag('frac',
-                                     tag('row',
-                                         tag('n', '1'))
+                                     mathml_tag('row',
+                                                mathml_tag('n', '1'))
                                      + self.child.mathml()))
 
     def simplify(self) -> 'Node':
@@ -1906,6 +1937,94 @@ class Invert(UnaryOperator):
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
         return f'Divide[1, {self.child.wolfram()}]'
+
+
+class Floor(UnaryOperator):
+    """floor operator"""
+    __slots__ = ()
+    symbol = 'floor'
+    wolfram_func = 'Floor'
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Integer(0)
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        ans = self.child.evaluate(var_dict)
+        return floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag))
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        raise NotImplementedError('Integration not supported for this expression')
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('o', '⌊')
+                          + self.child.mathml()
+                          + mathml_tag('o', '⌋'))
+
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        simple_child = self.child.simplify()
+        try:
+            ans = simple_child.evaluate()
+            return Nodeify(floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag)))
+        except KeyError:
+            pass
+        if isinstance(simple_child, (Floor, Ceiling)):
+            return simple_child
+        else:
+            return Floor(simple_child)
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[{self.child.wolfram()}]'
+
+
+class Ceiling(UnaryOperator):
+    """ceiling operator"""
+    __slots__ = ()
+    symbol = 'ceil'
+    wolfram_func = 'Ceiling'
+
+    def derivative(self, variable: str) -> 'Node':
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Integer(0)
+
+    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+        ans = self.child.evaluate(var_dict)
+        return ceil(ans) if not isinstance(ans, complex) else complex(ceil(ans.real), ceil(ans.imag))
+
+    def integral(self, var: str) -> 'Node':
+        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
+        raise NotImplementedError('Integration not supported for this expression')
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('o', '⌈')
+                          + self.child.mathml()
+                          + mathml_tag('o', '⌉'))
+
+    def simplify(self) -> 'Node':
+        """returns a simplified version of the tree"""
+        simple_child = self.child.simplify()
+        try:
+            ans = self.child.evaluate()
+            return Nodeify(floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag)))
+        except KeyError:
+            pass
+        if isinstance(simple_child, (Floor, Ceiling)):
+            return simple_child
+        else:
+            return Ceiling(simple_child)
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[{self.child.wolfram()}]'
 
 
 class Not(UnaryOperator):
