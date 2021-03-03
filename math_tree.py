@@ -947,6 +947,8 @@ class Modulus(ArbitraryOperator):
             return x % y
         elif isinstance(x, complex) and not isinstance(y, complex):
             return x.real % y + x.imag % y
+        else:
+            raise NotImplementedError('mod of complex numbers not implemented')
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1949,7 +1951,8 @@ class Floor(UnaryOperator):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return floor(self.child.evaluate(var_dict))
+        ans = self.child.evaluate(var_dict)
+        return floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -1966,7 +1969,8 @@ class Floor(UnaryOperator):
         """returns a simplified version of the tree"""
         simple_child = self.child.simplify()
         try:
-            return Nodeify(floor(simple_child.evaluate()))
+            ans = simple_child.evaluate()
+            return Nodeify(floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag)))
         except KeyError:
             pass
         if isinstance(simple_child, (Floor, Ceiling)):
@@ -1991,7 +1995,8 @@ class Ceiling(UnaryOperator):
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return ceil(self.child.evaluate(var_dict))
+        ans = self.child.evaluate(var_dict)
+        return ceil(ans) if not isinstance(ans, complex) else complex(ceil(ans.real), ceil(ans.imag))
 
     def integral(self, var: str) -> 'Node':
         """returns an expression tree representing the antiderivative to the passed variable of this tree"""
@@ -2008,7 +2013,8 @@ class Ceiling(UnaryOperator):
         """returns a simplified version of the tree"""
         simple_child = self.child.simplify()
         try:
-            return Nodeify(ceil(simple_child.evaluate()))
+            ans = self.child.evaluate()
+            return Nodeify(floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag)))
         except KeyError:
             pass
         if isinstance(simple_child, (Floor, Ceiling)):
