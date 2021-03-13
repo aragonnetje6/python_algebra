@@ -2187,7 +2187,6 @@ class CalculusOperator(Node, metaclass=ABCMeta):
         """Resets the parent references of each descendant to the proper parent"""
         super().reset_parents()
         self.child.parent = self
-        self.variable.parent = self
 
 
 class Derivative(CalculusOperator):
