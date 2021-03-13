@@ -733,7 +733,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         """Resets the parent references of each descendant to the proper parent"""
         super().reset_parents(parent)
         for child in self.children:
-            child.reset_parents(self)
+            child.parent = self
 
     def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
@@ -1493,7 +1493,7 @@ class UnaryOperator(Node, metaclass=ABCMeta):
     def reset_parents(self, parent: Optional[Node] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
         super().reset_parents(parent)
-        self.child.reset_parents(self)
+        self.child.parent = self
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
@@ -2183,6 +2183,12 @@ class CalculusOperator(Node, metaclass=ABCMeta):
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child.substitute(var, sub), self.variable)
 
+    def reset_parents(self, parent: Optional['Node'] = None) -> None:
+        """Resets the parent references of each descendant to the proper parent"""
+        super().reset_parents()
+        self.child.parent = self
+        self.variable.parent = self
+
 
 class Derivative(CalculusOperator):
     """Derivative operation node"""
@@ -2355,6 +2361,12 @@ class DefiniteIntegral(CalculusOperator):
         return f'{self.wolfram_func}[{self.child.wolfram()},' \
                f'{{{self.variable}, {self.lower.wolfram()}, {self.upper.wolfram()}}}]'
 
+    def reset_parents(self, parent: Optional['Node'] = None) -> None:
+        """Resets the parent references of each descendant to the proper parent"""
+        super().reset_parents()
+        self.lower.parent = self
+        self.upper.parent = self
+
 
 class Piecewise(Node):
     """Piecewise function node"""
@@ -2441,3 +2453,11 @@ class Piecewise(Node):
         """return wolfram language representation of the tree"""
         expressions = ', '.join(f'{{{expr.wolfram()}, {cond.wolfram()}}}' for expr, cond in self.expressions)
         return f'{self.wolfram_func}[{{{expressions}}}, {self.default.wolfram()}]'
+
+    def reset_parents(self, parent: Optional['Node'] = None) -> None:
+        """Resets the parent references of each descendant to the proper parent"""
+        super().reset_parents()
+        self.default.parent = self
+        for expr, cond in self.expressions:
+            expr.parent = self
+            cond.parent = self
