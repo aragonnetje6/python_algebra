@@ -667,6 +667,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     """Abstract Base Class for multi-input operator in expression tree"""
     __slots__ = 'children',
     symbol = ''
+    _parentheses_needed = '()'
 
     @property
     @abstractmethod
@@ -702,10 +703,8 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        if isinstance(self.parent, Invert) or isinstance(self.parent, Exponent):
-            return '(' + self.symbol.join(child.infix() for child in self.children) + ')'
-        else:
-            return self.symbol.join(child.infix() for child in self.children)
+        return self.symbol.join(child.infix() if not isinstance(child, eval(self._parentheses_needed))
+                                else f"({child.infix()})" for child in self.children)
 
     def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
@@ -713,15 +712,11 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        if isinstance(self.parent, Invert) or isinstance(self.parent, Exponent):
-            return mathml_tag('row',
-                              mathml_tag('fenced',
-                                         mathml_tag('row',
-                                                    mathml_tag('o', self.symbol).join(
-                                                        child.mathml() for child in self.children))))
-        else:
-            return mathml_tag('row',
-                              mathml_tag('o', self.symbol).join(child.mathml() for child in self.children))
+        return mathml_tag('row',
+                          mathml_tag('o', self.symbol).join(child.mathml()
+                                                            if isinstance(child, eval(self._parentheses_needed))
+                                                            else mathml_tag('fenced', mathml_tag('row', child.mathml()))
+                                                            for child in self.children))
 
     def reset_parents(self, parent: Optional[Node] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
@@ -750,6 +745,7 @@ class Sum(ArbitraryOperator):
     __slots__ = ()
     symbol = '+'
     wolfram_func = 'Plus'
+    _parentheses_needed = '(ArbitraryLogicalOperator, ComparisonOperator)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -759,29 +755,6 @@ class Sum(ArbitraryOperator):
     def _eval_func(x: ConstantType, y: ConstantType) -> ConstantType:
         """calculation function for 2 elements"""
         return x + y
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        if self.parent is None or isinstance(self.parent, (Sum, Logarithm, UnaryOperator)):
-            return self.symbol.join(child.infix() for child in self.children)
-        else:
-            return '(' + self.symbol.join(child.infix() for child in self.children) + ')'
-
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        return Sum(*(child.integral(var) for child in self.children)).simplify()
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        if self.parent is None or isinstance(self.parent, (Sum, Logarithm, UnaryOperator)):
-            return mathml_tag('row',
-                              mathml_tag('o', self.symbol).join(child.mathml() for child in self.children))
-        else:
-            return mathml_tag('row',
-                              mathml_tag('fenced',
-                                         mathml_tag('row',
-                                                    mathml_tag('o', self.symbol).join(
-                                                        child.mathml() for child in self.children))))
 
     # todo: reimplement Sum.simplify
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
@@ -835,6 +808,7 @@ class Product(ArbitraryOperator):
     __slots__ = ()
     symbol = '*'
     wolfram_func = 'Times'
+    _parentheses_needed = '(Sum, Modulus, ArbitraryLogicalOperator, ComparisonOperator)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -934,6 +908,7 @@ class Modulus(ArbitraryOperator):
     __slots__ = ()
     symbol = '*'
     wolfram_func = 'Mod'
+    _parentheses_needed = '(ArbitraryOperator, CalculusOperator)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -976,6 +951,7 @@ class Exponent(BinaryOperator):
     __slots__ = ()
     symbol = '**'
     wolfram_func = 'Power'
+    _parentheses_needed = '(ArbitraryOperator, CalculusOperator)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -992,45 +968,18 @@ class Exponent(BinaryOperator):
         """calculation function for 2 elements"""
         return x ** y
 
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        if isinstance(self.parent, Exponent):
-            return f'({self.child1.infix()} {self.symbol} {self.child2.infix()})'
-        else:
-            return f'{self.child1.infix()} {self.symbol} {self.child2.infix()}'
-
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        if var not in self.dependencies():
-            return Product(self, Variable(var)).simplify()
-        elif var not in self.child1.dependencies() and self.child2 == Variable(var):
-            return Division(Exponent(self.child1,
-                                     Variable(var)),
-                            Logarithm(self.child1,
-                                      E())).simplify()
-        elif var not in self.child2.dependencies() and self.child1 == Variable(var):
-            return Division(Exponent(Variable(var),
-                                     Sum(self.child2,
-                                         Integer(1))),
-                            Sum(self.child2,
-                                Integer(1))).simplify()
-        else:
-            raise NotImplementedError('Integration not supported for this expression')
-
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-        if isinstance(self.parent, Exponent):
-            return mathml_tag('row',
-                              mathml_tag('fenced',
-                                         mathml_tag('row',
-                                                    mathml_tag('sup',
-                                                               self.child1.mathml()
-                                                               + self.child2.mathml()))))
-        else:
-            return mathml_tag('row',
-                              mathml_tag('sup',
-                                         self.child1.mathml()
-                                         + self.child2.mathml()))
+        return mathml_tag('row',
+                          mathml_tag('sup',
+                                     (self.child1.mathml() if isinstance(self.child1, eval(self._parentheses_needed))
+                                      else mathml_tag('row',
+                                                      mathml_tag('fenced',
+                                                                 mathml_tag('row', self.child1.mathml()))))
+                                     + (self.child2.mathml() if isinstance(self.child1, eval(self._parentheses_needed))
+                                        else mathml_tag('row',
+                                                        mathml_tag('fenced',
+                                                                   mathml_tag('row', self.child2.mathml()))))))
 
     # todo: reimplement Exponent.simplify
 
@@ -1040,6 +989,7 @@ class Logarithm(BinaryOperator):
     __slots__ = ()
     symbol = 'log'
     wolfram_func = 'Log'
+    _parentheses_needed = '()'
 
     def __init__(self, child1: Node, child2: Optional[Node] = None):
         if child2 is None:
@@ -1099,21 +1049,11 @@ class Logarithm(BinaryOperator):
 class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
     __slots__ = ()
+    _parentheses_needed = '(ArbitraryOperator, CalculusOperator)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Integer(0)
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        if self.parent is not None:
-            return '(' + self.symbol.join(child.infix() for child in self.children) + ')'
-        else:
-            return self.symbol.join(child.infix() for child in self.children)
-
-    def integral(self, var: str) -> 'Node':
-        """returns an expression tree representing the antiderivative to the passed variable of this tree"""
-        raise TypeError('Integral of boolean expression')
 
 
 class And(ArbitraryLogicalOperator):
@@ -1207,10 +1147,7 @@ class Nand(ArbitraryLogicalOperator):
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        if self.parent is not None:
-            return '(not ' + super().infix() + ')'
-        else:
-            return 'not ' + super().infix()
+        return 'not ' + super().infix()
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
@@ -1249,10 +1186,7 @@ class Nor(ArbitraryLogicalOperator):
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        if self.parent is not None:
-            return '(not ' + super().infix() + ')'
-        else:
-            return 'not ' + super().infix()
+        return 'not ' + super().infix()
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
@@ -1299,10 +1233,7 @@ class Xnor(ArbitraryLogicalOperator):
         """returns the MathML representation of the tree"""
         return mathml_tag('row',
                           mathml_tag('o', '~')
-                          + mathml_tag('fenced',
-                                       mathml_tag('row',
-                                                  mathml_tag('o', '^').join(
-                                                      child.mathml() for child in self.children))))
+                          + mathml_tag('fenced', super().mathml()))
 
     # todo: reimplement Xnor.simplify
     # def simplify(self, var_dict: Optional[Variables] = None) -> Node:
@@ -1322,6 +1253,7 @@ class Xnor(ArbitraryLogicalOperator):
 class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
     __slots__ = ()
+    _parentheses_needed = '(ComparisonOperator, )'
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> bool:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -1827,6 +1759,7 @@ class Negate(UnaryOperator):
     __slots__ = ()
     symbol = '-'
     wolfram_func = 'Minus'
+    _parentheses_needed = '(ArbitraryOperator, Negate, CalculusOperator, Piecewise, Factorial)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1838,7 +1771,7 @@ class Negate(UnaryOperator):
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        if len(self.child.list_nodes()) > 1:
+        if isinstance(self.child, eval(self._parentheses_needed)):
             return f'{self.symbol}({self.child.infix()})'
         else:
             return f'{self.symbol}{self.child.infix()}'
@@ -1876,6 +1809,7 @@ class Invert(UnaryOperator):
     __slots__ = ()
     symbol = '1/'
     wolfram_func = 'Divide'
+    _parentheses_needed = '(ArbitraryOperator, CalculusOperator, Piecewise, Factorial)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1903,7 +1837,7 @@ class Invert(UnaryOperator):
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        if len(self.child.list_nodes()) > 1:
+        if isinstance(self.child, eval(self._parentheses_needed)):
             return f'{self.symbol}({self.child.infix()})'
         else:
             return f'{self.symbol}{self.child.infix()}'
@@ -2035,6 +1969,7 @@ class Factorial(UnaryOperator):
     __slots__ = ()
     symbol = '!'
     wolfram_func = 'Factorial'
+    _parentheses_needed = '(ArbitraryOperator, Negate, Invert, CalculusOperator, Piecewise)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -2226,10 +2161,7 @@ class Derivative(CalculusOperator):
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         result = self.child.simplify(var_dict).derivative(self.variable)
-        if isinstance(result, (IndefiniteIntegral, DefiniteIntegral)):
-            return result
-        else:
-            return result.simplify(var_dict)
+        return result.simplify(var_dict)
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
