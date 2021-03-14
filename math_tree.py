@@ -601,7 +601,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def __init__(self, *args: Node) -> None:
         assert len(args) > 1
         assert all(isinstance(x, Node) for x in args)
-        self.children = args
+        self.children = tuple(child.simplify() for child in args)
         super().__init__()
 
     def __repr__(self) -> str:
@@ -841,8 +841,8 @@ class BinaryOperator(ArbitraryOperator, metaclass=ABCMeta):
 
     def __init__(self, *args: Node):
         assert len(args) == 2
-        self.child1 = args[0]
-        self.child2 = args[1]
+        self.child1 = args[0].simplify()
+        self.child2 = args[1].simplify()
         super().__init__(*args)
 
 
@@ -1268,7 +1268,7 @@ class UnaryOperator(Node, metaclass=ABCMeta):
 
     def __init__(self, child: Node) -> None:
         assert isinstance(child, Node)
-        self.child = child
+        self.child = child.simplify()
         super().__init__()
 
     def __repr__(self) -> str:
