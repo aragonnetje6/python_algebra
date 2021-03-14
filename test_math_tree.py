@@ -240,14 +240,14 @@ class TestUnaryOperators:
 
 class TestSimplify:
     @given(var_dict=variables_dict('xyz'), expr=math_expression)
-    def test_same_answer(self, expr: Node, var_dict: Variables):
+    def test_same_answer(self, expr: Node, var_dict: Variables) -> None:
         try:
             assert IsEqual(expr, expr.simplify()).evaluate(var_dict)
         except (ValueError, ZeroDivisionError):
             pass
 
     # @given(var_dict=variables_dict('xyz'), expr=math_expression)
-    # def test_idempotent(self, var_dict: Variables, expr: Node):
+    # def test_idempotent(self, var_dict: Variables, expr: Node) -> None:
     #     try:
     #         assert IsEqual((a := expr.simplify()), a.simplify()).evaluate(var_dict)
     #     except (ValueError, ZeroDivisionError):
