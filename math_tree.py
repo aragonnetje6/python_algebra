@@ -812,7 +812,7 @@ class Modulus(ArbitraryOperator):
     __slots__ = ()
     symbol = '*'
     wolfram_func = 'Mod'
-    _parentheses_needed = '(ArbitraryOperator, CalculusOperator)'
+    _parentheses_needed = '(ArbitraryOperator, Derivative)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -851,7 +851,7 @@ class Exponent(BinaryOperator):
     __slots__ = ()
     symbol = '**'
     wolfram_func = 'Power'
-    _parentheses_needed = '(ArbitraryOperator, CalculusOperator)'
+    _parentheses_needed = '(ArbitraryOperator, Derivative)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -937,7 +937,7 @@ class Logarithm(BinaryOperator):
 class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
     __slots__ = ()
-    _parentheses_needed = '(ArbitraryOperator, CalculusOperator)'
+    _parentheses_needed = '(ArbitraryOperator, Derivative)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1547,7 +1547,7 @@ class Negate(UnaryOperator):
     __slots__ = ()
     symbol = '-'
     wolfram_func = 'Minus'
-    _parentheses_needed = '(ArbitraryOperator, Negate, CalculusOperator, Piecewise, Factorial)'
+    _parentheses_needed = '(ArbitraryOperator, Negate, Derivative, Piecewise, Factorial)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1593,7 +1593,7 @@ class Invert(UnaryOperator):
     __slots__ = ()
     symbol = '1/'
     wolfram_func = 'Divide'
-    _parentheses_needed = '(ArbitraryOperator, CalculusOperator, Piecewise, Factorial)'
+    _parentheses_needed = '(ArbitraryOperator, Derivative, Piecewise, Factorial)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1736,7 +1736,7 @@ class Factorial(UnaryOperator):
     __slots__ = ()
     symbol = '!'
     wolfram_func = 'Factorial'
-    _parentheses_needed = '(ArbitraryOperator, Negate, Invert, CalculusOperator, Piecewise)'
+    _parentheses_needed = '(ArbitraryOperator, Negate, Invert, Derivative, Piecewise)'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
