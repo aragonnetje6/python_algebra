@@ -7,8 +7,8 @@ from hypothesis.strategies import SearchStrategy, deferred, one_of, builds, samp
     dictionaries
 from math_tree import Node, Nodeify, Variable, Sum, Subtraction, Product, Division, Exponent, Logarithm, \
     IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor, Xnor, Sine, Cosine, \
-    Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, IndefiniteIntegral, \
-    DefiniteIntegral, Piecewise, Variables, UnaryOperator, CalculusOperator, ArbitraryOperator, Integer
+    Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, Piecewise, Variables, \
+    UnaryOperator, CalculusOperator, ArbitraryOperator, Integer
 from pytest import fixture
 
 
@@ -35,7 +35,7 @@ unary_operators = [Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent, Absolu
 binary_logical_operators = [IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor,
                             Xnor]
 unary_logical_operators = [Not]
-calculus_operators = [Derivative, IndefiniteIntegral, DefiniteIntegral]
+calculus_operators = [Derivative]
 misc_operators = [Piecewise]
 
 
