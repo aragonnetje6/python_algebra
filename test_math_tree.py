@@ -7,8 +7,8 @@ from hypothesis.strategies import SearchStrategy, deferred, one_of, builds, samp
     dictionaries
 from math_tree import Node, Nodeify, Variable, Sum, Subtraction, Product, Division, Exponent, Logarithm, \
     IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor, Xnor, Sine, Cosine, \
-    Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, IndefiniteIntegral, \
-    DefiniteIntegral, Piecewise, Variables, UnaryOperator, CalculusOperator, ArbitraryOperator, Integer
+    Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, Piecewise, Variables, \
+    UnaryOperator, ArbitraryOperator, Integer
 from pytest import fixture
 
 
@@ -35,7 +35,7 @@ unary_operators = [Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent, Absolu
 binary_logical_operators = [IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor,
                             Xnor]
 unary_logical_operators = [Not]
-calculus_operators = [Derivative, IndefiniteIntegral, DefiniteIntegral]
+calculus_operators = [Derivative]
 misc_operators = [Piecewise]
 
 
@@ -238,6 +238,22 @@ class TestUnaryOperators:
             assert ans > 1e308 if not isinstance(ans, complex) else ans.imag > 1e308 or ans.real > 1e308
 
 
+# class TestSimplify:
+#     @given(var_dict=variables_dict('xyz'), expr=math_expression)
+#     def test_same_answer(self, expr: Node, var_dict: Variables) -> None:
+#         try:
+#             assert IsEqual(expr, expr.simplify()).evaluate(var_dict)
+#         except (ValueError, ZeroDivisionError, OverflowError):
+#             pass
+#
+#     @given(var_dict=variables_dict('xyz'), expr=math_expression)
+#     def test_idempotent(self, var_dict: Variables, expr: Node) -> None:
+#         try:
+#             assert IsEqual((a := expr.simplify()), a.simplify()).evaluate(var_dict)
+#         except (ValueError, ZeroDivisionError, OverflowError):
+#             pass
+
+
 class TestDisplayMethods:
     @given(expr=math_expression)
     def test_wolfram_type(self, expr: Node) -> None:
@@ -245,7 +261,7 @@ class TestDisplayMethods:
 
     @given(expr=math_expression)
     def test_wolfram_recursive(self, expr: Node) -> None:
-        if isinstance(expr, (UnaryOperator, CalculusOperator)):
+        if isinstance(expr, (UnaryOperator, Derivative)):
             assert expr.child.wolfram() in expr.wolfram()
         elif isinstance(expr, ArbitraryOperator):
             for child in expr.children:
@@ -257,8 +273,8 @@ class TestDisplayMethods:
 
     @given(expr=math_expression)
     def test_mathml_recursive(self, expr: Node) -> None:
-        if isinstance(expr, (UnaryOperator, CalculusOperator)):
+        if isinstance(expr, (UnaryOperator, Derivative)):
             assert expr.child.mathml() in expr.mathml()
         elif isinstance(expr, ArbitraryOperator):
             for child in expr.children:
-                assert child.copy().mathml() in expr.mathml()
+                assert child.mathml() in expr.mathml()
