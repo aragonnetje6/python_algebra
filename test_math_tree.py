@@ -238,6 +238,22 @@ class TestUnaryOperators:
             assert ans > 1e308 if not isinstance(ans, complex) else ans.imag > 1e308 or ans.real > 1e308
 
 
+class TestSimplify:
+    @given(var_dict=variables_dict('xyz'), expr=math_expression)
+    def test_same_answer(self, expr: Node, var_dict: Variables):
+        try:
+            assert IsEqual(expr, expr.simplify()).evaluate(var_dict)
+        except (ValueError, ZeroDivisionError):
+            pass
+
+    # @given(var_dict=variables_dict('xyz'), expr=math_expression)
+    # def test_idempotent(self, var_dict: Variables, expr: Node):
+    #     try:
+    #         assert IsEqual((a := expr.simplify()), a.simplify()).evaluate(var_dict)
+    #     except (ValueError, ZeroDivisionError):
+    #         pass
+
+
 class TestDisplayMethods:
     @given(expr=math_expression)
     def test_wolfram_type(self, expr: Node) -> None:

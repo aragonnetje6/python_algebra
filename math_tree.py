@@ -601,7 +601,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def __init__(self, *args: Node) -> None:
         assert len(args) > 1
         assert all(isinstance(x, Node) for x in args)
-        self.children = tuple(child.simplify() for child in args)
+        self.children = tuple(child for child in args)
         super().__init__()
 
     def __repr__(self) -> str:
@@ -820,7 +820,7 @@ class Modulus(ArbitraryOperator):
         for i, child in enumerate(self.children[1:]):
             out = Subtraction(out, Product(child.derivative(variable),
                                            Floor(Division(Modulus(*self.children[:i + 1], Integer(1)), child))))
-        return out.simplify()
+        return out
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> ConstantType:
@@ -841,8 +841,8 @@ class BinaryOperator(ArbitraryOperator, metaclass=ABCMeta):
 
     def __init__(self, *args: Node):
         assert len(args) == 2
-        self.child1 = args[0].simplify()
-        self.child2 = args[1].simplify()
+        self.child1 = args[0]
+        self.child2 = args[1]
         super().__init__(*args)
 
 
@@ -1268,7 +1268,7 @@ class UnaryOperator(Node, metaclass=ABCMeta):
 
     def __init__(self, child: Node) -> None:
         assert isinstance(child, Node)
-        self.child = child.simplify()
+        self.child = child
         super().__init__()
 
     def __repr__(self) -> str:
@@ -1850,7 +1850,7 @@ class Derivative(Node):
     symbol = ''
 
     def __init__(self, expression: 'Node', variable: 'str') -> None:
-        self.child = expression.simplify()
+        self.child = expression
         self.variable = variable
         super().__init__()
 
