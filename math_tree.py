@@ -289,12 +289,6 @@ class Node(metaclass=ABCMeta):
         """shows graphical representation of expression"""
         display(self)
 
-    def get_root(self) -> 'Node':
-        """Returns the root node of the expression tree"""
-        if self.parent is None:
-            return self
-        return self.parent.get_root()
-
     def reset_parents(self, parent: Optional['Node'] = None) -> None:
         """Resets the parent references of each descendant to the proper parent"""
         self.parent = parent
