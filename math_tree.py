@@ -1156,10 +1156,7 @@ class Xnor(ArbitraryLogicalOperator):
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        if self.parent is not None:
-            return '(not ' + super().infix() + ')'
-        else:
-            return 'not ' + super().infix()
+        return 'not ' + super().infix()
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
