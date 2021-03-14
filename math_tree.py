@@ -1843,14 +1843,14 @@ class Not(UnaryOperator):
     #         return Not(simple_child)
 
 
-class CalculusOperator(Node, metaclass=ABCMeta):
-    """Calculus-related operator nodes"""
+class Derivative(Node):
+    """Derivative operation node"""
     __slots__ = ('child', 'variable')
-    wolfram_func = ''
+    wolfram_func = 'D'
     symbol = ''
 
     def __init__(self, expression: 'Node', variable: 'str') -> None:
-        self.child = expression
+        self.child = expression.simplify()
         self.variable = variable
         super().__init__()
 
@@ -1859,19 +1859,9 @@ class CalculusOperator(Node, metaclass=ABCMeta):
         out = [self]  # type: list[Node]
         return out + self.child.list_nodes()
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-        """returns a simplified version of the tree"""
-        return self.__class__(self.child.simplify(var_dict), self.variable)
-
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child.substitute(var, sub), self.variable)
-
-
-class Derivative(CalculusOperator):
-    """Derivative operation node"""
-    __slots__ = ()
-    wolfram_func = 'D'
 
     def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
