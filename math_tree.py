@@ -641,8 +641,8 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         try:
-            return Nodeify(self.evaluate())
-        except (KeyError, ValueError):
+            return Nodeify(self.evaluate(var_dict))
+        except (KeyError, ValueError, ZeroDivisionError):
             return self.__class__(*(child.simplify(var_dict) for child in self.children))
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
@@ -1297,7 +1297,7 @@ class UnaryOperator(Node, metaclass=ABCMeta):
         """returns a simplified version of the tree"""
         try:
             return Nodeify(self.evaluate())
-        except (KeyError, ValueError):
+        except (KeyError, ValueError, ZeroDivisionError):
             return self.__class__(self.child.simplify(var_dict))
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
@@ -1533,8 +1533,8 @@ class Absolute(UnaryOperator):
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         try:
-            return Nodeify(self.evaluate())
-        except KeyError:
+            return Nodeify(self.evaluate(var_dict))
+        except (KeyError, ValueError, ZeroDivisionError):
             pass
         child = self.child.simplify(var_dict)
         if isinstance(child, (Absolute, Negate)):
@@ -1579,8 +1579,8 @@ class Negate(UnaryOperator):
         """returns a simplified version of the tree"""
         simple_child = self.child.simplify(var_dict)
         try:
-            return Nodeify(-simple_child.evaluate())
-        except KeyError:
+            return Nodeify(-simple_child.evaluate(var_dict))
+        except (KeyError, ValueError, ZeroDivisionError):
             pass
         if isinstance(simple_child, Negate):
             return simple_child.child
@@ -1639,7 +1639,7 @@ class Invert(UnaryOperator):
         simple_child = self.child.simplify(var_dict)
         try:
             return Nodeify(1 / simple_child.evaluate(var_dict))
-        except KeyError:
+        except (KeyError, ValueError, ZeroDivisionError):
             pass
         if isinstance(simple_child, Invert):
             return simple_child.child
@@ -1677,9 +1677,9 @@ class Floor(UnaryOperator):
         """returns a simplified version of the tree"""
         simple_child = self.child.simplify(var_dict)
         try:
-            ans = simple_child.evaluate()
+            ans = simple_child.evaluate(var_dict)
             return Nodeify(floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag)))
-        except KeyError:
+        except (KeyError, ValueError, ZeroDivisionError):
             pass
         if isinstance(simple_child, (Floor, Ceiling)):
             return simple_child
@@ -1717,9 +1717,9 @@ class Ceiling(UnaryOperator):
         """returns a simplified version of the tree"""
         simple_child = self.child.simplify(var_dict)
         try:
-            ans = self.child.evaluate()
+            ans = self.child.evaluate(var_dict)
             return Nodeify(floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag)))
-        except KeyError:
+        except (KeyError, ValueError, ZeroDivisionError):
             pass
         if isinstance(simple_child, (Floor, Ceiling)):
             return simple_child
@@ -1776,7 +1776,7 @@ class Factorial(UnaryOperator):
                 return Nodeify(factorial(ans))
             elif isinstance(ans, (float, Fraction)):
                 return Nodeify(gamma(ans))
-        except KeyError:
+        except (KeyError, ValueError, ZeroDivisionError):
             pass
         return Factorial(simple_child)
 
