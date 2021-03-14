@@ -55,7 +55,7 @@ def display(expression: 'Node') -> None:
 def Nodeify(other: Union['Node', ConstantType, str]) -> 'Node':
     """turn given input into constant or variable leaf node"""
     if isinstance(other, Node):
-        return other.copy()
+        return other
     elif isinstance(other, int):
         return Integer(other)
     elif isinstance(other, Fraction):
@@ -271,10 +271,6 @@ class Node(metaclass=ABCMeta):
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
 
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__()
-
     def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
         return set()
@@ -302,7 +298,7 @@ class Term(Node, metaclass=ABCMeta):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        return self.copy()
+        return self
 
 
 class Constant(Term, metaclass=ABCMeta):
@@ -315,7 +311,7 @@ class Constant(Term, metaclass=ABCMeta):
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
-        return self.copy()
+        return self
 
 
 class Integer(Constant):
@@ -332,10 +328,6 @@ class Integer(Constant):
     def infix(self) -> str:
         """returns infix representation of the tree"""
         return str(self.value)
-
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__(self.value)
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -366,10 +358,6 @@ class Rational(Constant):
     def infix(self) -> str:
         """returns infix representation of the tree"""
         return str(self.value)
-
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__(self.value)
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -404,10 +392,6 @@ class Real(Constant):
         """returns infix representation of the tree"""
         return str(self.value)
 
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__(self.value)
-
     def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.value
@@ -437,10 +421,6 @@ class Complex(Constant):
     def infix(self) -> str:
         """returns infix representation of the tree"""
         return f'({self.value})'
-
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__(self.value)
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
@@ -534,10 +514,6 @@ class Boolean(Constant):
         """returns infix representation of the tree"""
         return str(self.value)
 
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__(self.value)
-
     def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.value
@@ -564,10 +540,6 @@ class Variable(Term):
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(\'{self.name}\')'
-
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__(self.name)
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -602,13 +574,13 @@ class Variable(Term):
         if self.name in var_dict.keys():
             return Nodeify(var_dict[self.name])
         else:
-            return self.copy()
+            return self
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         if self.name == var:
-            return sub.copy()
-        return self.copy()
+            return sub
+        return self
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
@@ -629,15 +601,11 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def __init__(self, *args: Node) -> None:
         assert len(args) > 1
         assert all(isinstance(x, Node) for x in args)
-        self.children = tuple(child.copy() for child in args)
+        self.children = args
         super().__init__()
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}{self.children}'
-
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__(*(child.copy() for child in self.children))
 
     def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
@@ -1300,15 +1268,11 @@ class UnaryOperator(Node, metaclass=ABCMeta):
 
     def __init__(self, child: Node) -> None:
         assert isinstance(child, Node)
-        self.child = child.copy()
+        self.child = child
         super().__init__()
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({repr(self.child)})'
-
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__(self.child)
 
     def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
@@ -1886,13 +1850,9 @@ class CalculusOperator(Node, metaclass=ABCMeta):
     symbol = ''
 
     def __init__(self, expression: 'Node', variable: 'str') -> None:
-        self.child = expression.copy()
+        self.child = expression
         self.variable = variable
         super().__init__()
-
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return self.__class__(self.child, self.variable)
 
     def list_nodes(self) -> list['Node']:
         """returns a list of all nodes in the tree"""
@@ -1958,13 +1918,9 @@ class Piecewise(Node):
     __slots__ = 'expressions', 'default'
 
     def __init__(self, expressions: list[tuple[Node, Node]], default: Optional[Node] = None):
-        self.default = default.copy() if default is not None else Integer(0)
-        self.expressions = [(expr.copy(), cond.copy()) for expr, cond in expressions]
+        self.default = default if default is not None else Integer(0)
+        self.expressions = expressions
         super().__init__()
-
-    def copy(self) -> 'Node':
-        """returns a copy of this tree"""
-        return Piecewise([(expr, cond) for expr, cond in self.expressions], self.default)
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
