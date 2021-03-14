@@ -84,11 +84,9 @@ def Nodeify(other: Union['Node', ConstantType, str]) -> 'Node':
 
 class Node(metaclass=ABCMeta):
     """Abstract Base Class for any node in the expression tree"""
-    __slots__ = 'parent', '_finished'
+    __slots__ = '_finished',
 
     def __init__(self) -> None:
-        self.parent: Optional[Node] = None
-        self.reset_parents()
         self._finished = True
 
     def __repr__(self) -> str:
@@ -236,7 +234,7 @@ class Node(metaclass=ABCMeta):
             return NotImplemented
 
     def __setattr__(self, key: str, value: Any) -> None:
-        if not hasattr(self, '_finished') or not self._finished or key == 'parent':
+        if not hasattr(self, '_finished') or not self._finished:
             super().__setattr__(key, value)
         else:
             raise AttributeError(f'\'{self.__class__.__name__}\' object is read-only')
@@ -284,10 +282,6 @@ class Node(metaclass=ABCMeta):
     def display(self) -> None:
         """shows graphical representation of expression"""
         display(self)
-
-    def reset_parents(self, parent: Optional['Node'] = None) -> None:
-        """Resets the parent references of each descendant to the proper parent"""
-        self.parent = parent
 
     def total_derivative(self) -> 'Node':
         """
@@ -675,12 +669,6 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
                                                             if isinstance(child, eval(self._parentheses_needed))
                                                             else mathml_tag('fenced', mathml_tag('row', child.mathml()))
                                                             for child in self.children))
-
-    def reset_parents(self, parent: Optional[Node] = None) -> None:
-        """Resets the parent references of each descendant to the proper parent"""
-        super().reset_parents(parent)
-        for child in self.children:
-            child.parent = self
 
     def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
@@ -1341,11 +1329,6 @@ class UnaryOperator(Node, metaclass=ABCMeta):
                           mathml_tag('i', self.symbol)
                           + mathml_tag('fenced', self.child.mathml()))
 
-    def reset_parents(self, parent: Optional[Node] = None) -> None:
-        """Resets the parent references of each descendant to the proper parent"""
-        super().reset_parents(parent)
-        self.child.parent = self
-
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         try:
@@ -1924,11 +1907,6 @@ class CalculusOperator(Node, metaclass=ABCMeta):
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child.substitute(var, sub), self.variable)
 
-    def reset_parents(self, parent: Optional['Node'] = None) -> None:
-        """Resets the parent references of each descendant to the proper parent"""
-        super().reset_parents()
-        self.child.parent = self
-
 
 class Derivative(CalculusOperator):
     """Derivative operation node"""
@@ -2053,11 +2031,3 @@ class Piecewise(Node):
         """return wolfram language representation of the tree"""
         expressions = ', '.join(f'{{{expr.wolfram()}, {cond.wolfram()}}}' for expr, cond in self.expressions)
         return f'{self.wolfram_func}[{{{expressions}}}, {self.default.wolfram()}]'
-
-    def reset_parents(self, parent: Optional['Node'] = None) -> None:
-        """Resets the parent references of each descendant to the proper parent"""
-        super().reset_parents()
-        self.default.parent = self
-        for expr, cond in self.expressions:
-            expr.parent = self
-            cond.parent = self
