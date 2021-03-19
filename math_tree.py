@@ -114,10 +114,11 @@ class Node(metaclass=ABCMeta):
         return complex(self.evaluate())
 
     def __eq__(self, other: Any) -> bool:
-        return IsEqual(self, Nodeify(other)).evaluate()
+        # todo: find better way to do this, temp fix
+        return self.infix() == Nodeify(other).infix()
 
     def __ne__(self, other: Any) -> bool:
-        return NotEqual(self, Nodeify(other)).evaluate()
+        return not self == other
 
     def __gt__(self, other: Any) -> bool:
         return GreaterThan(self, Nodeify(other)).evaluate()
@@ -296,10 +297,6 @@ class Term(Node, metaclass=ABCMeta):
         """returns a list of all nodes in the tree"""
         return [self]
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-        """returns a simplified version of the tree"""
-        return self
-
 
 class Constant(Term, metaclass=ABCMeta):
     """constant term in expression tree"""
@@ -312,6 +309,10 @@ class Constant(Term, metaclass=ABCMeta):
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self
+
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        return Nodeify(self.evaluate())
 
 
 class Integer(Constant):
@@ -528,6 +529,10 @@ class Boolean(Constant):
         """return wolfram language representation of the tree"""
         return str(self.value)
 
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        return self
+
 
 class Variable(Term):
     """Named variable in expression tree"""
@@ -673,43 +678,10 @@ class Sum(ArbitraryOperator):
     # todo: reimplement Sum.simplify
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        children = [child.simplify(var_dict) for child in self.children]
-        # # evaluate full expression
-        # try:
-        #     return Constant(self.evaluate())
-        # except KeyError:
-        #     pass
-        # # return only child
-        # if len(children) == 1:
-        #     return children[0]
-        # while True:
-        #     # flatten nested sum nodes
-        #     if sums := [child for child in children if isinstance(child, Sum)]:
-        #         children = [child for child in children if child not in sums]
-        #         for sum_node in sums:
-        #             children += sum_node.children
-        #         continue
-        #     # consolidate Negate nodes
-        #     if len(negations := [child for child in children if isinstance(child, Negate)]) > 1:
-        #         children = [child for child in children if child not in negations] + \
-        #                    [Negate(*(negate.child for negate in negations)).simplify()]
-        #         continue
-        #     # consolidate constants
-        #     if len(constants := [child for child in children if isinstance(child, Constant)]) > 1:
-        #         total = Sum(*constants).evaluate()
-        #         if total == 0:
-        #             children = [child for child in children if child not in constants] + [Constant(total)]
-        #         else:
-        #             children = [child for child in children if child not in constants]
-        #         continue
-        #     # consolidate variables into products
-        #     if len(variables := [child for child in children if isinstance(child, Variable)]) > 1:
-        #         pass
-        #         # separate variables
-        #     # consolidate products
-        #         # consolidate exponents of variables
-        #     break
-        return Sum(*children)
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 def Subtraction(*args: Node) -> Sum:
@@ -741,65 +713,10 @@ class Product(ArbitraryOperator):
     # todo: reimplement Product.simplify
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        children = [child.simplify(var_dict) for child in self.children]
-        # # evaluate full expression
-        # try:
-        #     return Constant(self.evaluate())
-        # except KeyError:
-        #     pass
-        # # return only child
-        # if len(children) == 1:
-        #     return children[0]
-        # for i, child in enumerate(children):
-        #     # flatten nested product nodes
-        #     if isinstance(child, Product):
-        #         return Product(*children[:i], *children[i + 1:], *child.children).simplify()
-        #     # consolidate Invert nodes
-        #     elif isinstance(child, Invert):
-        #         for j, child2 in enumerate(children[i + 1:]):
-        #             if isinstance(child2, Invert):
-        #                 return Product(*children[:i], *children[i + 1:j], *children[j + 1:],
-        #                                Invert(Product(child.child, child2.child))).simplify()
-        #     # distribute over sums
-        #     elif isinstance(child, Sum):
-        #         return Sum(*(Product(sub_child, *children[:i], *children[i + 1:]) for sub_child in
-        #                      child.children)).simplify()
-        #     elif isinstance(child, Constant):
-        #         # eliminate multiplying by one
-        #         if child.evaluate() == 1:
-        #             return Product(*children[:i], *children[i + 1:]).simplify()
-        #         # return zero if a term equals zero
-        #         elif child.evaluate() == 0:
-        #             return Integer(0)
-        #         # attempt to consolidate constants
-        #         else:
-        #             for j, child2 in enumerate(children[i + 1:]):
-        #                 if isinstance(child2, Constant):
-        #                     return Product(Constant(Product(child, child2).evaluate()),
-        #                                    *children[:i], *children[i + 1:j], *children[j + 1:]).simplify()
-        #     # consolidate variables into exponents
-        #     elif isinstance(child, Variable):
-        #         for j, child2 in enumerate(children[i + 1:]):
-        #             if isinstance(child2, Variable) and child.value == child2.value:
-        #                 return Product(Exponent(child, Integer(2)), *children[:i], *children[i + 1:j],
-        #                                *children[j + 1:]).simplify()
-        #             elif isinstance(child2, Exponent) and isinstance(child2.child1, Variable) and \
-        #                     child2.child1.value == child.value:
-        #                 return Product(Exponent(child, Sum(child2.child2, Integer(1))), *children[:i],
-        #                                *children[i + 1:j], *children[j + 1:]).simplify()
-        #     # consolidate exponents
-        #     elif isinstance(child, Exponent):
-        #         # consolidate exponents of variables
-        #         if isinstance(child.child1, Variable):
-        #             for j, child2 in enumerate(children[i + 1:]):
-        #                 if isinstance(child2, Variable) and child2.value == child.child1.value:
-        #                     return Product(Exponent(child2, Sum(child.child2, Integer(1))), *children[:i],
-        #                                    *children[i + 1:j], *children[j + 1:]).simplify()
-        #                 elif isinstance(child2, Exponent) and isinstance(child2.child1, Variable) and \
-        #                         child2.child1.value == child.child1.value:
-        #                     return Product(Exponent(child.child1, Sum(child.child2, child2.child2)), *children[:i],
-        #                                    *children[i + 1:j], *children[j + 1:]).simplify()
-        return Product(*children)
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, Product):
+            pass
+        return simplified
 
 
 def Division(*args: Node) -> Product:
@@ -810,7 +727,7 @@ def Division(*args: Node) -> Product:
 class Modulus(ArbitraryOperator):
     """Modulo operator node"""
     __slots__ = ()
-    symbol = '*'
+    symbol = '%'
     wolfram_func = 'Mod'
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
 
@@ -833,6 +750,12 @@ class Modulus(ArbitraryOperator):
             raise NotImplementedError('mod of complex numbers not implemented')
 
     # todo: implement Modulus.simplify
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class BinaryOperator(ArbitraryOperator, metaclass=ABCMeta):
@@ -882,6 +805,12 @@ class Exponent(BinaryOperator):
                                                                    mathml_tag('row', self.child2.mathml()))))))
 
     # todo: reimplement Exponent.simplify
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class Logarithm(BinaryOperator):
@@ -933,6 +862,14 @@ class Logarithm(BinaryOperator):
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child2.wolfram()}, {self.child1.wolfram()}]'
 
+    # todo: reimplement Logarithm.simplify
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
+
 
 class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
@@ -956,18 +893,12 @@ class And(ArbitraryLogicalOperator):
         return bool(x) & bool(y)
 
     # todo: reimplement And.simplify
-    # def simplify(self, var_dict: Optional[Variables] = None) -> Node:
-    #     """returns a simplified version of the tree"""
-    #     try:
-    #         return Constant(self.evaluate())
-    #     except KeyError:
-    #         pass
-    #     simple_child1 = self.child1.simplify()
-    #     simple_child2 = self.child2.simplify()
-    #     if isinstance(simple_child1, Not) and isinstance(simple_child2, Not):
-    #         return Nor(simple_child1.child, simple_child2.child).simplify()
-    #     else:
-    #         return And(simple_child1, simple_child2)
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class Or(ArbitraryLogicalOperator):
@@ -982,18 +913,12 @@ class Or(ArbitraryLogicalOperator):
         return bool(x) | bool(y)
 
     # todo: reimplement Or.simplify
-    # def simplify(self, var_dict: Optional[Variables] = None) -> Node:
-    #     """returns a simplified version of the tree"""
-    #     try:
-    #         return Constant(self.evaluate())
-    #     except KeyError:
-    #         pass
-    #     simple_child1 = self.child1.simplify()
-    #     simple_child2 = self.child2.simplify()
-    #     if isinstance(simple_child1, Not) and isinstance(simple_child2, Not):
-    #         return Nand(simple_child1.child, simple_child2.child).simplify()
-    #     else:
-    #         return Nor(simple_child1, simple_child2)
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class Xor(ArbitraryLogicalOperator):
@@ -1008,18 +933,12 @@ class Xor(ArbitraryLogicalOperator):
         return bool(x) ^ bool(y)
 
     # todo: reimplement Xor.simplify
-    # def simplify(self, var_dict: Optional[Variables] = None) -> Node:
-    #     """returns a simplified version of the tree"""
-    #     try:
-    #         return Constant(self.evaluate())
-    #     except KeyError:
-    #         pass
-    #     simple_child1 = self.child1.simplify()
-    #     simple_child2 = self.child2.simplify()
-    #     if isinstance(simple_child1, Not) and isinstance(simple_child2, Not):
-    #         return Xor(simple_child1.child, simple_child2.child).simplify()
-    #     else:
-    #         return Xor(simple_child1, simple_child2)
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class Nand(ArbitraryLogicalOperator):
@@ -1047,18 +966,12 @@ class Nand(ArbitraryLogicalOperator):
                                                       child.mathml() for child in self.children))))
 
     # todo: reimplement Nand.simplify
-    # def simplify(self, var_dict: Optional[Variables] = None) -> Node:
-    #     """returns a simplified version of the tree"""
-    #     try:
-    #         return Constant(self.evaluate())
-    #     except KeyError:
-    #         pass
-    #     simple_child1 = self.child1.simplify()
-    #     simple_child2 = self.child2.simplify()
-    #     if isinstance(simple_child1, Not) and isinstance(simple_child2, Not):
-    #         return Or(simple_child1.child, simple_child2.child).simplify()
-    #     else:
-    #         return Nand(simple_child1, simple_child2)
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class Nor(ArbitraryLogicalOperator):
@@ -1086,18 +999,12 @@ class Nor(ArbitraryLogicalOperator):
                                                       child.mathml() for child in self.children))))
 
     # todo: reimplement Nor.simplify
-    # def simplify(self, var_dict: Optional[Variables] = None) -> Node:
-    #     """returns a simplified version of the tree"""
-    #     try:
-    #         return Constant(self.evaluate())
-    #     except KeyError:
-    #         pass
-    #     simple_child1 = self.child1.simplify()
-    #     simple_child2 = self.child2.simplify()
-    #     if isinstance(simple_child1, Not) and isinstance(simple_child2, Not):
-    #         return And(simple_child1.child, simple_child2.child).simplify()
-    #     else:
-    #         return Nor(simple_child1, simple_child2)
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class Xnor(ArbitraryLogicalOperator):
@@ -1121,18 +1028,12 @@ class Xnor(ArbitraryLogicalOperator):
                           + mathml_tag('fenced', super().mathml()))
 
     # todo: reimplement Xnor.simplify
-    # def simplify(self, var_dict: Optional[Variables] = None) -> Node:
-    #     """returns a simplified version of the tree"""
-    #     try:
-    #         return Constant(self.evaluate())
-    #     except KeyError:
-    #         pass
-    #     simple_child1 = self.child1.simplify()
-    #     simple_child2 = self.child2.simplify()
-    #     if isinstance(simple_child1, Not) and isinstance(simple_child2, Not):
-    #         return Xnor(simple_child1.child, simple_child2.child).simplify()
-    #     else:
-    #         return Xnor(simple_child1, simple_child2)
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
@@ -1338,6 +1239,12 @@ class Sine(UnaryOperator):
             return sin(child_ans)
 
     # todo: implement Sine.simplify
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class Cosine(UnaryOperator):
@@ -1370,6 +1277,12 @@ class Cosine(UnaryOperator):
             return cos(child_ans)
 
     # todo: implement Cosine.simplify
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class Tangent(UnaryOperator):
@@ -1400,6 +1313,12 @@ class Tangent(UnaryOperator):
             return tan(child_ans)
 
     # todo: implement Tangent.simplify
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class ArcSine(UnaryOperator):
@@ -1432,6 +1351,12 @@ class ArcSine(UnaryOperator):
             return asin(child_ans)
 
     # todo: implement ArcSine.simplify
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class ArcCosine(UnaryOperator):
@@ -1467,6 +1392,12 @@ class ArcCosine(UnaryOperator):
             return acos(child_ans)
 
     # todo: implement ArcCosine.simplify
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class ArcTangent(UnaryOperator):
@@ -1496,6 +1427,12 @@ class ArcTangent(UnaryOperator):
             return atan(child_ans)
 
     # todo: implement ArcTangent.simplify
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class Absolute(UnaryOperator):
@@ -1532,14 +1469,10 @@ class Absolute(UnaryOperator):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        try:
-            return Nodeify(self.evaluate(var_dict))
-        except (KeyError, ValueError, ZeroDivisionError):
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
             pass
-        child = self.child.simplify(var_dict)
-        if isinstance(child, (Absolute, Negate)):
-            return Absolute(child.child)
-        return Absolute(child)
+        return simplified
 
 
 class Negate(UnaryOperator):
@@ -1577,15 +1510,10 @@ class Negate(UnaryOperator):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        simple_child = self.child.simplify(var_dict)
-        try:
-            return Nodeify(-simple_child.evaluate(var_dict))
-        except (KeyError, ValueError, ZeroDivisionError):
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
             pass
-        if isinstance(simple_child, Negate):
-            return simple_child.child
-        else:
-            return Negate(simple_child)
+        return simplified
 
 
 class Invert(UnaryOperator):
@@ -1636,15 +1564,10 @@ class Invert(UnaryOperator):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        simple_child = self.child.simplify(var_dict)
-        try:
-            return Nodeify(1 / simple_child.evaluate(var_dict))
-        except (KeyError, ValueError, ZeroDivisionError):
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
             pass
-        if isinstance(simple_child, Invert):
-            return simple_child.child
-        else:
-            return Invert(simple_child)
+        return simplified
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
@@ -1675,16 +1598,10 @@ class Floor(UnaryOperator):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        simple_child = self.child.simplify(var_dict)
-        try:
-            ans = simple_child.evaluate(var_dict)
-            return Nodeify(floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag)))
-        except (KeyError, ValueError, ZeroDivisionError):
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
             pass
-        if isinstance(simple_child, (Floor, Ceiling)):
-            return simple_child
-        else:
-            return Floor(simple_child)
+        return simplified
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
@@ -1715,16 +1632,10 @@ class Ceiling(UnaryOperator):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        simple_child = self.child.simplify(var_dict)
-        try:
-            ans = self.child.evaluate(var_dict)
-            return Nodeify(floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag)))
-        except (KeyError, ValueError, ZeroDivisionError):
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
             pass
-        if isinstance(simple_child, (Floor, Ceiling)):
-            return simple_child
-        else:
-            return Ceiling(simple_child)
+        return simplified
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
@@ -1769,16 +1680,10 @@ class Factorial(UnaryOperator):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        simple_child = self.child.simplify(var_dict)
-        try:
-            ans = simple_child.evaluate(var_dict)
-            if isinstance(ans, int):
-                return Nodeify(factorial(ans))
-            elif isinstance(ans, (float, Fraction)):
-                return Nodeify(gamma(ans))
-        except (KeyError, ValueError, ZeroDivisionError):
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
             pass
-        return Factorial(simple_child)
+        return simplified
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
@@ -1818,29 +1723,12 @@ class Not(UnaryOperator):
                               + self.child.mathml())
 
     # todo: reimplement Not.simplify
-    # def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-    #     """returns a simplified version of the tree"""
-    #     simple_child = self.child.simplify()
-    #     try:
-    #         return Constant(simple_child.evaluate())
-    #     except KeyError:
-    #         pass
-    #     if isinstance(simple_child, Not):
-    #         return simple_child.child
-    #     elif isinstance(simple_child, Nand):
-    #         return And(simple_child.child1, simple_child.child2).simplify()
-    #     elif isinstance(simple_child, Nor):
-    #         return Or(simple_child.child1, simple_child.child2).simplify()
-    #     elif isinstance(simple_child, Xnor):
-    #         return Xor(simple_child.child1, simple_child.child2).simplify()
-    #     elif isinstance(simple_child, And):
-    #         return Nand(simple_child.child1, simple_child.child2).simplify()
-    #     elif isinstance(simple_child, Or):
-    #         return Nor(simple_child.child1, simple_child.child2).simplify()
-    #     elif isinstance(simple_child, Xor):
-    #         return Xnor(simple_child.child1, simple_child.child2).simplify()
-    #     else:
-    #         return Not(simple_child)
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(var_dict)
+        if isinstance(simplified, self.__class__):
+            pass
+        return simplified
 
 
 class Derivative(Node):
@@ -1893,8 +1781,7 @@ class Derivative(Node):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        result = self.child.simplify(var_dict).derivative(self.variable)
-        return result.simplify(var_dict)
+        return self.child.simplify(var_dict).derivative(self.variable).simplify(var_dict)
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
