@@ -679,9 +679,27 @@ class Sum(ArbitraryOperator):
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
-        if isinstance(simplified, self.__class__):
-            pass
-        return simplified
+        if not isinstance(simplified, self.__class__):
+            return simplified
+        else:
+            children = list(simplified.children)
+            old_repr = repr(children)
+            while True:
+                # consolidate constants
+                if len([isinstance(child, Constant) for child in children]) > 1:
+                    constants = []
+                    for i, child in enumerate(children.copy()):
+                        if isinstance(child, (Integer, Rational, Real, Complex)):
+                            del children[i]
+                            constants.append(child)
+                    children.append(self.__class__(*constants).simplify())
+                    # operator specific parts
+                    pass
+                # break out of loop
+                if (new := repr(children)) == old_repr:
+                    return self.__class__(*sorted(children, key=lambda x: x.infix()))
+                else:
+                    old_repr = new
 
 
 def Subtraction(*args: Node) -> Sum:
@@ -714,9 +732,44 @@ class Product(ArbitraryOperator):
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
-        if isinstance(simplified, Product):
-            pass
-        return simplified
+        if not isinstance(simplified, self.__class__):
+            return simplified
+        else:
+            children = list(simplified.children)
+            old_repr = repr(children)
+            while True:
+                # consolidate constants
+                if len([isinstance(child, Constant) for child in children]) > 1:
+                    constants = []
+                    for i, child in enumerate(children.copy()):
+                        if isinstance(child, (Integer, Rational, Real, Complex)):
+                            del children[i]
+                            constants.append(child)
+                    children.append(self.__class__(*constants).simplify())
+                # operator specific parts
+                for i, child in enumerate(children):
+                    # consolidate child products
+                    if isinstance(child, Product):
+                        del children[i]
+                        children.extend(child.children)
+                    # distribute over sums
+                    elif isinstance(child, Sum):
+                        del children[i]
+                        return Sum(*(Product(child2, *children) for child2 in child.children)).simplify(var_dict)
+                    # consolidate exponents
+                    elif isinstance(child, Exponent):
+                        for j, child2 in enumerate(children):
+                            if i != j and isinstance(child2, Exponent) and child.child1 == child2.child1:
+                                del children[j], children[i]
+                                children.append(Exponent(child.child1, Sum(child.child2, child2.child2)).simplify())
+                # break out of loop
+                if (new := repr(children)) == old_repr:
+                    if len(children) > 1:
+                        return self.__class__(*sorted(children))
+                    else:
+                        return children[0]
+                else:
+                    old_repr = new
 
 
 def Division(*args: Node) -> Product:
