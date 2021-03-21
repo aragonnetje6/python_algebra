@@ -6,8 +6,8 @@ import webbrowser
 from abc import ABCMeta, abstractmethod
 from fractions import Fraction
 from functools import reduce
-from math import pi, e, log, sin, cos, tan, asin, acos, atan, isclose, floor, ceil, factorial, gamma
-from typing import Union, Optional, Any
+from math import acos, asin, atan, ceil, cos, e, factorial, floor, gamma, isclose, log, pi, sin, tan
+from typing import Any, Optional, Union
 
 ConstantType = Union[int, Fraction, float, complex, bool]
 Variables = dict[str, ConstantType]
@@ -148,13 +148,13 @@ class Node(metaclass=ABCMeta):
         except ValueError:
             return NotImplemented
 
-    def __sub__(self, other: Union['Node', ConstantType, str]) -> 'Sum':
+    def __sub__(self, other: Union['Node', ConstantType, str]) -> 'Node':
         try:
             return Subtraction(self, Nodeify(other))
         except ValueError:
             return NotImplemented
 
-    def __rsub__(self, other: Union['Node', ConstantType, str]) -> 'Sum':
+    def __rsub__(self, other: Union['Node', ConstantType, str]) -> 'Node':
         try:
             return Subtraction(Nodeify(other), self)
         except ValueError:
@@ -172,13 +172,13 @@ class Node(metaclass=ABCMeta):
         except ValueError:
             return NotImplemented
 
-    def __truediv__(self, other: Union['Node', ConstantType, str]) -> 'Product':
+    def __truediv__(self, other: Union['Node', ConstantType, str]) -> 'Node':
         try:
             return Division(self, Nodeify(other))
         except ValueError:
             return NotImplemented
 
-    def __rtruediv__(self, other: Union['Node', ConstantType, str]) -> 'Product':
+    def __rtruediv__(self, other: Union['Node', ConstantType, str]) -> 'Node':
         try:
             return Division(Nodeify(other), self)
         except ValueError:
@@ -725,9 +725,9 @@ class Sum(ArbitraryOperator):
         return children
 
 
-def Subtraction(*args: Node) -> Sum:
+def Subtraction(*args: Node) -> Node:
     """Subtraction operator node"""
-    return Sum(args[0], Negate(*args[1:]))
+    return Sum(args[0], Negate(Sum(*args[1:]) if len(args) > 2 else args[1])).simplify()
 
 
 class Product(ArbitraryOperator):
@@ -793,9 +793,9 @@ class Product(ArbitraryOperator):
         return children
 
 
-def Division(*args: Node) -> Product:
+def Division(*args: Node) -> Node:
     """Division operator node"""
-    return Product(args[0], Invert(*args[1:]))
+    return Product(args[0], Invert(Product(*args[1:]) if len(args) > 2 else args[1])).simplify()
 
 
 class Modulus(ArbitraryOperator):
@@ -1087,16 +1087,21 @@ class IsEqual(ComparisonOperator):
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
-        if isinstance(x, complex) and x.imag == 0:
-            x = x.real
-        if isinstance(y, complex) and y.imag == 0:
-            y = y.real
-        if isinstance(x, bool) or isinstance(y, bool):
+        if isinstance(x, complex):
+            if x.imag == 0:
+                x = x.real
+            else:
+                raise EvaluationError from TypeError('Comparison not defined in complex space')
+        if isinstance(y, complex):
+            if y.imag == 0:
+                y = y.real
+            else:
+                raise EvaluationError from TypeError('Comparison not defined in complex space')
+        if isinstance(x, bool) or isinstance(y, bool) or \
+                (isinstance(x, (int, Fraction)) and isinstance(y, (int, Fraction))):
             return x == y
-        elif not (isinstance(x, (complex, bool)) or isinstance(y, (complex, bool))):
-            return x == y or isclose(x, y)
         else:
-            raise EvaluationError from TypeError('Comparison not defined in complex space')
+            return x == y or isclose(x, y)
 
 
 class NotEqual(ComparisonOperator):

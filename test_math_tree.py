@@ -48,11 +48,11 @@ def variables_dict(keys: str, use_booleans: bool = False) -> SearchStrategy[Vari
                             min_size=len(keys))
     else:
         return dictionaries(sampled_from(keys),
-                            one_of(integers(), floats(-1e308, 1e308, allow_nan=False, allow_infinity=False)),
+                            one_of(integers(), floats(-1e200, 1e200, allow_nan=False, allow_infinity=False)),
                             min_size=len(keys))
 
 
-constant_number = builds(Nodeify, one_of(integers(), floats(-1e308, 1e308, allow_nan=False, allow_infinity=False)))
+constant_number = builds(Nodeify, one_of(integers(), floats(-1e200, 1e200, allow_nan=False, allow_infinity=False)))
 constant_bool = builds(Nodeify, booleans())
 constant_any = one_of(constant_bool, constant_number)
 variable = builds(Variable, sampled_from('xyz'))
@@ -60,7 +60,8 @@ func = lambda: (constant_number
                 | variable
                 | one_of(*[builds(operator, math_expression) for operator in unary_operators])
                 | one_of(*[builds(operator, math_expression, math_expression) for operator in binary_operators])
-                | one_of(*[builds(operator, math_expression, math_expression) for operator in n_ary_operators]))
+                | one_of(*[builds(operator, math_expression, math_expression, math_expression)
+                           for operator in n_ary_operators]))
 math_expression = deferred(func)  # type: SearchStrategy[Node]
 
 
@@ -225,13 +226,6 @@ class TestUnaryOperators:
                         GreaterEqual(x, Integer(0))).evaluate(var_dict)
         except EvaluationError:
             assert x.evaluate(var_dict) == 0
-
-    @given(var_dict=variables_dict('x'))
-    def test_8(self, x: Variable, var_dict: Variables) -> None:
-        try:
-            assert IsEqual(Invert(Invert(x)), x).evaluate(var_dict)
-        except EvaluationError:
-            pass
 
 
 class TestSimplify:
