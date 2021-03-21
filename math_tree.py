@@ -1887,7 +1887,7 @@ class Piecewise(Node):
 
     def list_nodes(self) -> list['Node']:
         """returns a list of all nodes in the tree"""
-        out = [self]  # type: list[Node]
+        out: list[Node] = [self]
         for expr, cond in self.expressions:
             out += expr.list_nodes()
             out += cond.list_nodes()
