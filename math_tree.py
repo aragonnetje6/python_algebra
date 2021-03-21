@@ -655,11 +655,13 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
             # consolidate constants
             if len([isinstance(child, (Integer, Rational, Real, Complex)) for child in children]) > 1:
                 constants = []
+                non_constants = []
                 for i, child in enumerate(children.copy()):
                     if isinstance(child, (Integer, Rational, Real, Complex)):
-                        del children[i]
                         constants.append(child)
-                children.append(self.__class__(*constants).simplify())
+                    else:
+                        non_constants.append(child)
+                children = non_constants + [self.__class__(*constants).simplify(var_dict)]
             # operator specific parts
             children = self._simplify(children, var_dict)
             # break out of loop
