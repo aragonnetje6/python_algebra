@@ -649,18 +649,22 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
             return Nodeify(self.evaluate(var_dict))
         except (KeyError, ValueError, ZeroDivisionError):
             pass
-        old_repr = repr(list(self.children))
+        children = list(self.children)
+        old_repr = repr(children)
         while True:
-            children = [child.simplify(var_dict) for child in self.children]
+            children = [child.simplify(var_dict) for child in children]
             # consolidate constants
-            constants, non_constants = [], []
+            constants: list[Node] = []
+            non_constants: list[Node] = []
             for child in children:
                 if isinstance(child, (Integer, Rational, Real, Complex)):
                     constants.append(child)
                 else:
                     non_constants.append(child)
-            children = non_constants + ([self.__class__(*constants).simplify(var_dict)] if len(constants) > 1
-                                        else constants)
+            if len(constants) > 1:
+                children = non_constants + [self.__class__(*constants).simplify(var_dict)]
+            else:
+                children = non_constants + constants
             # operator specific parts
             children = self._simplify(children, var_dict)
             # break out of loop
@@ -826,16 +830,20 @@ class BinaryOperator(Node, metaclass=ABCMeta):
         super().__init__()
 
     def list_nodes(self) -> list['Node']:
+        """return a list of all nodes in the tree"""
         out: list[Node] = []
         return out + [self] + self.child1.list_nodes() + self.child2.list_nodes()
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
+        """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child1.substitute(var, sub), self.child2.substitute(var, sub))
 
     def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child1.wolfram()}, {self.child2.wolfram()}]'
 
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
         return self.__class__(self.child1.simplify(var_dict), self.child2.simplify(var_dict))
 
 
@@ -874,6 +882,7 @@ class Exponent(BinaryOperator):
                                                                    mathml_tag('row', self.child2.mathml()))))))
 
     def infix(self) -> str:
+        """returns infix representation of the tree"""
         return ((self.child2.infix() if isinstance(self.child2, (Term, UnaryOperator)) else f"({self.child2.infix()})")
                 + self.symbol
                 + (self.child2.infix() if isinstance(self.child2,
@@ -899,6 +908,7 @@ class Logarithm(BinaryOperator):
         super().__init__(child1, child2)
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from var_dict, returns int or float"""
         x = self.child1.evaluate(var_dict)
         y = self.child2.evaluate(var_dict)
         if isinstance(x, complex) or isinstance(y, complex):
@@ -1860,4 +1870,4 @@ class Piecewise(Node):
 
 
 if __name__ == '__main__':
-    Logarithm(Integer(0), Integer(0)).simplify()
+    Product(Product(Variable('x'), Invert(Integer(0))), Invert(Variable('x'))).simplify()

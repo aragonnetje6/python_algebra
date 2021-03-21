@@ -9,7 +9,7 @@ from math_tree import Node, Nodeify, Variable, Sum, Subtraction, Product, Divisi
     IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor, Xnor, Sine, Cosine, \
     Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, Piecewise, Variables, \
     UnaryOperator, ArbitraryOperator, Integer
-from pytest import fixture
+from pytest import fixture, raises
 
 
 @fixture(scope="module")
@@ -30,7 +30,8 @@ def z() -> Variable:
     return Variable('z')
 
 
-binary_operators = [Sum, Subtraction, Product, Division, Exponent, Logarithm]
+n_ary_operators = [Sum, Subtraction, Product, Division]
+binary_operators = [Exponent, Logarithm]
 unary_operators = [Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert]
 binary_logical_operators = [IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor,
                             Xnor]
@@ -58,8 +59,8 @@ variable = builds(Variable, sampled_from('xyz'))
 func = lambda: (constant_number
                 | variable
                 | one_of(*[builds(operator, math_expression) for operator in unary_operators])
-                | one_of(*[builds(operator, math_expression, math_expression)
-                           for operator in binary_operators]))
+                | one_of(*[builds(operator, math_expression, math_expression) for operator in binary_operators])
+                | one_of(*[builds(operator, math_expression, math_expression) for operator in n_ary_operators]))
 math_expression = deferred(func)  # type: SearchStrategy[Node]
 
 
