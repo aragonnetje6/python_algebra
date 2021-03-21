@@ -33,8 +33,8 @@ def z() -> Variable:
 n_ary_operators = [Sum, Subtraction, Product, Division]
 binary_operators = [Exponent, Logarithm]
 unary_operators = [Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert]
-binary_logical_operators = [IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor,
-                            Xnor]
+comparison_operators = [IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual]
+logical_operators = [And, Or, Nand, Nor, Xor, Xnor]
 unary_logical_operators = [Not]
 calculus_operators = [Derivative]
 misc_operators = [Piecewise]
@@ -63,6 +63,11 @@ func = lambda: (constant_number
                 | one_of(*[builds(operator, math_expression, math_expression, math_expression)
                            for operator in n_ary_operators]))
 math_expression = deferred(func)  # type: SearchStrategy[Node]
+func = lambda: (constant_number
+                | variable
+                | one_of(*[builds(operator, math_expression) for operator in unary_logical_operators])
+                | one_of(*[builds(operator, math_expression, math_expression) for operator in logical_operators]))
+bool_expression = deferred(func)  # type: SearchStrategy[Node]
 
 
 @given(val1=constant_any, val2=constant_any)
@@ -239,6 +244,18 @@ class TestSimplify:
 
     @given(expr=math_expression)
     def test_idempotent(self, expr: Node) -> None:
+        assert repr(a := expr.simplify()) == repr(a.simplify())
+
+    @given(var_dict=variables_dict('xyz', use_booleans=True), expr=bool_expression)
+    def test_same_answer_bool(self, expr: Node, var_dict: Variables) -> None:
+        try:
+            assert IsEqual(expr, expr.simplify()).evaluate(var_dict)
+        except EvaluationError:
+            with raises(EvaluationError):
+                expr.evaluate(var_dict)
+
+    @given(expr=bool_expression)
+    def test_idempotent_bool(self, expr: Node) -> None:
         assert repr(a := expr.simplify()) == repr(a.simplify())
 
 
