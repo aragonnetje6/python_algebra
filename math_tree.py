@@ -997,10 +997,28 @@ class And(ArbitraryLogicalOperator):
         """calculation function for 2 elements"""
         return bool(x) & bool(y)
 
-    # todo: reimplement And._simplify
     @staticmethod
     def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
+        for i, child in enumerate(children):
+            if isinstance(child, Constant):
+                if child.evaluate():
+                    del children[i]
+                    return children
+                else:
+                    return [Boolean(False)]
+            elif isinstance(child, Variable):
+                try:
+                    if child.evaluate(var_dict):
+                        del children[i]
+                        return children
+                    else:
+                        return [Boolean(False)]
+                except EvaluationError:
+                    pass
+            elif isinstance(child, And):
+                del children[i]
+                return children + list(child.children)
         return children
 
 
