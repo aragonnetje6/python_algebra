@@ -994,99 +994,19 @@ class Xor(ArbitraryLogicalOperator):
         return simplified
 
 
-class Nand(ArbitraryLogicalOperator):
+def Nand(*args):
     """logical NAND operator node"""
-    __slots__ = ()
-    wolfram_func = 'Nand'
-    symbol = '&'
-
-    @staticmethod
-    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
-        """calculation function for 2 elements"""
-        return not (bool(x) & bool(y))
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        return 'not ' + super().infix()
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        return mathml_tag('row',
-                          mathml_tag('o', '~')
-                          + mathml_tag('fenced',
-                                       mathml_tag('row',
-                                                  mathml_tag('o', '&').join(
-                                                      child.mathml() for child in self.children))))
-
-    # todo: reimplement Nand.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if isinstance(simplified, self.__class__):
-            pass
-        return simplified
+    return Not(And(*args))
 
 
-class Nor(ArbitraryLogicalOperator):
+def Nor(*args):
     """logical NOR operator node"""
-    __slots__ = ()
-    wolfram_func = 'Nor'
-    symbol = '|'
-
-    @staticmethod
-    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
-        """calculation function for 2 elements"""
-        return not (bool(x) | bool(y))
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        return 'not ' + super().infix()
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        return mathml_tag('row',
-                          mathml_tag('o', '~')
-                          + mathml_tag('fenced',
-                                       mathml_tag('row',
-                                                  mathml_tag('o', '|').join(
-                                                      child.mathml() for child in self.children))))
-
-    # todo: reimplement Nor.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if isinstance(simplified, self.__class__):
-            pass
-        return simplified
+    return Not(Or(*args))
 
 
-class Xnor(ArbitraryLogicalOperator):
-    """logical XOR operator node"""
-    __slots__ = ()
-    wolfram_func = 'Xnor'
-
-    @staticmethod
-    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
-        """calculation function for 2 elements"""
-        return not (bool(x) ^ bool(y))
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        return 'not ' + super().infix()
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        return mathml_tag('row',
-                          mathml_tag('o', '~')
-                          + mathml_tag('fenced', super().mathml()))
-
-    # todo: reimplement Xnor.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if isinstance(simplified, self.__class__):
-            pass
-        return simplified
+def Xnor(*args):
+    """logical XNOR operator node"""
+    return Not(Xor(*args))
 
 
 class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
