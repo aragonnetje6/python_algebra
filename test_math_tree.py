@@ -8,7 +8,7 @@ from hypothesis.strategies import SearchStrategy, deferred, one_of, builds, samp
 from math_tree import Node, Nodeify, Variable, Sum, Subtraction, Product, Division, Exponent, Logarithm, \
     IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor, Xnor, Sine, Cosine, \
     Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, Piecewise, Variables, \
-    UnaryOperator, ArbitraryOperator, Integer
+    UnaryOperator, ArbitraryOperator, Integer, EvaluationError
 from pytest import fixture, raises
 
 
@@ -106,14 +106,14 @@ class TestBinaryOperators:
     def test_9(self, x: Variable, y: Variable, z: Variable, var_dict: Variables) -> None:
         try:
             assert IsEqual((x * y) * z, x * (y * z)).evaluate(var_dict)
-        except OverflowError:
+        except EvaluationError:
             pass
 
     @given(var_dict=variables_dict('xyz'))
     def test_10(self, x: Variable, y: Variable, z: Variable, var_dict: Variables) -> None:
         try:
             assert IsEqual(x * (y + z), x * y + x * z).evaluate(var_dict)
-        except OverflowError:
+        except EvaluationError:
             pass
 
     @given(var_dict=variables_dict('x'))
@@ -134,7 +134,7 @@ class TestBinaryOperators:
         try:
             if y.evaluate(var_dict) != 0:
                 assert IsEqual(x * Invert(y), x / y).evaluate(var_dict)
-        except OverflowError:
+        except EvaluationError:
             pass
 
     @given(var_dict=variables_dict('x'))
@@ -145,7 +145,7 @@ class TestBinaryOperators:
     def test_16(self, x: Variable, var_dict: Variables) -> None:
         try:
             assert IsEqual(x * x, x ** 2).evaluate(var_dict)
-        except OverflowError:
+        except EvaluationError:
             pass
 
     @given(var_dict=variables_dict('x'))
@@ -160,14 +160,14 @@ class TestBinaryOperators:
     def test_19(self, x: Variable, y: Variable, var_dict: Variables) -> None:
         try:
             assert IsEqual((x + y) ** 2, x ** 2 + y ** 2 + 2 * x * y).evaluate(var_dict)
-        except OverflowError:
+        except EvaluationError:
             pass
 
     @given(var_dict=variables_dict('x'))
     def test_20(self, x: Variable, var_dict: Variables) -> None:
         try:
             assert IsEqual(Logarithm(x, x), Integer(1)).evaluate(var_dict)
-        except (ValueError, ZeroDivisionError):
+        except EvaluationError:
             pass
 
 
@@ -215,7 +215,7 @@ class TestUnaryOperators:
         try:
             assert Xnor(GreaterEqual(Absolute(Invert(x)), Integer(1)),
                         LessEqual(Absolute(x), Integer(1))).evaluate(var_dict)
-        except ZeroDivisionError:
+        except EvaluationError:
             assert x.evaluate(var_dict) == 0
 
     @given(var_dict=variables_dict('x'))
@@ -223,20 +223,15 @@ class TestUnaryOperators:
         try:
             assert Xnor(GreaterEqual(Invert(x), Integer(0)),
                         GreaterEqual(x, Integer(0))).evaluate(var_dict)
-        except ZeroDivisionError:
+        except EvaluationError:
             assert x.evaluate(var_dict) == 0
 
     @given(var_dict=variables_dict('x'))
     def test_8(self, x: Variable, var_dict: Variables) -> None:
         try:
             assert IsEqual(Invert(Invert(x)), x).evaluate(var_dict)
-        except ZeroDivisionError:
-            assert x.evaluate(var_dict) == 0
-        except OverflowError:
+        except EvaluationError:
             pass
-        except AssertionError:
-            ans = x.evaluate()
-            assert ans > 1e308 if not isinstance(ans, complex) else ans.imag > 1e308 or ans.real > 1e308
 
 
 class TestSimplify:
@@ -244,15 +239,13 @@ class TestSimplify:
     def test_same_answer(self, expr: Node, var_dict: Variables) -> None:
         try:
             assert IsEqual(expr, expr.simplify()).evaluate(var_dict)
-        except (ValueError, ZeroDivisionError, OverflowError):
-            pass
+        except EvaluationError:
+            with raises(EvaluationError):
+                expr.evaluate(var_dict)
 
     @given(expr=math_expression)
     def test_idempotent(self, expr: Node) -> None:
-        try:
-            assert repr(a := expr.simplify()) == repr(a.simplify())
-        except (ValueError, ZeroDivisionError, OverflowError):
-            pass
+        assert repr(a := expr.simplify()) == repr(a.simplify())
 
 
 class TestDisplayMethods:
