@@ -653,7 +653,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         old_repr = repr(children)
         while True:
             # consolidate constants
-            if len([isinstance(child, Constant) for child in children]) > 1:
+            if len([isinstance(child, (Integer, Rational, Real, Complex)) for child in children]) > 1:
                 constants = []
                 for i, child in enumerate(children.copy()):
                     if isinstance(child, (Integer, Rational, Real, Complex)):
