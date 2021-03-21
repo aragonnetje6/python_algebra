@@ -643,12 +643,33 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
                                                             else mathml_tag('fenced', mathml_tag('row', child.mathml()))
                                                             for child in self.children))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         try:
             return Nodeify(self.evaluate(var_dict))
         except (KeyError, ValueError, ZeroDivisionError):
-            return self.__class__(*(child.simplify(var_dict) for child in self.children))
+            pass
+        children = [child.simplify(var_dict) for child in self.children]
+        old_repr = repr(children)
+        while True:
+            # consolidate constants
+            if len([isinstance(child, Constant) for child in children]) > 1:
+                constants = []
+                for i, child in enumerate(children.copy()):
+                    if isinstance(child, (Integer, Rational, Real, Complex)):
+                        del children[i]
+                        constants.append(child)
+                children.append(self.__class__(*constants).simplify())
+            # operator specific parts
+            children = self._simplify(children, var_dict)
+            # break out of loop
+            if (new := repr(children)) == old_repr:
+                if len(children) > 1:
+                    return self.__class__(*sorted(children, key=lambda x: x.infix()))
+                else:
+                    return self.children[0]
+            else:
+                old_repr = new
 
     def substitute(self, var: str, sub: 'Node') -> 'Node':
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
@@ -657,6 +678,11 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[' + ', '.join(child.wolfram() for child in self.children) + ']'
+
+    @staticmethod
+    @abstractmethod
+    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
+        """Simplification rules for operator"""
 
 
 class Sum(ArbitraryOperator):
@@ -675,31 +701,11 @@ class Sum(ArbitraryOperator):
         """calculation function for 2 elements"""
         return x + y
 
-    # todo: reimplement Sum.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    # todo: reimplement Sum._simplify
+    @staticmethod
+    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if not isinstance(simplified, self.__class__):
-            return simplified
-        else:
-            children = list(simplified.children)
-            old_repr = repr(children)
-            while True:
-                # consolidate constants
-                if len([isinstance(child, Constant) for child in children]) > 1:
-                    constants = []
-                    for i, child in enumerate(children.copy()):
-                        if isinstance(child, (Integer, Rational, Real, Complex)):
-                            del children[i]
-                            constants.append(child)
-                    children.append(self.__class__(*constants).simplify())
-                # operator specific parts
-                pass
-                # break out of loop
-                if (new := repr(children)) == old_repr:
-                    return self.__class__(*sorted(children, key=lambda x: x.infix()))
-                else:
-                    old_repr = new
+        return children
 
 
 def Subtraction(*args: Node) -> Sum:
@@ -728,48 +734,25 @@ class Product(ArbitraryOperator):
         """calculation function for 2 elements"""
         return x * y
 
-    # todo: reimplement Product.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    # todo: reimplement Product._simplify
+    @staticmethod
+    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if not isinstance(simplified, self.__class__):
-            return simplified
-        else:
-            children = list(simplified.children)
-            old_repr = repr(children)
-            while True:
-                # consolidate constants
-                if len([isinstance(child, Constant) for child in children]) > 1:
-                    constants = []
-                    for i, child in enumerate(children.copy()):
-                        if isinstance(child, (Integer, Rational, Real, Complex)):
-                            del children[i]
-                            constants.append(child)
-                    children.append(self.__class__(*constants).simplify())
-                # operator specific parts
-                for i, child in enumerate(children):
-                    # consolidate child products
-                    if isinstance(child, Product):
-                        del children[i]
-                        children.extend(child.children)
-                    # distribute over sums
-                    elif isinstance(child, Sum):
-                        del children[i]
-                        return Sum(*(Product(child2, *children) for child2 in child.children)).simplify(var_dict)
-                    # consolidate exponents
-                    elif isinstance(child, Exponent):
-                        for j, child2 in enumerate(children):
-                            if i != j and isinstance(child2, Exponent) and child.child1 == child2.child1:
-                                del children[j], children[i]
-                                children.append(Exponent(child.child1, Sum(child.child2, child2.child2)).simplify())
-                # break out of loop
-                if (new := repr(children)) == old_repr:
-                    if len(children) > 1:
-                        return self.__class__(*sorted(children))
-                    else:
-                        return children[0]
-                else:
-                    old_repr = new
+        for i, child in enumerate(children):
+            # consolidate child products
+            if isinstance(child, Product):
+                del children[i]
+                children.extend(child.children)
+            # distribute over sums
+            elif isinstance(child, Sum):
+                del children[i]
+                return [Sum(*(Product(child2, *children) for child2 in child.children)).simplify(var_dict)]
+            # consolidate exponents
+            elif isinstance(child, Exponent):
+                for j, child2 in enumerate(children):
+                    if i != j and isinstance(child2, Exponent) and child.child1 == child2.child1:
+                        del children[j], children[i]
+                        children.append(Exponent(child.child1, Sum(child.child2, child2.child2)).simplify())
 
 
 def Division(*args: Node) -> Product:
@@ -802,31 +785,11 @@ class Modulus(ArbitraryOperator):
         else:
             raise NotImplementedError('mod of complex numbers not implemented')
 
-    # todo: implement Modulus.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    # todo: implement Modulus._simplify
+    @staticmethod
+    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if not isinstance(simplified, self.__class__):
-            return simplified
-        else:
-            children = list(simplified.children)
-            old_repr = repr(children)
-            while True:
-                # consolidate constants
-                if len([isinstance(child, Constant) for child in children]) > 1:
-                    constants = []
-                    for i, child in enumerate(children.copy()):
-                        if isinstance(child, (Integer, Rational, Real, Complex)):
-                            del children[i]
-                            constants.append(child)
-                    children.append(self.__class__(*constants).simplify())
-                # operator specific parts
-                pass
-                # break out of loop
-                if (new := repr(children)) == old_repr:
-                    return self.__class__(*sorted(children, key=lambda x: x.infix()))
-                else:
-                    old_repr = new
+        return children
 
 
 class BinaryOperator(ArbitraryOperator, metaclass=ABCMeta):
@@ -875,31 +838,11 @@ class Exponent(BinaryOperator):
                                                         mathml_tag('fenced',
                                                                    mathml_tag('row', self.child2.mathml()))))))
 
-    # todo: reimplement Exponent.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    # todo: reimplement Exponent._simplify
+    @staticmethod
+    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if not isinstance(simplified, self.__class__):
-            return simplified
-        else:
-            children = list(simplified.children)
-            old_repr = repr(children)
-            while True:
-                # consolidate constants
-                if len([isinstance(child, Constant) for child in children]) > 1:
-                    constants = []
-                    for i, child in enumerate(children.copy()):
-                        if isinstance(child, (Integer, Rational, Real, Complex)):
-                            del children[i]
-                            constants.append(child)
-                    children.append(self.__class__(*constants).simplify())
-                # operator specific parts
-                pass
-                # break out of loop
-                if (new := repr(children)) == old_repr:
-                    return self.__class__(*sorted(children, key=lambda x: x.infix()))
-                else:
-                    old_repr = new
+        return children
 
 
 class Logarithm(BinaryOperator):
@@ -951,31 +894,11 @@ class Logarithm(BinaryOperator):
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child2.wolfram()}, {self.child1.wolfram()}]'
 
-    # todo: reimplement Logarithm.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    # todo: reimplement Logarithm._simplify
+    @staticmethod
+    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if not isinstance(simplified, self.__class__):
-            return simplified
-        else:
-            children = list(simplified.children)
-            old_repr = repr(children)
-            while True:
-                # consolidate constants
-                if len([isinstance(child, Constant) for child in children]) > 1:
-                    constants = []
-                    for i, child in enumerate(children.copy()):
-                        if isinstance(child, (Integer, Rational, Real, Complex)):
-                            del children[i]
-                            constants.append(child)
-                    children.append(self.__class__(*constants).simplify())
-                # operator specific parts
-                pass
-                # break out of loop
-                if (new := repr(children)) == old_repr:
-                    return self.__class__(*sorted(children, key=lambda x: x.infix()))
-                else:
-                    old_repr = new
+        return children
 
 
 class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
@@ -999,31 +922,11 @@ class And(ArbitraryLogicalOperator):
         """calculation function for 2 elements"""
         return bool(x) & bool(y)
 
-    # todo: reimplement And.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    # todo: reimplement And._simplify
+    @staticmethod
+    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if not isinstance(simplified, self.__class__):
-            return simplified
-        else:
-            children = list(simplified.children)
-            old_repr = repr(children)
-            while True:
-                # consolidate constants
-                if len([isinstance(child, Constant) for child in children]) > 1:
-                    constants = []
-                    for i, child in enumerate(children.copy()):
-                        if isinstance(child, (Integer, Rational, Real, Complex)):
-                            del children[i]
-                            constants.append(child)
-                    children.append(self.__class__(*constants).simplify())
-                # operator specific parts
-                pass
-                # break out of loop
-                if (new := repr(children)) == old_repr:
-                    return self.__class__(*sorted(children, key=lambda x: x.infix()))
-                else:
-                    old_repr = new
+        return children
 
 
 class Or(ArbitraryLogicalOperator):
@@ -1037,31 +940,11 @@ class Or(ArbitraryLogicalOperator):
         """calculation function for 2 elements"""
         return bool(x) | bool(y)
 
-    # todo: reimplement Or.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    # todo: reimplement Or._simplify
+    @staticmethod
+    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if not isinstance(simplified, self.__class__):
-            return simplified
-        else:
-            children = list(simplified.children)
-            old_repr = repr(children)
-            while True:
-                # consolidate constants
-                if len([isinstance(child, Constant) for child in children]) > 1:
-                    constants = []
-                    for i, child in enumerate(children.copy()):
-                        if isinstance(child, (Integer, Rational, Real, Complex)):
-                            del children[i]
-                            constants.append(child)
-                    children.append(self.__class__(*constants).simplify())
-                # operator specific parts
-                pass
-                # break out of loop
-                if (new := repr(children)) == old_repr:
-                    return self.__class__(*sorted(children, key=lambda x: x.infix()))
-                else:
-                    old_repr = new
+        return children
 
 
 class Xor(ArbitraryLogicalOperator):
@@ -1075,31 +958,11 @@ class Xor(ArbitraryLogicalOperator):
         """calculation function for 2 elements"""
         return bool(x) ^ bool(y)
 
-    # todo: reimplement Xor.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    # todo: reimplement Xor._simplify
+    @staticmethod
+    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if not isinstance(simplified, self.__class__):
-            return simplified
-        else:
-            children = list(simplified.children)
-            old_repr = repr(children)
-            while True:
-                # consolidate constants
-                if len([isinstance(child, Constant) for child in children]) > 1:
-                    constants = []
-                    for i, child in enumerate(children.copy()):
-                        if isinstance(child, (Integer, Rational, Real, Complex)):
-                            del children[i]
-                            constants.append(child)
-                    children.append(self.__class__(*constants).simplify())
-                # operator specific parts
-                pass
-                # break out of loop
-                if (new := repr(children)) == old_repr:
-                    return self.__class__(*sorted(children, key=lambda x: x.infix()))
-                else:
-                    old_repr = new
+        return children
 
 
 def Nand(*args):
@@ -1131,21 +994,10 @@ class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Integer(0)
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    @staticmethod
+    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if not isinstance(simplified, self.__class__):
-            return simplified
-        else:
-            children = list(simplified.children)
-            if len([isinstance(child, Constant) for child in children]) > 1:
-                constants = []
-                for i, child in enumerate(children.copy()):
-                    if isinstance(child, (Integer, Rational, Real, Complex)):
-                        del children[i]
-                        constants.append(child)
-                children.append(self.__class__(*constants).simplify())
-                return self.__class__(*sorted(children, key=lambda x: x.infix()))
+        return children
 
 
 class IsEqual(ComparisonOperator):
