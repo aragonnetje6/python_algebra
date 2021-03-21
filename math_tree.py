@@ -742,7 +742,7 @@ class Product(ArbitraryOperator):
             # consolidate child products
             if isinstance(child, Product):
                 del children[i]
-                children.extend(child.children)
+                return children + list(child.children)
             # distribute over sums
             elif isinstance(child, Sum):
                 del children[i]
@@ -752,7 +752,13 @@ class Product(ArbitraryOperator):
                 for j, child2 in enumerate(children):
                     if i != j and isinstance(child2, Exponent) and child.child1 == child2.child1:
                         del children[j], children[i]
-                        children.append(Exponent(child.child1, Sum(child.child2, child2.child2)).simplify())
+                        return children + [Exponent(child.child1, Sum(child.child2, child2.child2)).simplify(var_dict)]
+            elif isinstance(child, Invert):
+                if child.child in children:
+                    j = children.index(child.child)
+                    del children[max(i, j)], children[min(i, j)]
+                    return children
+        return children
 
 
 def Division(*args: Node) -> Product:
@@ -965,17 +971,17 @@ class Xor(ArbitraryLogicalOperator):
         return children
 
 
-def Nand(*args):
+def Nand(*args: Node) -> 'Not':
     """logical NAND operator node"""
     return Not(And(*args))
 
 
-def Nor(*args):
+def Nor(*args: Node) -> 'Not':
     """logical NOR operator node"""
     return Not(Or(*args))
 
 
-def Xnor(*args):
+def Xnor(*args: Node) -> 'Not':
     """logical XNOR operator node"""
     return Not(Xor(*args))
 
