@@ -567,7 +567,10 @@ class Variable(Term):
     def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         try:
-            return Nodeify(var_dict[self.name]).evaluate()
+            if isinstance(var_dict, dict):
+                return Nodeify(var_dict[self.name]).evaluate()
+            else:
+                raise KeyError(f'{var_dict} does not contain {self.name}')
         except Exception as ex:
             raise EvaluationError from ex
 
@@ -922,6 +925,16 @@ class Logarithm(BinaryOperator):
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         x = self.child1.evaluate(var_dict)
         y = self.child2.evaluate(var_dict)
+        if isinstance(x, complex):
+            if x.imag == 0:
+                x = float(x.real)
+            else:
+                raise EvaluationError from TypeError('log of complex number')
+        if isinstance(y, complex):
+            if y.imag == 0:
+                y = float(y.real)
+            else:
+                raise EvaluationError from TypeError('log with complex base')
         try:
             return log(x, y)
         except Exception as ex:
@@ -1245,6 +1258,8 @@ class Sine(UnaryOperator):
         if isinstance(child_ans, complex):
             if child_ans.imag == 0:
                 child_ans = child_ans.real
+            else:
+                raise EvaluationError from TypeError('mod of complex number')
         if (mod2pi := child_ans % 2 * pi) == 0 or mod2pi == pi:
             return 0
         elif mod2pi == pi / 2:
@@ -1284,6 +1299,8 @@ class Cosine(UnaryOperator):
         if isinstance(child_ans, complex):
             if child_ans.imag == 0:
                 child_ans = child_ans.real
+            else:
+                raise EvaluationError from TypeError('mod of complex number')
         if (mod2pi := child_ans % 2 * pi) == 0:
             return 1
         elif mod2pi == pi:
@@ -1323,6 +1340,8 @@ class Tangent(UnaryOperator):
         if isinstance(child_ans, complex):
             if child_ans.imag == 0:
                 child_ans = child_ans.real
+            else:
+                raise EvaluationError from TypeError('mod of complex number')
         if (mod_pi := child_ans % pi) == 0:
             return 0
         elif mod_pi == pi / 2:
@@ -1362,6 +1381,8 @@ class ArcSine(UnaryOperator):
         if isinstance(child_ans, complex):
             if child_ans.imag == 0:
                 child_ans = child_ans.real
+            else:
+                raise EvaluationError from TypeError('mod of complex number')
         if child_ans == 0:
             return 0
         elif child_ans == 1:
@@ -1402,6 +1423,8 @@ class ArcCosine(UnaryOperator):
         if isinstance(child_ans, complex):
             if child_ans.imag == 0:
                 child_ans = child_ans.real
+            else:
+                raise EvaluationError from TypeError('mod of complex number')
         if child_ans == 0:
             return pi / 2
         elif child_ans == 1:
@@ -1442,6 +1465,8 @@ class ArcTangent(UnaryOperator):
         if isinstance(child_ans, complex):
             if child_ans.imag == 0:
                 child_ans = child_ans.real
+            else:
+                raise EvaluationError from TypeError('mod of complex number')
         if child_ans == 0:
             return 0
         else:
