@@ -246,10 +246,10 @@ class TestSimplify:
         except (ValueError, ZeroDivisionError, OverflowError):
             pass
 
-    @given(var_dict=variables_dict('xyz'), expr=math_expression)
-    def test_idempotent(self, var_dict: Variables, expr: Node) -> None:
+    @given(expr=math_expression)
+    def test_idempotent(self, expr: Node) -> None:
         try:
-            assert IsEqual((a := expr.simplify()), a.simplify()).evaluate(var_dict)
+            assert repr(a := expr.simplify()) == repr(a.simplify())
         except (ValueError, ZeroDivisionError, OverflowError):
             pass
 
