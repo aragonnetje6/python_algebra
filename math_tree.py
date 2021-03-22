@@ -477,6 +477,10 @@ class Pi(Constant):
         """return wolfram language representation of the tree"""
         return 'Pi'
 
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        return self
+
 
 class E(Constant):
     """mathematical constant in expression tree"""
@@ -505,6 +509,10 @@ class E(Constant):
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
         return 'E'
+
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        return self
 
 
 class Boolean(Constant):
