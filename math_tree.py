@@ -1126,19 +1126,20 @@ class Xor(ArbitraryLogicalOperator):
     @staticmethod
     def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
-        for i, child in enumerate(children):
-            if isinstance(child, Constant):
-                if not child.evaluate():
-                    del children[i]
-                    return children if len(children) else [Boolean(False)]
-                else:
-                    del children[i]
-                    if len(children) > 1:
-                        return [Not(Xor(*children)).simplify(var_dict)]
-                    elif len(children) == 1:
-                        return [Not(children[0]).simplify(var_dict)]
+        if len(children) > 1:
+            for i, child in enumerate(children):
+                if isinstance(child, Constant):
+                    if not child.evaluate():
+                        del children[i]
+                        return children if len(children) else [Boolean(False)]
                     else:
-                        return [Boolean(False)]
+                        del children[i]
+                        if len(children) > 1:
+                            return [Not(Xor(*children)).simplify(var_dict)]
+                        elif len(children) == 1:
+                            return [Not(children[0]).simplify(var_dict)]
+                        else:
+                            return [Boolean(False)]
         return children
 
 
@@ -2033,3 +2034,7 @@ class Piecewise(Node):
         """return wolfram language representation of the tree"""
         expressions = ', '.join(f'{{{expr.wolfram()}, {cond.wolfram()}}}' for expr, cond in self.expressions)
         return f'{self.wolfram_func}[{{{expressions}}}, {self.default.wolfram()}]'
+
+
+if __name__ == '__main__':
+    Xor(Boolean(True), And(Boolean(False), Variable('x'))).simplify()

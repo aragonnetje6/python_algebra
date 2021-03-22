@@ -240,8 +240,8 @@ class TestUnaryOperators:
 class TestSimplify:
     @given(var_dict=variables_dict('xyz'), expr=math_expression)
     def test_same_answer(self, expr: Node, var_dict: Variables) -> None:
-        with open('test_same_answer.txt', 'a') as file:
-            file.write(f'{repr(expr)}; {var_dict}\n')
+        # with open('test_same_answer.txt', 'a') as file:
+        #     file.write(f'{repr(expr)}; {var_dict}\n')
         try:
             assert IsEqual(expr, expr.simplify()).evaluate(var_dict)
         except EvaluationError:
@@ -250,14 +250,14 @@ class TestSimplify:
 
     @given(expr=math_expression)
     def test_idempotence(self, expr: Node) -> None:
-        with open('test_idempotence.txt', 'a') as file:
-            file.write(repr(expr) + '\n')
+        # with open('test_idempotence.txt', 'a') as file:
+        #     file.write(repr(expr) + '\n')
         assert repr(a := expr.simplify()) == repr(a.simplify())
 
     @given(var_dict=variables_dict('xyz', use_booleans=True), expr=bool_expression)
     def test_same_answer_bool(self, expr: Node, var_dict: Variables) -> None:
         try:
-            assert IsEqual(expr, expr.simplify()).evaluate(var_dict)
+            assert expr.evaluate(var_dict) == expr.simplify().evaluate(var_dict)
         except EvaluationError:
             with raises(EvaluationError):
                 expr.evaluate(var_dict)
