@@ -2,6 +2,8 @@
 Unittests for math_tree using pytest
 """
 
+from typing import Callable
+
 from hypothesis import given
 from hypothesis.strategies import booleans, builds, deferred, dictionaries, floats, integers, one_of, sampled_from, \
     SearchStrategy
@@ -10,7 +12,7 @@ from math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcT
     Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Piecewise, Product, Sine, Subtraction, Sum, Tangent, \
     UnaryOperator, Variable, Variables, Xnor, Xor
 from pytest import fixture, raises
-from typing import Callable
+
 
 @fixture(scope="module")
 def x() -> Variable:
