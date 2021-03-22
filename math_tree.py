@@ -840,7 +840,6 @@ class Product(ArbitraryOperator):
                     if i != j and isinstance(child2, Exponent) and child.child1 == child2.child1:
                         del children[j], children[i]
                         return children + [Exponent(child.child1, Sum(child.child2, child2.child2)).simplify(var_dict)]
-            # todo: turn variables and subexpressions into exponents
             # remove inversions
             elif isinstance(child, Invert):
                 if child.child in children:
@@ -850,6 +849,18 @@ class Product(ArbitraryOperator):
                         return children
                     else:
                         return [Integer(0)]
+            # put like terms into exponents
+            else:
+                for j, child2 in enumerate(children):
+                    if i == j:
+                        pass
+                    elif isinstance(child2, Exponent):
+                        if child == child2.child1:
+                            del children[max(i, j)], children[min(i, j)]
+                            return children + [Exponent(child, child2.child2 + 1).simplify()]
+                    elif child == child2:
+                        del children[max(i, j)], children[min(i, j)]
+                        return children + [Exponent(child, Integer(2)).simplify()]
         return children
 
 
@@ -2048,4 +2059,4 @@ class Piecewise(Node):
 
 
 if __name__ == '__main__':
-    Xor(Boolean(True), And(Boolean(False), Variable('x'))).simplify()
+    Variable('x') / Variable('y')
