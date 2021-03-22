@@ -121,6 +121,9 @@ class Node(metaclass=ABCMeta):
         # todo: find better way to do this, temp fix
         return self.infix() == Nodeify(other).infix()
 
+    def __hash__(self):
+        return hash(repr(self))
+
     def __ne__(self, other: Any) -> bool:
         return not self == other
 
