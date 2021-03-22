@@ -238,8 +238,6 @@ class TestUnaryOperators:
 class TestSimplify:
     @given(var_dict=variables_dict('xyz'), expr=math_expression)
     def test_same_answer(self, expr: Node, var_dict: Variables) -> None:
-        with open('test.txt', 'a') as file:
-            file.write(f'{repr(expr)}, {repr(var_dict)}\n')
         try:
             assert IsEqual(expr, expr.simplify()).evaluate(var_dict)
         except EvaluationError:
