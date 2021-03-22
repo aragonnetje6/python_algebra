@@ -1020,7 +1020,7 @@ class And(ArbitraryLogicalOperator):
             if isinstance(child, Constant):
                 if child.evaluate():
                     del children[i]
-                    return children
+                    return children if len(children) > 0 else [Boolean(True)]
                 else:
                     return [Boolean(False)]
             elif isinstance(child, And):
