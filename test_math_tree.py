@@ -67,8 +67,8 @@ func = lambda: (constant_number
 math_expression = deferred(func)  # type: SearchStrategy[Node]
 func2 = lambda: (constant_bool
                  | variable
-                 | one_of(*[builds(operator, math_expression) for operator in unary_logical_operators])
-                 | one_of(*[builds(operator, math_expression, math_expression) for operator in logical_operators]))
+                 | one_of(*[builds(operator, bool_expression) for operator in unary_logical_operators])
+                 | one_of(*[builds(operator, bool_expression, bool_expression) for operator in logical_operators]))
 bool_expression = deferred(func2)  # type: SearchStrategy[Node]
 
 
@@ -238,6 +238,8 @@ class TestUnaryOperators:
 class TestSimplify:
     @given(var_dict=variables_dict('xyz'), expr=math_expression)
     def test_same_answer(self, expr: Node, var_dict: Variables) -> None:
+        with open('test.txt', 'a') as file:
+            file.write(f'{repr(expr)}, {repr(var_dict)}\n')
         try:
             assert IsEqual(expr, expr.simplify()).evaluate(var_dict)
         except EvaluationError:

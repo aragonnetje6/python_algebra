@@ -973,10 +973,23 @@ class Logarithm(BinaryOperator):
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child2.wolfram()}, {self.child1.wolfram()}]'
 
-    # todo: reimplement Logarithm._simplify
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
-        return self
+        child1 = self.child1.simplify(var_dict)
+        child2 = self.child2.simplify(var_dict)
+        try:
+            return Nodeify(self.__class__(child1, child2).evaluate(var_dict))
+        except EvaluationError:
+            pass
+        try:
+            child2.evaluate()
+        except EvaluationError:
+            return Division(Logarithm(child1), Logarithm(child2)).simplify(var_dict)
+        if isinstance(child1, Product):
+            return Sum(*(Logarithm(child, child2) for child in child1.children)).simplify(var_dict)
+        elif isinstance(child1, Exponent):
+            return Product(child1.child2, Logarithm(child1.child1, child2)).simplify(var_dict)
+        return self.__class__(child1, child2)
 
 
 class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
