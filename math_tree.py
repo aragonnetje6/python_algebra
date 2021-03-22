@@ -1837,12 +1837,12 @@ class Not(UnaryOperator):
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
-            if isinstance(self.child, Not):
-                return self.child.child.simplify(var_dict)
-            elif isinstance(self.child, And):
-                return Or(*(Not(child2) for child2 in self.child.children)).simplify(var_dict)
-            elif isinstance(self.child, Or):
-                return And(*(Not(child2) for child2 in self.child.children)).simplify(var_dict)
+            if isinstance(simplified.child, Not):
+                return simplified.child.child.simplify(var_dict)
+            elif isinstance(simplified.child, And):
+                return Or(*(Not(child2) for child2 in simplified.child.children)).simplify(var_dict)
+            elif isinstance(simplified.child, Or):
+                return And(*(Not(child2) for child2 in simplified.child.children)).simplify(var_dict)
         return simplified
 
 
