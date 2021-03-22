@@ -927,7 +927,10 @@ class Exponent(BinaryOperator):
     def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
         """Evaluate expression tree"""
         try:
-            return self.child1.evaluate(var_dict) ** self.child2.evaluate(var_dict)
+            ans1 = self.child1.evaluate(var_dict)
+            ans2 = self.child2.evaluate(var_dict)
+            float(ans1) ** float(ans2)
+            return ans1 ** ans2
         except Exception as ex:
             raise EvaluationError from ex
 
