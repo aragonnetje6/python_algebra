@@ -10,7 +10,7 @@ from math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcT
     Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Piecewise, Product, Sine, Subtraction, Sum, Tangent, \
     UnaryOperator, Variable, Variables, Xnor, Xor
 from pytest import fixture, raises
-
+from typing import Callable
 
 @fixture(scope="module")
 def x() -> Variable:
@@ -33,7 +33,7 @@ def z() -> Variable:
 n_ary_operators = [Sum, Subtraction, Product, Division]
 binary_operators = [Exponent, Logarithm]
 unary_operators = [Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert]
-comparison_operators = [IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual]
+comparison_operators: list[Callable[..., Node]] = [IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual]
 logical_operators = [And, Or, Nand, Nor, Xor, Xnor]
 unary_logical_operators = [Not]
 calculus_operators = [Derivative]

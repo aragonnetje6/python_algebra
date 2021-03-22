@@ -1131,16 +1131,9 @@ class IsEqual(ComparisonOperator):
             return x == y or isclose(x, y)
 
 
-class NotEqual(ComparisonOperator):
+def NotEqual(*args: Node) -> Node:
     """Inequality operator node"""
-    __slots__ = ()
-    symbol = '!='
-    wolfram_func = 'UnequalTo'
-
-    @staticmethod
-    def _eval_func(x: ConstantType, y: ConstantType) -> bool:
-        """calculation function for 2 elements"""
-        return x != y
+    return Not(IsEqual(*args)).simplify()
 
 
 class GreaterThan(ComparisonOperator):
