@@ -1085,9 +1085,18 @@ class Xor(ArbitraryLogicalOperator):
     def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
         for i, child in enumerate(children):
-            if isinstance(child, Constant) and not child.evaluate():
-                del children[i]
-                return children if len(children) else [Boolean(False)]
+            if isinstance(child, Constant):
+                if not child.evaluate():
+                    del children[i]
+                    return children if len(children) else [Boolean(False)]
+                else:
+                    del children[i]
+                    if len(children) > 1:
+                        return [Not(Xor(*children)).simplify(var_dict)]
+                    elif len(children) == 1:
+                        return [Not(children[0]).simplify(var_dict)]
+                    else:
+                        return [Boolean(False)]
         return children
 
 
