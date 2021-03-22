@@ -778,7 +778,7 @@ class Product(ArbitraryOperator):
                 elif ans == 0:
                     return [Integer(0)]
             # consolidate child products
-            if isinstance(child, Product):
+            elif isinstance(child, Product):
                 del children[i]
                 return children + list(child.children)
             # distribute over sums
