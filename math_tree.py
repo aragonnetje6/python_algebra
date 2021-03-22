@@ -762,7 +762,6 @@ class Product(ArbitraryOperator):
         """calculation function for 2 elements"""
         return x * y
 
-    # todo: reimplement Product._simplify
     @staticmethod
     def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
@@ -792,6 +791,7 @@ class Product(ArbitraryOperator):
                     if i != j and isinstance(child2, Exponent) and child.child1 == child2.child1:
                         del children[j], children[i]
                         return children + [Exponent(child.child1, Sum(child.child2, child2.child2)).simplify(var_dict)]
+            # todo: turn variables and subexpressions into exponents
             # remove inversions
             elif isinstance(child, Invert):
                 if child.child in children:
