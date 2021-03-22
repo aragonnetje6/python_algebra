@@ -993,10 +993,6 @@ class Logarithm(BinaryOperator):
             return Nodeify(self.__class__(child1, child2).evaluate(var_dict))
         except EvaluationError:
             pass
-        try:
-            child2.evaluate()
-        except EvaluationError:
-            return Division(Logarithm(child1), Logarithm(child2)).simplify(var_dict)
         if isinstance(child1, Product):
             return Sum(*(Logarithm(child, child2) for child in child1.children)).simplify(var_dict)
         elif isinstance(child1, Exponent):
