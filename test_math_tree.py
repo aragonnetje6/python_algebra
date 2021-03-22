@@ -50,12 +50,13 @@ def variables_dict(keys: str, use_booleans: bool = False) -> SearchStrategy[Vari
                             min_size=len(keys))
     else:
         return dictionaries(sampled_from(keys),
-                            one_of(integers(), floats(-1e200, 1e200, allow_nan=False, allow_infinity=False)),
+                            one_of(integers(-int(1e3), int(1e3)),
+                                   floats(-1e3, 1e3, allow_nan=False, allow_infinity=False)),
                             min_size=len(keys))
 
 
-constant_number = builds(Nodeify, one_of(integers(-int(1e6), int(1e6)),
-                                         floats(-1e6, 1e6, allow_nan=False, allow_infinity=False)))
+constant_number = builds(Nodeify, one_of(integers(-int(1e3), int(1e3)),
+                                         floats(-1e3, 1e3, allow_nan=False, allow_infinity=False)))
 constant_bool = builds(Nodeify, booleans())
 constant_any = one_of(constant_bool, constant_number)
 variable = builds(Variable, sampled_from('xyz'))
