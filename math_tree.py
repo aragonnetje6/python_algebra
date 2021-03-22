@@ -1838,7 +1838,7 @@ class Not(UnaryOperator):
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
             if isinstance(self.child, Not):
-                return self.child.child
+                return self.child.child.simplify(var_dict)
             elif isinstance(self.child, And):
                 return Or(*(Not(child2) for child2 in self.child.children)).simplify(var_dict)
             elif isinstance(self.child, Or):
