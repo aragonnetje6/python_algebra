@@ -729,7 +729,6 @@ class Sum(ArbitraryOperator):
         """calculation function for 2 elements"""
         return x + y
 
-    # todo: reimplement Sum._simplify
     @staticmethod
     def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
@@ -748,14 +747,25 @@ class Sum(ArbitraryOperator):
                 del children[i]
                 return children + list(child.children)
             # join like products
-            # elif isinstance(child, Product):
-            #     if any(isinstance(x, Constant) for x in child.children):
-            #         constant = next(filter(lambda x: isinstance(x, Constant), child.children))
-            #         non_constants = children[:(k := children.index(constant))] + children[k+1:]
-            #     else:
-            #         constant = Integer(1)
-            #         non_constants = children
-
+            elif isinstance(child, Product):
+                if any(isinstance(x, Constant) for x in child.children):
+                    constant1 = next(filter(lambda x: isinstance(x, Constant), child.children))
+                    non_constants1 = child.children[:(k := child.children.index(constant1))] + child.children[k + 1:]
+                else:
+                    constant1 = Integer(1)
+                    non_constants1 = child.children
+                for j, child2 in enumerate(children):
+                    if i != j and isinstance(child2, Product):
+                        if any(isinstance(x, Constant) for x in child2.children):
+                            constant2 = next(filter(lambda x: isinstance(x, Constant), child2.children))
+                            non_constants2 = child2.children[
+                                             :(k := child2.children.index(constant2))] + child2.children[k + 1:]
+                        else:
+                            constant2 = Integer(1)
+                            non_constants2 = child2.children
+                        if non_constants1 == non_constants2:
+                            del children[max(j, i)], children[min(j, i)]
+                            return children + [Product(Sum(constant1, constant2), *non_constants1)]
             # assimilate like terms into products
             else:
                 for j, child2 in enumerate(children):
@@ -873,7 +883,6 @@ class Modulus(ArbitraryOperator):
         else:
             raise NotImplementedError('mod of complex numbers not implemented')
 
-    # todo: implement Modulus._simplify
     @staticmethod
     def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
