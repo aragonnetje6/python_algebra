@@ -1007,15 +1007,6 @@ class And(ArbitraryLogicalOperator):
                     return children
                 else:
                     return [Boolean(False)]
-            elif isinstance(child, Variable):
-                try:
-                    if child.evaluate(var_dict):
-                        del children[i]
-                        return children
-                    else:
-                        return [Boolean(False)]
-                except EvaluationError:
-                    pass
             elif isinstance(child, And):
                 del children[i]
                 return children + list(child.children)
@@ -1033,10 +1024,19 @@ class Or(ArbitraryLogicalOperator):
         """calculation function for 2 elements"""
         return bool(x) | bool(y)
 
-    # todo: reimplement Or._simplify
     @staticmethod
     def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
+        for i, child in enumerate(children):
+            if isinstance(child, Constant):
+                if not child.evaluate():
+                    del children[i]
+                    return children
+                else:
+                    return [Boolean(True)]
+            elif isinstance(child, Or):
+                del children[i]
+                return children + list(child.children)
         return children
 
 
@@ -1051,10 +1051,15 @@ class Xor(ArbitraryLogicalOperator):
         """calculation function for 2 elements"""
         return bool(x) ^ bool(y)
 
-    # todo: reimplement Xor._simplify
     @staticmethod
     def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
+        for i, child in enumerate(children):
+            if isinstance(child, Constant) and child.evaluate():
+                for j, child2 in enumerate(children):
+                    if isinstance(child2, Constant) and not child2.evaluate():
+                        del children[max(i, j)], children[min(i, j)]
+                        return children
         return children
 
 

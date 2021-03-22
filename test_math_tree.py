@@ -63,7 +63,7 @@ func = lambda: (constant_number
                 | one_of(*[builds(operator, math_expression, math_expression, math_expression)
                            for operator in n_ary_operators]))
 math_expression = deferred(func)  # type: SearchStrategy[Node]
-func = lambda: (constant_number
+func = lambda: (constant_bool
                 | variable
                 | one_of(*[builds(operator, math_expression) for operator in unary_logical_operators])
                 | one_of(*[builds(operator, math_expression, math_expression) for operator in logical_operators]))
