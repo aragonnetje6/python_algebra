@@ -757,19 +757,21 @@ class Sum(ArbitraryOperator):
             #         non_constants = children
 
             # assimilate like terms into products
-            # else:
-            #     for j, child2 in enumerate(children):
-            #         if isinstance(child2, Product) and len(child2.children) == 2:
-            #             a, b = child2.children
-            #             if a == child and isinstance(b, Constant):
-            #                 del children[max(i, j)], children[min(i, j)]
-            #                 return children + [Product(b+1, a).simplify()]
-            #             elif isinstance(a, Constant) and b == child:
-            #                 del children[max(i, j)], children[min(i, j)]
-            #                 return children + [Product(a+1, b).simplify()]
-            #         elif child == child2:
-            #             del children[max(i, j)], children[min(i, j)]
-            #             return children + [Product(Integer(2), child).simplify()]
+            else:
+                for j, child2 in enumerate(children):
+                    if i == j:
+                        pass
+                    elif isinstance(child2, Product) and len(child2.children) == 2:
+                        a, b = child2.children
+                        if a == child and isinstance(b, Constant):
+                            del children[max(i, j)], children[min(i, j)]
+                            return children + [Product(b + 1, a).simplify()]
+                        elif isinstance(a, Constant) and b == child:
+                            del children[max(i, j)], children[min(i, j)]
+                            return children + [Product(a + 1, b).simplify()]
+                    elif child == child2:
+                        del children[max(i, j)], children[min(i, j)]
+                        return children + [Product(Integer(2), child).simplify()]
         return children
 
 
