@@ -1372,17 +1372,17 @@ class Sine(UnaryOperator):
                 child_ans = child_ans.real
             else:
                 raise EvaluationError from TypeError('mod of complex number')
-        if (mod2pi := child_ans % 2 * pi) == 0 or mod2pi == pi:
-            return 0
-        elif mod2pi == pi / 2:
-            return 1
-        elif mod2pi == pi + pi / 2:
-            return -1
-        else:
-            try:
+        try:
+            if (mod2pi := child_ans % 2 * pi) == 0 or mod2pi == pi:
+                return 0
+            elif mod2pi == pi / 2:
+                return 1
+            elif mod2pi == pi + pi / 2:
+                return -1
+            else:
                 return sin(child_ans)
-            except Exception as ex:
-                raise EvaluationError from ex
+        except Exception as ex:
+            raise EvaluationError from ex
 
     # todo: implement Sine.simplify
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
@@ -1413,17 +1413,17 @@ class Cosine(UnaryOperator):
                 child_ans = child_ans.real
             else:
                 raise EvaluationError from TypeError('mod of complex number')
-        if (mod2pi := child_ans % 2 * pi) == 0:
-            return 1
-        elif mod2pi == pi:
-            return -1
-        elif mod2pi == pi / 2 or mod2pi == pi + pi / 2:
-            return 0
-        else:
-            try:
+        try:
+            if (mod2pi := child_ans % 2 * pi) == 0:
+                return 1
+            elif mod2pi == pi:
+                return -1
+            elif mod2pi == pi / 2 or mod2pi == pi + pi / 2:
+                return 0
+            else:
                 return cos(child_ans)
-            except Exception as ex:
-                raise EvaluationError from ex
+        except Exception as ex:
+            raise EvaluationError from ex
 
     # todo: implement Cosine.simplify
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
@@ -1454,15 +1454,15 @@ class Tangent(UnaryOperator):
                 child_ans = child_ans.real
             else:
                 raise EvaluationError from TypeError('mod of complex number')
-        if (mod_pi := child_ans % pi) == 0:
-            return 0
-        elif mod_pi == pi / 2:
-            raise EvaluationError from ValueError('tan of k*pi+pi/2 is infinity')
-        else:
-            try:
+        try:
+            if (mod_pi := child_ans % pi) == 0:
+                return 0
+            elif mod_pi == pi / 2:
+                raise EvaluationError from ValueError('tan of k*pi+pi/2 is infinity')
+            else:
                 return tan(child_ans)
-            except Exception as ex:
-                raise EvaluationError from ex
+        except Exception as ex:
+            raise EvaluationError from ex
 
     # todo: implement Tangent.simplify
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
