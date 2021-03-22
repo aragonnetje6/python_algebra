@@ -868,6 +868,11 @@ class Exponent(BinaryOperator):
     wolfram_func = 'Power'
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
 
+    def __init__(self, child1: Node, child2: Optional[Node] = None):
+        if child2 is None:
+            child1, child2 = E(), child1
+        super().__init__(child1, child2)
+
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Product(self,
