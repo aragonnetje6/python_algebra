@@ -1025,7 +1025,7 @@ class And(ArbitraryLogicalOperator):
             if isinstance(child, Constant):
                 if child.evaluate():
                     del children[i]
-                    return children if len(children) > 0 else [Boolean(True)]
+                    return children if len(children) else [Boolean(True)]
                 else:
                     return [Boolean(False)]
             elif isinstance(child, And):
@@ -1055,7 +1055,7 @@ class Or(ArbitraryLogicalOperator):
             if isinstance(child, Constant):
                 if not child.evaluate():
                     del children[i]
-                    return children
+                    return children if len(children) else [Boolean(False)]
                 else:
                     return [Boolean(True)]
             elif isinstance(child, Or):
@@ -1084,7 +1084,7 @@ class Xor(ArbitraryLogicalOperator):
         for i, child in enumerate(children):
             if isinstance(child, Constant) and not child.evaluate():
                 del children[i]
-                return children
+                return children if len(children) else [Boolean(False)]
         return children
 
 
