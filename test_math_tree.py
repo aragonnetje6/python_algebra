@@ -54,7 +54,8 @@ def variables_dict(keys: str, use_booleans: bool = False) -> SearchStrategy[Vari
                             min_size=len(keys))
 
 
-constant_number = builds(Nodeify, one_of(integers(), floats(-1e200, 1e200, allow_nan=False, allow_infinity=False)))
+constant_number = builds(Nodeify, one_of(integers(-int(1e6), int(1e6)),
+                                         floats(-1e6, 1e6, allow_nan=False, allow_infinity=False)))
 constant_bool = builds(Nodeify, booleans())
 constant_any = one_of(constant_bool, constant_number)
 variable = builds(Variable, sampled_from('xyz'))
@@ -238,6 +239,8 @@ class TestUnaryOperators:
 class TestSimplify:
     @given(var_dict=variables_dict('xyz'), expr=math_expression)
     def test_same_answer(self, expr: Node, var_dict: Variables) -> None:
+        with open('test_same_answer.txt', 'a') as file:
+            file.write(f'{repr(expr)}; {var_dict}\n')
         try:
             assert IsEqual(expr, expr.simplify()).evaluate(var_dict)
         except EvaluationError:
@@ -246,6 +249,8 @@ class TestSimplify:
 
     @given(expr=math_expression)
     def test_idempotence(self, expr: Node) -> None:
+        with open('test_idempotence.txt', 'a') as file:
+            file.write(repr(expr) + '\n')
         assert repr(a := expr.simplify()) == repr(a.simplify())
 
     @given(var_dict=variables_dict('xyz', use_booleans=True), expr=bool_expression)
