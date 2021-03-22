@@ -56,6 +56,8 @@ def Nodeify(other: Union['Node', ConstantType, str]) -> 'Node':
     """turn given input into constant or variable leaf node"""
     if isinstance(other, Node):
         return other
+    elif isinstance(other, bool):
+        return Boolean(other)
     elif isinstance(other, int):
         return Integer(other)
     elif isinstance(other, Fraction):
@@ -74,8 +76,6 @@ def Nodeify(other: Union['Node', ConstantType, str]) -> 'Node':
             return Real(other)
     elif isinstance(other, complex):
         return Complex(other)
-    elif isinstance(other, bool):
-        return Boolean(other)
     elif isinstance(other, str):
         return Variable(other)
     else:
@@ -1010,6 +1010,9 @@ class And(ArbitraryLogicalOperator):
             elif isinstance(child, And):
                 del children[i]
                 return children + list(child.children)
+            elif isinstance(child, Not):
+                if child.child in children:
+                    return [Boolean(False)]
         return children
 
 
@@ -1037,6 +1040,9 @@ class Or(ArbitraryLogicalOperator):
             elif isinstance(child, Or):
                 del children[i]
                 return children + list(child.children)
+            elif isinstance(child, Not):
+                if child.child in children:
+                    return [Boolean(True)]
         return children
 
 
@@ -1055,11 +1061,9 @@ class Xor(ArbitraryLogicalOperator):
     def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
         for i, child in enumerate(children):
-            if isinstance(child, Constant) and child.evaluate():
-                for j, child2 in enumerate(children):
-                    if isinstance(child2, Constant) and not child2.evaluate():
-                        del children[max(i, j)], children[min(i, j)]
-                        return children
+            if isinstance(child, Constant) and not child.evaluate():
+                del children[i]
+                return children
         return children
 
 
@@ -1815,12 +1819,16 @@ class Not(UnaryOperator):
                               mathml_tag('i', self.symbol)
                               + self.child.mathml())
 
-    # todo: reimplement Not.simplify
     def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
-            pass
+            if isinstance(self.child, Not):
+                return self.child.child
+            elif isinstance(self.child, And):
+                return Or(*(Not(child2) for child2 in self.child.children)).simplify(var_dict)
+            elif isinstance(self.child, Or):
+                return And(*(Not(child2) for child2 in self.child.children)).simplify(var_dict)
         return simplified
 
 

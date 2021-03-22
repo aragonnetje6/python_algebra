@@ -3,12 +3,12 @@ Unittests for math_tree using pytest
 """
 
 from hypothesis import given
-from hypothesis.strategies import SearchStrategy, deferred, one_of, builds, sampled_from, booleans, integers, floats, \
-    dictionaries
-from math_tree import Node, Nodeify, Variable, Sum, Subtraction, Product, Division, Exponent, Logarithm, \
-    IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual, And, Or, Nand, Nor, Xor, Xnor, Sine, Cosine, \
-    Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert, Not, Derivative, Piecewise, Variables, \
-    UnaryOperator, ArbitraryOperator, Integer, EvaluationError
+from hypothesis.strategies import booleans, builds, deferred, dictionaries, floats, integers, one_of, sampled_from, \
+    SearchStrategy
+from math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcTangent, Cosine, Derivative, Division, \
+    EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, LessThan, Logarithm, \
+    Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Piecewise, Product, Sine, Subtraction, Sum, Tangent, \
+    UnaryOperator, Variable, Variables, Xnor, Xor
 from pytest import fixture, raises
 
 
@@ -63,11 +63,11 @@ func = lambda: (constant_number
                 | one_of(*[builds(operator, math_expression, math_expression, math_expression)
                            for operator in n_ary_operators]))
 math_expression = deferred(func)  # type: SearchStrategy[Node]
-func = lambda: (constant_bool
-                | variable
-                | one_of(*[builds(operator, math_expression) for operator in unary_logical_operators])
-                | one_of(*[builds(operator, math_expression, math_expression) for operator in logical_operators]))
-bool_expression = deferred(func)  # type: SearchStrategy[Node]
+func2 = lambda: (constant_bool
+                 | variable
+                 | one_of(*[builds(operator, math_expression) for operator in unary_logical_operators])
+                 | one_of(*[builds(operator, math_expression, math_expression) for operator in logical_operators]))
+bool_expression = deferred(func2)  # type: SearchStrategy[Node]
 
 
 @given(val1=constant_any, val2=constant_any)
@@ -243,7 +243,7 @@ class TestSimplify:
                 expr.evaluate(var_dict)
 
     @given(expr=math_expression)
-    def test_idempotent(self, expr: Node) -> None:
+    def test_idempotence(self, expr: Node) -> None:
         assert repr(a := expr.simplify()) == repr(a.simplify())
 
     @given(var_dict=variables_dict('xyz', use_booleans=True), expr=bool_expression)
@@ -255,7 +255,7 @@ class TestSimplify:
                 expr.evaluate(var_dict)
 
     @given(expr=bool_expression)
-    def test_idempotent_bool(self, expr: Node) -> None:
+    def test_idempotence_bool(self, expr: Node) -> None:
         assert repr(a := expr.simplify()) == repr(a.simplify())
 
 
