@@ -856,10 +856,6 @@ class BinaryOperator(Node, metaclass=ABCMeta):
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child1.wolfram()}, {self.child2.wolfram()}]'
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-        """returns a simplified version of the tree"""
-        return self.__class__(self.child1.simplify(var_dict), self.child2.simplify(var_dict))
-
 
 class Exponent(BinaryOperator):
     """Exponent operator node"""
@@ -910,11 +906,14 @@ class Exponent(BinaryOperator):
                 + (self.child2.infix() if isinstance(self.child2,
                                                      (Term, UnaryOperator)) else f"({self.child2.infix()})"))
 
-
-# todo: reimplement Exponent.simplify
-# def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-#     """returns a simplified version of the tree"""
-#     return self
+    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+        """returns a simplified version of the tree"""
+        child1 = self.child1.simplify(var_dict)
+        child2 = self.child2.simplify(var_dict)
+        try:
+            return Nodeify(self.__class__(child1, child2).evaluate(var_dict))
+        except EvaluationError:
+            return self.__class__(child1, child2)
 
 
 class Logarithm(BinaryOperator):
