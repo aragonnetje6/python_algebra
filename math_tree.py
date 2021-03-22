@@ -119,7 +119,7 @@ class Node(metaclass=ABCMeta):
 
     def __eq__(self, other: Any) -> bool:
         # todo: find better way to do this, temp fix
-        return self.infix() == Nodeify(other).infix()
+        return self is other or repr(self) == repr(Nodeify(other))
 
     def __hash__(self) -> int:
         return hash(repr(self))
