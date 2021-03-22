@@ -931,7 +931,9 @@ class Exponent(BinaryOperator):
         try:
             ans1 = self.child1.evaluate(var_dict)
             ans2 = self.child2.evaluate(var_dict)
-            float(ans1) ** float(ans2)
+            test1 = float(ans1) if not isinstance(ans1, complex) else float(ans1.real ** 2 + ans1.imag ** 2) ** 0.5
+            test2 = float(ans2) if not isinstance(ans2, complex) else float(ans2.real ** 2 + ans2.imag ** 2) ** 0.5
+            float(test1) ** float(test2)
             return ans1 ** ans2
         except Exception as ex:
             raise EvaluationError from ex
