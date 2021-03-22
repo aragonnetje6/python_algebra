@@ -733,6 +733,43 @@ class Sum(ArbitraryOperator):
     @staticmethod
     def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
         """returns a simplified version of the tree"""
+        if len(children) == 1:
+            return children
+        elif len(children) == 0:
+            return [Integer(0)]
+        for i, child in enumerate(children):
+            # eliminate zeroes
+            if isinstance(child, Constant):
+                if child.evaluate() == 0:
+                    del children[i]
+                    return children
+            # consolidate sums
+            elif isinstance(child, Sum):
+                del children[i]
+                return children + list(child.children)
+            # join like products
+            # elif isinstance(child, Product):
+            #     if any(isinstance(x, Constant) for x in child.children):
+            #         constant = next(filter(lambda x: isinstance(x, Constant), child.children))
+            #         non_constants = children[:(k := children.index(constant))] + children[k+1:]
+            #     else:
+            #         constant = Integer(1)
+            #         non_constants = children
+
+            # assimilate like terms into products
+            # else:
+            #     for j, child2 in enumerate(children):
+            #         if isinstance(child2, Product) and len(child2.children) == 2:
+            #             a, b = child2.children
+            #             if a == child and isinstance(b, Constant):
+            #                 del children[max(i, j)], children[min(i, j)]
+            #                 return children + [Product(b+1, a).simplify()]
+            #             elif isinstance(a, Constant) and b == child:
+            #                 del children[max(i, j)], children[min(i, j)]
+            #                 return children + [Product(a+1, b).simplify()]
+            #         elif child == child2:
+            #             del children[max(i, j)], children[min(i, j)]
+            #             return children + [Product(Integer(2), child).simplify()]
         return children
 
 
