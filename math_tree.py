@@ -746,6 +746,28 @@ class Sum(ArbitraryOperator):
             elif isinstance(child, Sum):
                 del children[i]
                 return children + list(child.children)
+            # eliminate negations
+            elif isinstance(child, Negate):
+                if child.child in children:
+                    j = children.index(child.child)
+                    del children[max(i, j)], children[min(i, j)]
+                    if len(children) > 0:
+                        return children
+                    else:
+                        return [Integer(0)]
+                else:
+                    for j, child2 in enumerate(children):
+                        if isinstance(child2, Product):
+                            if any(isinstance(x, Constant) for x in child2.children):
+                                constant2 = next(filter(lambda x: isinstance(x, Constant), child2.children))
+                                non_constants2 = child2.children[
+                                                 :(k := child2.children.index(constant2))] + child2.children[k + 1:]
+                            else:
+                                constant2 = Integer(1)
+                                non_constants2 = child2.children
+                            if child.child == non_constants2:
+                                del children[max(i, j)], children[min(i, j)]
+                                return children + [Product(constant2 - 1, child.child)]
             # join like products
             elif isinstance(child, Product):
                 if any(isinstance(x, Constant) for x in child.children):
