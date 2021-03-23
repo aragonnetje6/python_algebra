@@ -237,6 +237,7 @@ class TestUnaryOperators:
             assert x.evaluate(var_dict) == 0
 
 
+# todo: add specific case tests for simplification rules
 class TestSimplify:
     @given(var_dict=variables_dict('xyz'), expr=math_expression)
     def test_same_answer(self, expr: Node, var_dict: Variables) -> None:
