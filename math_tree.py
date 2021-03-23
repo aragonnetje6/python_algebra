@@ -769,19 +769,23 @@ class Sum(ArbitraryOperator):
                 else:
                     for j, child2 in enumerate(children):
                         if isinstance(child2, Product):
-                            constant2, non_constants2 = separate(child2.children)
-                            if child.child == non_constants2:
-                                del children[max(i, j)], children[min(i, j)]
-                                return children + [Product(constant2 - 1, child.child)]
+                            child2_constant, child2_variable_terms = separate(child2.children)
+                            if isinstance(child.child, Product):
+                                if child.child.children == child2_variable_terms:
+                                    del children[max(i, j)], children[min(i, j)]
+                                    return children + [Product(child2_constant - 1, *child.child.children)]
+                                elif len(child2_variable_terms) == 1 and child.child == child2_variable_terms[0]:
+                                    del children[max(i, j)], children[min(i, j)]
+                                    return children + [Product(child2_constant - 1, child.child)]
             # join like products
             elif isinstance(child, Product):
                 constant1, non_constants1 = separate(child.children)
                 for j, child2 in enumerate(children):
                     if i != j and isinstance(child2, Product):
-                        constant2, non_constants2 = separate(child2.children)
-                        if non_constants1 == non_constants2:
+                        child2_constant, child2_variable_terms = separate(child2.children)
+                        if non_constants1 == child2_variable_terms:
                             del children[max(j, i)], children[min(j, i)]
-                            return children + [Product(Sum(constant1, constant2), *non_constants1)]
+                            return children + [Product(Sum(constant1, child2_constant), *non_constants1)]
             # assimilate like terms into products
             else:
                 for j, child2 in enumerate(children):
@@ -865,6 +869,11 @@ class Product(ArbitraryOperator):
                         return children
                     else:
                         return [Integer(0)]
+                else:
+                    for j, child2 in enumerate(children):
+                        if isinstance(child2, Exponent) and child2.child2 == child:
+                            del children[max(i, j)], children[min(i, j)]
+                            return children + [Exponent(child, child2.child2 - 1)]
             # put like terms into exponents
             else:
                 for j, child2 in enumerate(children):
