@@ -337,7 +337,7 @@ class Integer(Constant):
         """returns infix representation of the tree"""
         return str(self.value)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> int:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.value
 
@@ -367,7 +367,7 @@ class Rational(Constant):
         """returns infix representation of the tree"""
         return str(self.value)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> Fraction:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.value
 
@@ -400,7 +400,7 @@ class Real(Constant):
         """returns infix representation of the tree"""
         return str(self.value)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> float:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.value
 
@@ -430,7 +430,7 @@ class Complex(Constant):
         """returns infix representation of the tree"""
         return f'({self.value})'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+    def evaluate(self, var_dict: Optional[Variables] = None) -> complex:
         """Evaluates the expression tree using the values from var_dict, returns int or float"""
         return self.value
 
@@ -1010,7 +1010,30 @@ class Exponent(BinaryOperator):
         try:
             return Nodeify(self.__class__(child1, child2).evaluate(var_dict))
         except EvaluationError:
-            return self.__class__(child1, child2)
+            pass
+        # special cases for powers
+        if isinstance(child2, Constant):
+            if (ans2 := child1.evaluate()) == 0:
+                return Integer(1)
+            elif ans2 == 1:
+                return child1
+            elif ans2 == -1:
+                return Invert(child1)
+        # special cases for bases
+        if isinstance(child1, Constant):
+            if (ans1 := child1.evaluate()) == 0:
+                return Integer(0)
+            elif ans1 == 1:
+                return Integer(1)
+        # distribute over products
+        elif isinstance(child1, Product):
+            return Product(*(Exponent(child, child2) for child in child1.children)).simplify(var_dict)
+        # nested exponents multiply
+        elif isinstance(child1, Exponent):
+            return Exponent(child1.child1, Product(child1.child2, child2)).simplify(var_dict)
+        elif isinstance(child1, Sum) and isinstance(child2, Integer) and child2.evaluate() > 0:
+            return Product(*([child1] * child2.evaluate())).simplify(var_dict)
+        return self.__class__(child1, child2)
 
 
 class Logarithm(BinaryOperator):
