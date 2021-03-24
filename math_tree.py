@@ -808,7 +808,7 @@ class Sum(ArbitraryOperator):
 
 def Subtraction(*args: Node) -> Node:
     """Subtraction operator node"""
-    return Sum(args[0], Negate(Sum(*args[1:]) if len(args) > 2 else args[1])).simplify()
+    return Sum(args[0], Negate(Sum(*args[1:]) if len(args) > 2 else args[1]))
 
 
 class Product(ArbitraryOperator):
@@ -892,7 +892,7 @@ class Product(ArbitraryOperator):
 
 def Division(*args: Node) -> Node:
     """Division operator node"""
-    return Product(args[0], Invert(Product(*args[1:]) if len(args) > 2 else args[1])).simplify()
+    return Product(args[0], Invert(Product(*args[1:]) if len(args) > 2 else args[1]))
 
 
 class Modulus(ArbitraryOperator):
@@ -1283,7 +1283,7 @@ class IsEqual(ComparisonOperator):
 
 def NotEqual(*args: Node) -> Node:
     """Inequality operator node"""
-    return Not(IsEqual(*args)).simplify()
+    return Not(IsEqual(*args))
 
 
 class GreaterThan(ComparisonOperator):
