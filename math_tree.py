@@ -670,7 +670,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         try:
-            return Nodeify(self.evaluate(var_dict))
+            return Nodeify(self.evaluate(var_dict)).simplify()
         except EvaluationError:
             pass
         children = list(self.children)
@@ -692,12 +692,13 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
             # operator specific parts
             children = self._simplify(children, var_dict)
             # break out of loop
+            children = [child.simplify(var_dict) for child in children]
             children.sort(key=lambda x: x.infix())
             if (new := repr(children)) == old_repr:
                 if len(children) > 1:
                     return self.__class__(*children)
                 else:
-                    return children[0].simplify(var_dict)
+                    return children[0]
             else:
                 old_repr = new
 
@@ -2056,3 +2057,10 @@ class Piecewise(Node):
         """return wolfram language representation of the tree"""
         expressions = ', '.join(f'{{{expr.wolfram()}, {cond.wolfram()}}}' for expr, cond in self.expressions)
         return f'{self.wolfram_func}[{{{expressions}}}, {self.default.wolfram()}]'
+
+
+if __name__ == '__main__':
+    x = Sum(Rational(Fraction(
+        22204460492503133910375366119623513408825696219150644327205216969149590604041599283726749803231208418014560580136201609100661101660348023696372764742317582381683862901585789554066980864)),
+        E(), E())
+    x.simplify().simplify()
