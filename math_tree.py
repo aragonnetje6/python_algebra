@@ -1638,7 +1638,8 @@ class Absolute(UnaryOperator):
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
-            pass
+            if isinstance(simplified.child, (Absolute, Negate)):
+                return self.__class__(simplified.child).simplify(var_dict)
         return simplified
 
 
