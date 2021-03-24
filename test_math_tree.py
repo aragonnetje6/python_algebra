@@ -7,8 +7,8 @@ from typing import Callable
 from hypothesis import given
 from hypothesis.strategies import booleans, builds, deferred, dictionaries, floats, fractions, integers, one_of, \
     sampled_from, SearchStrategy
-from math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcTangent, Cosine, Derivative, Division, E, \
-    EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, LessThan, Logarithm, \
+from math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcTangent, Cosine, Derivative, Division, \
+    E, EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, LessThan, Logarithm, \
     Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Pi, Piecewise, Product, Sine, Subtraction, Sum, Tangent, \
     UnaryOperator, Variable, Variables, Xnor, Xor
 from pytest import fixture, raises
@@ -242,8 +242,6 @@ class TestUnaryOperators:
 class TestSimplify:
     @given(var_dict=variables_dict('xyz'), expr=math_expression)
     def test_same_answer(self, expr: Node, var_dict: Variables) -> None:
-        # with open('test_same_answer.txt', 'a') as file:
-        #     file.write(f'{repr(expr)}; {var_dict}\n')
         try:
             assert IsEqual(expr, expr.simplify()).evaluate(var_dict)
         except EvaluationError:
@@ -252,8 +250,6 @@ class TestSimplify:
 
     @given(expr=math_expression)
     def test_idempotence(self, expr: Node) -> None:
-        # with open('test_idempotence.txt', 'a') as file:
-        #     file.write(repr(expr) + '\n')
         assert repr(a := expr.simplify()) == repr(a.simplify())
 
     @given(var_dict=variables_dict('xyz', use_booleans=True), expr=bool_expression)
