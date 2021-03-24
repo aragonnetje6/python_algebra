@@ -696,7 +696,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
                 if len(children) > 1:
                     return self.__class__(*children)
                 else:
-                    return children[0]
+                    return children[0].simplify(var_dict)
             else:
                 old_repr = new
 
@@ -1264,21 +1264,10 @@ class IsEqual(ComparisonOperator):
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
-        if isinstance(x, complex):
-            if x.imag == 0:
-                x = x.real
-            else:
-                raise EvaluationError from TypeError('Comparison not defined in complex space')
-        if isinstance(y, complex):
-            if y.imag == 0:
-                y = y.real
-            else:
-                raise EvaluationError from TypeError('Comparison not defined in complex space')
-        if isinstance(x, bool) or isinstance(y, bool) or \
-                (isinstance(x, (int, Fraction)) and isinstance(y, (int, Fraction))):
-            return x == y
-        else:
+        if isinstance(x, (int, Fraction, float)) and isinstance(y, (int, Fraction, float)):
             return x == y or isclose(x, y)
+        else:
+            return x == y
 
 
 def NotEqual(*args: Node) -> Node:
