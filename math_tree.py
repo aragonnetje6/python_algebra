@@ -1436,14 +1436,6 @@ class Sine(UnaryOperator):
         except Exception as ex:
             raise EvaluationError from ex
 
-    # todo: implement Sine.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if isinstance(simplified, self.__class__):
-            pass
-        return simplified
-
 
 class Cosine(UnaryOperator):
     """Cosine operator node in radians"""
@@ -1477,14 +1469,6 @@ class Cosine(UnaryOperator):
         except Exception as ex:
             raise EvaluationError from ex
 
-    # todo: implement Cosine.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if isinstance(simplified, self.__class__):
-            pass
-        return simplified
-
 
 class Tangent(UnaryOperator):
     """Tangent operator node in radians"""
@@ -1515,14 +1499,6 @@ class Tangent(UnaryOperator):
                 return tan(child_ans)
         except Exception as ex:
             raise EvaluationError from ex
-
-    # todo: implement Tangent.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if isinstance(simplified, self.__class__):
-            pass
-        return simplified
 
 
 class ArcSine(UnaryOperator):
@@ -1556,14 +1532,6 @@ class ArcSine(UnaryOperator):
                 return asin(child_ans)
             except Exception as ex:
                 raise EvaluationError from ex
-
-    # todo: implement ArcSine.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if isinstance(simplified, self.__class__):
-            pass
-        return simplified
 
 
 class ArcCosine(UnaryOperator):
@@ -1601,14 +1569,6 @@ class ArcCosine(UnaryOperator):
             except Exception as ex:
                 raise EvaluationError from ex
 
-    # todo: implement ArcCosine.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if isinstance(simplified, self.__class__):
-            pass
-        return simplified
-
 
 class ArcTangent(UnaryOperator):
     """Arctangent operator node in radians"""
@@ -1638,14 +1598,6 @@ class ArcTangent(UnaryOperator):
                 return atan(child_ans)
             except Exception as ex:
                 raise EvaluationError from ex
-
-    # todo: implement ArcTangent.simplify
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if isinstance(simplified, self.__class__):
-            pass
-        return simplified
 
 
 class Absolute(UnaryOperator):
