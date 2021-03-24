@@ -1,6 +1,7 @@
 """
 basic expression tree with evaluation and derivation
 """
+from __future__ import annotations
 
 import webbrowser
 from abc import ABCMeta, abstractmethod
@@ -26,7 +27,7 @@ def mathml_tag(xml_tag: str, content: str, args: Optional[str] = None) -> str:
     return tag('m' + xml_tag, content, args)
 
 
-def generate_html_code(expression: 'Node') -> str:
+def generate_html_code(expression: Node) -> str:
     """generates html code for expression"""
     return '<!DOCTYPE html>' \
            + tag('html',
@@ -39,20 +40,20 @@ def generate_html_code(expression: 'Node') -> str:
                            'xmlns = "http://www.w3.org/1998/Math/MathML" id = "expr"')), 'lang=\'en\'')
 
 
-def generate_html_doc(expression: 'Node') -> None:
+def generate_html_doc(expression: Node) -> None:
     """generates html document for expression"""
     html = generate_html_code(expression)
     with open('output.html', 'w') as file:
         file.write(html)
 
 
-def display(expression: 'Node') -> None:
+def display(expression: Node) -> None:
     """Generates and opens html representation of expression"""
     generate_html_doc(expression)
     webbrowser.open('output.html')
 
 
-def Nodeify(other: Union['Node', ConstantType, str]) -> 'Node':
+def Nodeify(other: Union[Node, ConstantType, str]) -> Node:
     """turn given input into constant or variable leaf node"""
     if isinstance(other, Node):
         return other
@@ -140,103 +141,103 @@ class Node(metaclass=ABCMeta):
     def __le__(self, other: Any) -> bool:
         return LessEqual(self, Nodeify(other)).evaluate()
 
-    def __add__(self, other: Union['Node', ConstantType, str]) -> 'Sum':
+    def __add__(self, other: Union[Node, ConstantType, str]) -> Sum:
         try:
             return Sum(self, Nodeify(other))
         except ValueError:
             return NotImplemented
 
-    def __radd__(self, other: Union['Node', ConstantType, str]) -> 'Sum':
+    def __radd__(self, other: Union[Node, ConstantType, str]) -> Sum:
         try:
             return Sum(Nodeify(other), self)
         except ValueError:
             return NotImplemented
 
-    def __sub__(self, other: Union['Node', ConstantType, str]) -> 'Node':
+    def __sub__(self, other: Union[Node, ConstantType, str]) -> Node:
         try:
             return Subtraction(self, Nodeify(other))
         except ValueError:
             return NotImplemented
 
-    def __rsub__(self, other: Union['Node', ConstantType, str]) -> 'Node':
+    def __rsub__(self, other: Union[Node, ConstantType, str]) -> Node:
         try:
             return Subtraction(Nodeify(other), self)
         except ValueError:
             return NotImplemented
 
-    def __mul__(self, other: Union['Node', ConstantType, str]) -> 'Product':
+    def __mul__(self, other: Union[Node, ConstantType, str]) -> Product:
         try:
             return Product(self, Nodeify(other))
         except ValueError:
             return NotImplemented
 
-    def __rmul__(self, other: Union['Node', ConstantType, str]) -> 'Product':
+    def __rmul__(self, other: Union[Node, ConstantType, str]) -> Product:
         try:
             return Product(Nodeify(other), self)
         except ValueError:
             return NotImplemented
 
-    def __truediv__(self, other: Union['Node', ConstantType, str]) -> 'Node':
+    def __truediv__(self, other: Union[Node, ConstantType, str]) -> Node:
         try:
             return Division(self, Nodeify(other))
         except ValueError:
             return NotImplemented
 
-    def __rtruediv__(self, other: Union['Node', ConstantType, str]) -> 'Node':
+    def __rtruediv__(self, other: Union[Node, ConstantType, str]) -> Node:
         try:
             return Division(Nodeify(other), self)
         except ValueError:
             return NotImplemented
 
-    def __pow__(self, other: Union['Node', ConstantType, str]) -> 'Exponent':
+    def __pow__(self, other: Union[Node, ConstantType, str]) -> Exponent:
         try:
             return Exponent(self, Nodeify(other))
         except ValueError:
             return NotImplemented
 
-    def __rpow__(self, other: Union['Node', ConstantType, str]) -> 'Exponent':
+    def __rpow__(self, other: Union[Node, ConstantType, str]) -> Exponent:
         try:
             return Exponent(Nodeify(other), self)
         except ValueError:
             return NotImplemented
 
-    def __neg__(self) -> 'Negate':
+    def __neg__(self) -> Negate:
         return Negate(self)
 
-    def __invert__(self) -> 'Not':
+    def __invert__(self) -> Not:
         return Not(self)
 
-    def __and__(self, other: Union['Node', ConstantType, str]) -> 'And':
+    def __and__(self, other: Union[Node, ConstantType, str]) -> And:
         try:
             return And(self, Nodeify(other))
         except ValueError:
             return NotImplemented
 
-    def __rand__(self, other: Union['Node', ConstantType, str]) -> 'And':
+    def __rand__(self, other: Union[Node, ConstantType, str]) -> And:
         try:
             return And(Nodeify(other), self)
         except ValueError:
             return NotImplemented
 
-    def __or__(self, other: Union['Node', ConstantType, str]) -> 'Or':
+    def __or__(self, other: Union[Node, ConstantType, str]) -> Or:
         try:
             return Or(self, Nodeify(other))
         except ValueError:
             return NotImplemented
 
-    def __ror__(self, other: Union['Node', ConstantType, str]) -> 'Or':
+    def __ror__(self, other: Union[Node, ConstantType, str]) -> Or:
         try:
             return Or(Nodeify(other), self)
         except ValueError:
             return NotImplemented
 
-    def __xor__(self, other: Union['Node', ConstantType, str]) -> 'Xor':
+    def __xor__(self, other: Union[Node, ConstantType, str]) -> Xor:
         try:
             return Xor(self, Nodeify(other))
         except ValueError:
             return NotImplemented
 
-    def __rxor__(self, other: Union['Node', ConstantType, str]) -> 'Xor':
+    def __rxor__(self, other: Union[Node, ConstantType, str]) -> Xor:
         try:
             return Xor(Nodeify(other), self)
         except ValueError:
@@ -249,7 +250,7 @@ class Node(metaclass=ABCMeta):
             raise AttributeError(f'\'{self.__class__.__name__}\' object is read-only')
 
     @abstractmethod
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
 
     @abstractmethod
@@ -261,7 +262,7 @@ class Node(metaclass=ABCMeta):
         """returns infix representation of the tree"""
 
     @abstractmethod
-    def list_nodes(self) -> list['Node']:
+    def list_nodes(self) -> list[Node]:
         """return a list of all nodes in the tree"""
 
     @abstractmethod
@@ -269,11 +270,11 @@ class Node(metaclass=ABCMeta):
         """returns the MathML representation of the tree"""
 
     @abstractmethod
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
 
     @abstractmethod
-    def substitute(self, var: str, sub: 'Node') -> 'Node':
+    def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
 
     @abstractmethod
@@ -288,7 +289,7 @@ class Node(metaclass=ABCMeta):
         """shows graphical representation of expression"""
         display(self)
 
-    def total_derivative(self) -> 'Node':
+    def total_derivative(self) -> Node:
         """
         returns an expression tree representing the total derivative of this tree.
         the total derivative of f is defined as sum(f.derivative(var) for var in f.dependencies)
@@ -310,15 +311,15 @@ class Constant(Term, metaclass=ABCMeta):
     """constant term in expression tree"""
     __slots__ = ()
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Integer(0)
 
-    def substitute(self, var: str, sub: 'Node') -> 'Node':
+    def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         return Nodeify(self.evaluate())
 
@@ -478,7 +479,7 @@ class Pi(Constant):
         """return wolfram language representation of the tree"""
         return 'Pi'
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         return self
 
@@ -511,7 +512,7 @@ class E(Constant):
         """return wolfram language representation of the tree"""
         return 'E'
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         return self
 
@@ -545,7 +546,7 @@ class Boolean(Constant):
         """return wolfram language representation of the tree"""
         return str(self.value)
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         return self
 
@@ -570,7 +571,7 @@ class Variable(Term):
         """returns set of all variables present in the tree"""
         return {self.name}
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         if self.name == variable:
             return Integer(1)
@@ -592,7 +593,7 @@ class Variable(Term):
                           mathml_tag('i',
                                      str(self.name)))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         if var_dict is None:
             var_dict = {}
@@ -601,7 +602,7 @@ class Variable(Term):
         else:
             return self
 
-    def substitute(self, var: str, sub: 'Node') -> 'Node':
+    def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         if self.name == var:
             return sub
@@ -666,7 +667,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
                                                             else mathml_tag('fenced', mathml_tag('row', child.mathml()))
                                                             for child in self.children))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         try:
             return Nodeify(self.evaluate(var_dict))
@@ -700,7 +701,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
             else:
                 old_repr = new
 
-    def substitute(self, var: str, sub: 'Node') -> 'Node':
+    def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(*(child.substitute(var, sub) for child in self.children))
 
@@ -710,7 +711,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
+    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
         """Simplification rules for operator"""
 
 
@@ -721,7 +722,7 @@ class Sum(ArbitraryOperator):
     wolfram_func = 'Plus'
     _parentheses_needed = '(ArbitraryLogicalOperator, ComparisonOperator)'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Sum(*(child.derivative(variable) for child in self.children))
 
@@ -731,7 +732,7 @@ class Sum(ArbitraryOperator):
         return x + y
 
     @staticmethod
-    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
+    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
         """returns a simplified version of the tree"""
 
         def separate(arr: tuple[Node, ...]) -> tuple[Node, tuple[Node, ...]]:
@@ -818,7 +819,7 @@ class Product(ArbitraryOperator):
     wolfram_func = 'Times'
     _parentheses_needed = '(Sum, Modulus, ArbitraryLogicalOperator, ComparisonOperator)'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         if len(self.children) > 2:
             return Sum(Product(self.children[0], Product(*self.children[1:]).derivative(variable)),
@@ -833,7 +834,7 @@ class Product(ArbitraryOperator):
         return x * y
 
     @staticmethod
-    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
+    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         if len(children) == 1:
             return children
@@ -902,7 +903,7 @@ class Modulus(ArbitraryOperator):
     wolfram_func = 'Mod'
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         out = self.children[0].derivative(variable)
         for i, child in enumerate(self.children[1:]):
@@ -921,7 +922,7 @@ class Modulus(ArbitraryOperator):
             raise NotImplementedError('mod of complex numbers not implemented')
 
     @staticmethod
-    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
+    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         return children
 
@@ -939,12 +940,12 @@ class BinaryOperator(Node, metaclass=ABCMeta):
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({repr(self.child1)}, {repr(self.child2)})'
 
-    def list_nodes(self) -> list['Node']:
+    def list_nodes(self) -> list[Node]:
         """return a list of all nodes in the tree"""
         out: list[Node] = []
         return out + [self] + self.child1.list_nodes() + self.child2.list_nodes()
 
-    def substitute(self, var: str, sub: 'Node') -> 'Node':
+    def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child1.substitute(var, sub), self.child2.substitute(var, sub))
 
@@ -965,7 +966,7 @@ class Exponent(BinaryOperator):
             child1, child2 = E(), child1
         super().__init__(child1, child2)
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Product(self,
                        Sum(Product(self.child1.derivative(variable),
@@ -1007,7 +1008,7 @@ class Exponent(BinaryOperator):
                 + (self.child2.infix() if isinstance(self.child2,
                                                      (Term, UnaryOperator)) else f"({self.child2.infix()})"))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         child1 = self.child1.simplify(var_dict)
         child2 = self.child2.simplify(var_dict)
@@ -1071,7 +1072,7 @@ class Logarithm(BinaryOperator):
         except Exception as ex:
             raise EvaluationError from ex
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(Subtraction(Division(Product(self.child1.derivative(variable),
                                                      Logarithm(self.child2,
@@ -1101,7 +1102,7 @@ class Logarithm(BinaryOperator):
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child2.wolfram()}, {self.child1.wolfram()}]'
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         child1 = self.child1.simplify(var_dict)
         child2 = self.child2.simplify(var_dict)
@@ -1121,7 +1122,7 @@ class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
     __slots__ = ()
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Integer(0)
 
@@ -1138,7 +1139,7 @@ class And(ArbitraryLogicalOperator):
         return bool(x) & bool(y)
 
     @staticmethod
-    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
+    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         for i, child in enumerate(children):
             if isinstance(child, Constant):
@@ -1168,7 +1169,7 @@ class Or(ArbitraryLogicalOperator):
         return bool(x) | bool(y)
 
     @staticmethod
-    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
+    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         for i, child in enumerate(children):
             if isinstance(child, Constant):
@@ -1198,7 +1199,7 @@ class Xor(ArbitraryLogicalOperator):
         return bool(x) ^ bool(y)
 
     @staticmethod
-    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
+    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         if len(children) > 1:
             for i, child in enumerate(children):
@@ -1217,17 +1218,17 @@ class Xor(ArbitraryLogicalOperator):
         return children
 
 
-def Nand(*args: Node) -> 'Not':
+def Nand(*args: Node) -> Not:
     """logical NAND operator node"""
     return Not(And(*args))
 
 
-def Nor(*args: Node) -> 'Not':
+def Nor(*args: Node) -> Not:
     """logical NOR operator node"""
     return Not(Or(*args))
 
 
-def Xnor(*args: Node) -> 'Not':
+def Xnor(*args: Node) -> Not:
     """logical XNOR operator node"""
     return Not(Xor(*args))
 
@@ -1245,12 +1246,12 @@ class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
         except Exception as ex:
             raise EvaluationError from ex
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Integer(0)
 
     @staticmethod
-    def _simplify(children: list['Node'], var_dict: Optional[Variables] = None) -> list['Node']:
+    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         return children
 
@@ -1376,7 +1377,7 @@ class UnaryOperator(Node, metaclass=ABCMeta):
 
     def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
-        out = [self]  # type: list[Node]
+        out: list[Node] = [self]
         return out + self.child.list_nodes()
 
     def mathml(self) -> str:
@@ -1385,7 +1386,7 @@ class UnaryOperator(Node, metaclass=ABCMeta):
                           mathml_tag('i', self.symbol)
                           + mathml_tag('fenced', self.child.mathml()))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         try:
             return Nodeify(self.evaluate(var_dict))
@@ -1396,7 +1397,7 @@ class UnaryOperator(Node, metaclass=ABCMeta):
             except EvaluationError:
                 return new
 
-    def substitute(self, var: str, sub: 'Node') -> 'Node':
+    def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child.substitute(var, sub))
 
@@ -1411,7 +1412,7 @@ class Sine(UnaryOperator):
     symbol = 'sin'
     wolfram_func = 'Sin'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Product(Cosine(self.child),
                        self.child.derivative(variable))
@@ -1443,7 +1444,7 @@ class Cosine(UnaryOperator):
     symbol = 'cos'
     wolfram_func = 'Cos'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Subtraction(Integer(0),
                            Product(Sine(self.child),
@@ -1476,7 +1477,7 @@ class Tangent(UnaryOperator):
     symbol = 'tan'
     wolfram_func = 'Tan'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(self.child.derivative(variable),
                         Exponent(Cosine(self.child),
@@ -1507,7 +1508,7 @@ class ArcSine(UnaryOperator):
     symbol = 'asin'
     wolfram_func = 'ArcSin'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(self.child.derivative(variable),
                         Exponent(Subtraction(Integer(1),
@@ -1540,7 +1541,7 @@ class ArcCosine(UnaryOperator):
     symbol = 'acos'
     wolfram_func = 'ArcCos'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Subtraction(Integer(0),
                            Division(self.child.derivative(variable),
@@ -1576,7 +1577,7 @@ class ArcTangent(UnaryOperator):
     symbol = 'atan'
     wolfram_func = 'ArcTan'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(self.child.derivative(variable),
                         Sum(Integer(1),
@@ -1606,7 +1607,7 @@ class Absolute(UnaryOperator):
     symbol = 'abs'
     wolfram_func = 'Abs'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(Product(self.child,
                                 self.child.derivative(variable)),
@@ -1632,7 +1633,7 @@ class Absolute(UnaryOperator):
                           + self.child.mathml()
                           + mathml_tag('o', '|'))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
@@ -1647,7 +1648,7 @@ class Negate(UnaryOperator):
     wolfram_func = 'Minus'
     _parentheses_needed = '(ArbitraryOperator, Negate, Derivative, Piecewise, Factorial)'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Negate(self.child.derivative(variable))
 
@@ -1676,7 +1677,7 @@ class Negate(UnaryOperator):
                               mathml_tag('i', self.symbol)
                               + self.child.mathml())
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
@@ -1691,7 +1692,7 @@ class Invert(UnaryOperator):
     wolfram_func = 'Divide'
     _parentheses_needed = '(ArbitraryOperator, Derivative, Piecewise, Factorial)'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         if variable in self.dependencies():
             return Division(self.child.derivative(variable), Exponent(self.child, Integer(2)))
@@ -1710,7 +1711,7 @@ class Invert(UnaryOperator):
                     return ans
             try:
                 if int(ans) == ans:
-                    final_ans = int(ans)  # type: ConstantType
+                    final_ans: ConstantType = int(ans)
                 else:
                     final_ans = ans
             except OverflowError:
@@ -1734,7 +1735,7 @@ class Invert(UnaryOperator):
                                                 mathml_tag('n', '1'))
                                      + self.child.mathml()))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
@@ -1752,7 +1753,7 @@ class Floor(UnaryOperator):
     symbol = 'floor'
     wolfram_func = 'Floor'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Integer(0)
 
@@ -1771,7 +1772,7 @@ class Floor(UnaryOperator):
                           + self.child.mathml()
                           + mathml_tag('o', '⌋'))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
@@ -1789,7 +1790,7 @@ class Ceiling(UnaryOperator):
     symbol = 'ceil'
     wolfram_func = 'Ceiling'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Integer(0)
 
@@ -1808,7 +1809,7 @@ class Ceiling(UnaryOperator):
                           + self.child.mathml()
                           + mathml_tag('o', '⌉'))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
@@ -1827,7 +1828,7 @@ class Factorial(UnaryOperator):
     wolfram_func = 'Factorial'
     _parentheses_needed = '(ArbitraryOperator, Negate, Invert, Derivative, Piecewise)'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         raise NotImplementedError('derivative of factorial not implemented')
 
@@ -1859,7 +1860,7 @@ class Factorial(UnaryOperator):
                           self.child.mathml()
                           + mathml_tag('o', '!'))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
@@ -1877,7 +1878,7 @@ class Not(UnaryOperator):
     symbol = '~'
     wolfram_func = 'Not'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Not(self.child.derivative(variable))
 
@@ -1903,7 +1904,7 @@ class Not(UnaryOperator):
                               mathml_tag('i', self.symbol)
                               + self.child.mathml())
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
@@ -1922,7 +1923,7 @@ class Derivative(Node):
     wolfram_func = 'D'
     symbol = ''
 
-    def __init__(self, expression: 'Node', variable: 'str') -> None:
+    def __init__(self, expression: Node, variable: str) -> None:
         self.child = expression
         self.variable = variable
         super().__init__()
@@ -1930,12 +1931,12 @@ class Derivative(Node):
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({repr(self.child)}, {repr(self.variable)})'
 
-    def list_nodes(self) -> list['Node']:
+    def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
-        out = [self]  # type: list[Node]
+        out: list[Node] = [self]
         return out + self.child.list_nodes()
 
-    def substitute(self, var: str, sub: 'Node') -> 'Node':
+    def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child.substitute(var, sub), self.variable)
 
@@ -1943,7 +1944,7 @@ class Derivative(Node):
         """returns set of all variables present in the tree"""
         return self.child.derivative(self.variable).dependencies()
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Derivative(self, variable)
 
@@ -1967,7 +1968,7 @@ class Derivative(Node):
                                                   + mathml_tag('i', self.variable)))
                           + mathml_tag('fenced', self.child.mathml()))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         return self.child.simplify(var_dict).derivative(self.variable).simplify(var_dict)
 
@@ -1990,7 +1991,7 @@ class Piecewise(Node):
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({repr(self.expressions)}, default={self.default})'
 
-    def derivative(self, variable: str) -> 'Node':
+    def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Piecewise([(expr.derivative(variable), cond) for expr, cond in self.expressions],
                          self.default.derivative(variable))
@@ -2011,7 +2012,7 @@ class Piecewise(Node):
         expression_part += self.default.infix()
         return self.symbol + '(' + expression_part + ')'
 
-    def list_nodes(self) -> list['Node']:
+    def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
         out: list[Node] = [self]
         for expr, cond in self.expressions:
@@ -2041,12 +2042,12 @@ class Piecewise(Node):
                           + mathml_tag('table',
                                        expression_part))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> 'Node':
+    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         return self.__class__([(x.simplify(var_dict), y.simplify(var_dict)) for x, y in self.expressions],
                               self.default.simplify(var_dict))
 
-    def substitute(self, var: str, sub: 'Node') -> 'Node':
+    def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return Piecewise([(expr.substitute(var, sub), cond.substitute(var, sub)) for expr, cond in self.expressions],
                          self.default.substitute(var, sub))
