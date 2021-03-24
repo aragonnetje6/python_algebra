@@ -931,12 +931,12 @@ class BinaryOperator(Node, metaclass=ABCMeta):
     __slots__ = 'child1', 'child2'
     wolfram_func = ''
 
-    def __init__(self, child1: Node, child2: Node):
+    def __init__(self, child1: Node, child2: Node) -> None:
         self.child1 = child1
         self.child2 = child2
         super().__init__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{self.__class__.__name__}({repr(self.child1)}, {repr(self.child2)})'
 
     def list_nodes(self) -> list['Node']:
