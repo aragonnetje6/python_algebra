@@ -93,8 +93,9 @@ class Node(metaclass=ABCMeta):
     def __init__(self) -> None:
         self._finished = True
 
+    @abstractmethod
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}()'
+        pass
 
     def __str__(self) -> str:
         return self.infix()
@@ -935,6 +936,9 @@ class BinaryOperator(Node, metaclass=ABCMeta):
         self.child2 = child2
         super().__init__()
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}({repr(self.child1)}, {repr(self.child2)})'
+
     def list_nodes(self) -> list['Node']:
         """return a list of all nodes in the tree"""
         out: list[Node] = []
@@ -998,7 +1002,7 @@ class Exponent(BinaryOperator):
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        return ((self.child2.infix() if isinstance(self.child2, (Term, UnaryOperator)) else f"({self.child2.infix()})")
+        return ((self.child1.infix() if isinstance(self.child1, (Term, UnaryOperator)) else f"({self.child1.infix()})")
                 + self.symbol
                 + (self.child2.infix() if isinstance(self.child2,
                                                      (Term, UnaryOperator)) else f"({self.child2.infix()})"))
@@ -1982,6 +1986,9 @@ class Derivative(Node):
         self.variable = variable
         super().__init__()
 
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}({repr(self.child)}, {repr(self.variable)})'
+
     def list_nodes(self) -> list['Node']:
         """returns a list of all nodes in the tree"""
         out = [self]  # type: list[Node]
@@ -2034,10 +2041,13 @@ class Piecewise(Node):
     symbol = 'piecewise'
     __slots__ = 'expressions', 'default'
 
-    def __init__(self, expressions: list[tuple[Node, Node]], default: Optional[Node] = None):
+    def __init__(self, expressions: list[tuple[Node, Node]], default: Optional[Node] = None) -> None:
         self.default = default if default is not None else Integer(0)
         self.expressions = expressions
         super().__init__()
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}({repr(self.expressions)}, default={self.default})'
 
     def derivative(self, variable: str) -> 'Node':
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -2104,7 +2114,3 @@ class Piecewise(Node):
         """return wolfram language representation of the tree"""
         expressions = ', '.join(f'{{{expr.wolfram()}, {cond.wolfram()}}}' for expr, cond in self.expressions)
         return f'{self.wolfram_func}[{{{expressions}}}, {self.default.wolfram()}]'
-
-
-if __name__ == '__main__':
-    Variable('x') / Variable('y')
