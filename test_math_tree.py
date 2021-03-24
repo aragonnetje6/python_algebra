@@ -5,11 +5,11 @@ Unittests for math_tree using pytest
 from typing import Callable
 
 from hypothesis import given
-from hypothesis.strategies import booleans, builds, deferred, dictionaries, floats, integers, one_of, sampled_from, \
-    SearchStrategy
-from math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcTangent, Cosine, Derivative, Division, \
+from hypothesis.strategies import booleans, builds, deferred, dictionaries, floats, fractions, integers, one_of, \
+    sampled_from, SearchStrategy
+from math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcTangent, Cosine, Derivative, Division, E, \
     EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, LessThan, Logarithm, \
-    Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Piecewise, Product, Sine, Subtraction, Sum, Tangent, \
+    Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Pi, Piecewise, Product, Sine, Subtraction, Sum, Tangent, \
     UnaryOperator, Variable, Variables, Xnor, Xor
 from pytest import fixture, raises
 
@@ -55,12 +55,13 @@ def variables_dict(keys: str, use_booleans: bool = False) -> SearchStrategy[Vari
                             min_size=len(keys))
 
 
-constant_number = builds(Nodeify, one_of(integers(),
-                                         floats(-1e200, 1e200, allow_nan=False, allow_infinity=False)))
+constant_number = builds(Nodeify,
+                         one_of(integers(), fractions(), floats(-1e200, 1e200, allow_nan=False, allow_infinity=False)))
 constant_bool = builds(Nodeify, booleans())
 constant_any = one_of(constant_bool, constant_number)
 variable = builds(Variable, sampled_from('xyz'))
 func = lambda: (constant_number
+                | one_of(builds(E), builds(Pi))
                 | variable
                 | one_of(*[builds(operator, math_expression) for operator in unary_operators])
                 | one_of(*[builds(operator, math_expression, math_expression) for operator in binary_operators])

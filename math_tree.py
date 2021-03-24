@@ -1017,7 +1017,7 @@ class Exponent(BinaryOperator):
             pass
         # special cases for powers
         if isinstance(child2, Constant):
-            if (ans2 := child1.evaluate()) == 0:
+            if (ans2 := child2.evaluate()) == 0:
                 return Integer(1)
             elif ans2 == 1:
                 return child1
