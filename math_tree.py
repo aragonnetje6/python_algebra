@@ -1014,7 +1014,7 @@ class Exponent(BinaryOperator):
         child1 = self.child1.simplify(var_dict)
         child2 = self.child2.simplify(var_dict)
         try:
-            return Nodeify(self.__class__(child1, child2).evaluate(var_dict))
+            return Nodeify(self.__class__(child1, child2).evaluate(var_dict)).simplify()
         except EvaluationError:
             pass
         # special cases for powers
@@ -1108,7 +1108,7 @@ class Logarithm(BinaryOperator):
         child1 = self.child1.simplify(var_dict)
         child2 = self.child2.simplify(var_dict)
         try:
-            return Nodeify(self.__class__(child1, child2).evaluate(var_dict))
+            return Nodeify(self.__class__(child1, child2).evaluate(var_dict)).simplify()
         except EvaluationError:
             pass
         if isinstance(child1, Product):
@@ -1390,7 +1390,7 @@ class UnaryOperator(Node, metaclass=ABCMeta):
     def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
         try:
-            return Nodeify(self.evaluate(var_dict))
+            return Nodeify(self.evaluate(var_dict)).simplify()
         except EvaluationError:
             new = self.__class__(self.child.simplify(var_dict))
             try:
