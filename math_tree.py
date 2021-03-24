@@ -2057,10 +2057,3 @@ class Piecewise(Node):
         """return wolfram language representation of the tree"""
         expressions = ', '.join(f'{{{expr.wolfram()}, {cond.wolfram()}}}' for expr, cond in self.expressions)
         return f'{self.wolfram_func}[{{{expressions}}}, {self.default.wolfram()}]'
-
-
-if __name__ == '__main__':
-    x = Sum(Rational(Fraction(
-        22204460492503133910375366119623513408825696219150644327205216969149590604041599283726749803231208418014560580136201609100661101660348023696372764742317582381683862901585789554066980864)),
-        E(), E())
-    x.simplify().simplify()
