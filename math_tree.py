@@ -120,7 +120,6 @@ class Node(metaclass=ABCMeta):
         return complex(self.evaluate())
 
     def __eq__(self, other: Any) -> bool:
-        # todo: find better way to do this, temp fix
         return self is other or repr(self.simplify()) == repr(Nodeify(other).simplify())
 
     def __hash__(self) -> int:
