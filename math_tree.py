@@ -1986,7 +1986,7 @@ class Piecewise(Node):
     symbol = 'piecewise'
     __slots__ = 'expressions', 'default'
 
-    def __init__(self, expressions: list[tuple[Node, Node]], default: Optional[Node] = None) -> None:
+    def __init__(self, expressions: tuple[tuple[Node, Node], ...], default: Optional[Node] = None) -> None:
         self.default = default if default is not None else Integer(0)
         self.expressions = expressions
         super().__init__()
@@ -1996,7 +1996,7 @@ class Piecewise(Node):
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Piecewise([(expr.derivative(variable), cond) for expr, cond in self.expressions],
+        return Piecewise(tuple((expr.derivative(variable), cond) for expr, cond in self.expressions),
                          self.default.derivative(variable))
 
     def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
@@ -2047,13 +2047,23 @@ class Piecewise(Node):
 
     def simplify(self, var_dict: Optional[Variables] = None) -> Node:
         """returns a simplified version of the tree"""
-        return self.__class__([(x.simplify(var_dict), y.simplify(var_dict)) for x, y in self.expressions],
+
+        def check_child(child: Node) -> bool:
+            """checks if node is always false"""
+            try:
+                return bool(child.evaluate(var_dict))
+            except (EvaluationError, TypeError):
+                return True
+
+        expressions = tuple(filter(lambda x: check_child(x[1]), self.expressions))
+        return self.__class__(tuple((x.simplify(var_dict), y.simplify(var_dict)) for x, y in expressions),
                               self.default.simplify(var_dict))
 
     def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
-        return Piecewise([(expr.substitute(var, sub), cond.substitute(var, sub)) for expr, cond in self.expressions],
-                         self.default.substitute(var, sub))
+        return Piecewise(
+            tuple((expr.substitute(var, sub), cond.substitute(var, sub)) for expr, cond in self.expressions),
+            self.default.substitute(var, sub))
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
