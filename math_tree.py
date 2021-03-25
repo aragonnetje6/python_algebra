@@ -1746,7 +1746,8 @@ class Invert(UnaryOperator):
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
-            pass
+            if isinstance(simplified.child, Invert):
+                return simplified.child.child.simplify()
         return simplified
 
     def wolfram(self) -> str:
