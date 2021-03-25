@@ -1640,6 +1640,12 @@ class Absolute(UnaryOperator):
         if isinstance(simplified, self.__class__):
             if isinstance(simplified.child, (Absolute, Negate)):
                 return self.__class__(simplified.child).simplify(var_dict)
+            elif isinstance(simplified.child, Complex):
+                pass
+            elif isinstance(simplified.child, Constant):
+                return simplified.child.simplify() if simplified.child.evaluate() > 0 else -simplified.child.simplify()
+            elif isinstance(simplified.child, Product):
+                return Product(*(self.__class__(x) for x in simplified.child.children))
         return simplified
 
 
