@@ -1870,13 +1870,6 @@ class Factorial(UnaryOperator):
                           self.child.mathml()
                           + mathml_tag('o', '!'))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
-        if isinstance(simplified, self.__class__):
-            pass
-        return simplified
-
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
         return f'Factorial[{self.child.wolfram()}]'
