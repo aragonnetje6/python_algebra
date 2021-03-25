@@ -774,10 +774,11 @@ class Sum(ArbitraryOperator):
                         if isinstance(child2, Product):
                             child2_constant, child2_variable_terms = separate(child2.children)
                             if isinstance(child.child, Product):
-                                if child.child.children == child2_variable_terms:
+                                if repr(child.child.children) == repr(child2_variable_terms):
                                     del children[max(i, j)], children[min(i, j)]
                                     return children + [Product(child2_constant - 1, *child.child.children)]
-                                elif len(child2_variable_terms) == 1 and child.child == child2_variable_terms[0]:
+                                elif len(child2_variable_terms) == 1 and repr(child.child) == repr(
+                                        child2_variable_terms[0]):
                                     del children[max(i, j)], children[min(i, j)]
                                     return children + [Product(child2_constant - 1, child.child)]
             # join like products
@@ -786,7 +787,7 @@ class Sum(ArbitraryOperator):
                 for j, child2 in enumerate(children):
                     if i != j and isinstance(child2, Product):
                         child2_constant, child2_variable_terms = separate(child2.children)
-                        if non_constants1 == child2_variable_terms:
+                        if repr(non_constants1) == repr(child2_variable_terms):
                             del children[max(j, i)], children[min(j, i)]
                             return children + [Product(Sum(constant1, child2_constant), *non_constants1)]
             # assimilate like terms into products
@@ -796,13 +797,13 @@ class Sum(ArbitraryOperator):
                         pass
                     elif isinstance(child2, Product) and len(child2.children) == 2:
                         a, b = child2.children
-                        if a == child and isinstance(b, Constant):
+                        if repr(a) == repr(child) and isinstance(b, Constant):
                             del children[max(i, j)], children[min(i, j)]
                             return children + [Product(b + 1, a).simplify()]
-                        elif isinstance(a, Constant) and b == child:
+                        elif isinstance(a, Constant) and repr(b) == repr(child):
                             del children[max(i, j)], children[min(i, j)]
                             return children + [Product(a + 1, b).simplify()]
-                    elif child == child2:
+                    elif repr(child) == repr(child2):
                         del children[max(i, j)], children[min(i, j)]
                         return children + [Product(Integer(2), child).simplify()]
         return children
@@ -860,7 +861,7 @@ class Product(ArbitraryOperator):
             # consolidate exponents
             elif isinstance(child, Exponent):
                 for j, child2 in enumerate(children):
-                    if i != j and isinstance(child2, Exponent) and child.child1 == child2.child1:
+                    if i != j and isinstance(child2, Exponent) and repr(child.child1) == repr(child2.child1):
                         del children[j], children[i]
                         return children + [Exponent(child.child1, Sum(child.child2, child2.child2)).simplify(var_dict)]
             # remove inversions
@@ -874,7 +875,7 @@ class Product(ArbitraryOperator):
                         return [Integer(0)]
                 else:
                     for j, child2 in enumerate(children):
-                        if isinstance(child2, Exponent) and child2.child2 == child:
+                        if isinstance(child2, Exponent) and repr(child2.child2) == repr(child):
                             del children[max(i, j)], children[min(i, j)]
                             return children + [Exponent(child, child2.child2 - 1)]
             # put like terms into exponents
@@ -883,10 +884,10 @@ class Product(ArbitraryOperator):
                     if i == j:
                         pass
                     elif isinstance(child2, Exponent):
-                        if child == child2.child1:
+                        if repr(child) == repr(child2.child1):
                             del children[max(i, j)], children[min(i, j)]
                             return children + [Exponent(child, child2.child2 + 1).simplify()]
-                    elif child == child2:
+                    elif repr(child) == repr(child2):
                         del children[max(i, j)], children[min(i, j)]
                         return children + [Exponent(child, Integer(2)).simplify()]
         return children
