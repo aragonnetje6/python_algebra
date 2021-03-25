@@ -1784,7 +1784,8 @@ class Floor(UnaryOperator):
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
-            pass
+            if isinstance(simplified.child, (Floor, Ceiling)):
+                return simplified.child.child.simplify(var_dict)
         return simplified
 
     def wolfram(self) -> str:
@@ -1821,7 +1822,8 @@ class Ceiling(UnaryOperator):
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
-            pass
+            if isinstance(simplified.child, (Floor, Ceiling)):
+                return simplified.child.child.simplify(var_dict)
         return simplified
 
     def wolfram(self) -> str:
