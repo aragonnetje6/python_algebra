@@ -1640,8 +1640,6 @@ class Absolute(UnaryOperator):
         if isinstance(simplified, self.__class__):
             if isinstance(simplified.child, (Absolute, Negate)):
                 return self.__class__(simplified.child).simplify(var_dict)
-            elif isinstance(simplified.child, (Integer, Rational, Real)):
-                return simplified.child.simplify() if simplified.child.evaluate() > 0 else -simplified.child.simplify()
             elif isinstance(simplified.child, Product):
                 return Product(*(self.__class__(x) for x in simplified.child.children)).simplify(var_dict)
         return simplified
@@ -1691,8 +1689,6 @@ class Negate(UnaryOperator):
                 return simplified.child.child.simplify(var_dict)
             elif isinstance(simplified.child, Sum):
                 return Sum(*(self.__class__(x) for x in simplified.child.children))
-            elif isinstance(simplified.child, Constant):
-                return Nodeify(-simplified.child.evaluate())
         return simplified
 
 
