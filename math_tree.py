@@ -1687,7 +1687,12 @@ class Negate(UnaryOperator):
         """returns a simplified version of the tree"""
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
-            pass
+            if isinstance(simplified.child, Negate):
+                return simplified.child.child.simplify(var_dict)
+            elif isinstance(simplified.child, Sum):
+                return Sum(*(self.__class__(x) for x in simplified.child.children))
+            elif isinstance(simplified.child, Constant):
+                return Nodeify(-simplified.child.evaluate())
         return simplified
 
 
