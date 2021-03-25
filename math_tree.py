@@ -1392,11 +1392,13 @@ class UnaryOperator(Node, metaclass=ABCMeta):
         try:
             return Nodeify(self.evaluate(var_dict)).simplify()
         except EvaluationError:
-            new = self.__class__(self.child.simplify(var_dict))
-            try:
-                return Nodeify(new.evaluate(var_dict))
-            except EvaluationError:
-                return new
+            pass
+        new = self.__class__(self.child.simplify(var_dict))
+        try:
+            return Nodeify(new.evaluate(var_dict))
+        except EvaluationError:
+            pass
+        return new
 
     def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
@@ -1639,7 +1641,7 @@ class Absolute(UnaryOperator):
         simplified = super().simplify(var_dict)
         if isinstance(simplified, self.__class__):
             if isinstance(simplified.child, (Absolute, Negate)):
-                return self.__class__(simplified.child).simplify(var_dict)
+                return self.__class__(simplified.child.child).simplify(var_dict)
             elif isinstance(simplified.child, Product):
                 return Product(*(self.__class__(x) for x in simplified.child.children)).simplify(var_dict)
         return simplified
@@ -1688,7 +1690,7 @@ class Negate(UnaryOperator):
             if isinstance(simplified.child, Negate):
                 return simplified.child.child.simplify(var_dict)
             elif isinstance(simplified.child, Sum):
-                return Sum(*(self.__class__(x) for x in simplified.child.children))
+                return Sum(*(self.__class__(x) for x in simplified.child.children)).simplify(var_dict)
         return simplified
 
 
@@ -2053,7 +2055,8 @@ class Piecewise(Node):
             try:
                 return bool(child.evaluate(var_dict))
             except (EvaluationError, TypeError):
-                return True
+                pass
+            return True
 
         expressions = tuple(filter(lambda x: check_child(x[1]), self.expressions))
         return self.__class__(tuple((x.simplify(var_dict), y.simplify(var_dict)) for x, y in expressions),
