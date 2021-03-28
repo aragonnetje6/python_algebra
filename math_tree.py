@@ -578,11 +578,10 @@ class Variable(Term):
 
     def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
         """Evaluates the expression tree using the values from env, returns int or float"""
+        if env is None:
+            env = {}
         try:
-            if isinstance(env, dict):
-                return Nodeify(env[self.name]).evaluate()
-            else:
-                raise KeyError(f'{env} does not contain {self.name}')
+            return Nodeify(env[self.name]).evaluate()
         except Exception as ex:
             raise EvaluationError from ex
 
