@@ -694,7 +694,11 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
             children.sort(key=lambda x: x.infix())
             if (new := repr(children)) == old_repr:
                 if len(children) > 1:
-                    return self.__class__(*children)
+                    out = self.__class__(*children)
+                    try:
+                        return Nodeify(out.evaluate(env))
+                    except EvaluationError:
+                        return out
                 else:
                     return children[0]
             else:
