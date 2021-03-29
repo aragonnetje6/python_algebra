@@ -81,184 +81,184 @@ def test_equality(val1: Node, val2: Node) -> None:
 
 
 class TestBinaryOperators:
-    @given(var_dict=environment('xy'))
-    def test_1(self, x: Variable, y: Variable, var_dict: Environment) -> None:
-        assert IsEqual(x + y, y + x).evaluate(var_dict)
+    @given(env=environment('xy'))
+    def test_1(self, x: Variable, y: Variable, env: Environment) -> None:
+        assert IsEqual(x + y, y + x).evaluate(env)
 
-    @given(var_dict=environment('xyz'))
-    def test_2(self, x: Variable, y: Variable, z: Variable, var_dict: Environment) -> None:
-        assert IsEqual((x + y) + z, x + (y + z)).evaluate(var_dict)
+    @given(env=environment('xyz'))
+    def test_2(self, x: Variable, y: Variable, z: Variable, env: Environment) -> None:
+        assert IsEqual((x + y) + z, x + (y + z)).evaluate(env)
 
-    @given(var_dict=environment('x'))
-    def test_3(self, x: Variable, var_dict: Environment) -> None:
-        assert IsEqual(x + 0, x).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_3(self, x: Variable, env: Environment) -> None:
+        assert IsEqual(x + 0, x).evaluate(env)
 
-    @given(var_dict=environment('x'))
-    def test_4(self, x: Variable, var_dict: Environment) -> None:
-        assert IsEqual(x + -x, Integer(0)).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_4(self, x: Variable, env: Environment) -> None:
+        assert IsEqual(x + -x, Integer(0)).evaluate(env)
 
-    @given(var_dict=environment('xy'))
-    def test_5(self, x: Variable, y: Variable, var_dict: Environment) -> None:
-        assert IsEqual(x + -y, x - y).evaluate(var_dict)
+    @given(env=environment('xy'))
+    def test_5(self, x: Variable, y: Variable, env: Environment) -> None:
+        assert IsEqual(x + -y, x - y).evaluate(env)
 
-    @given(var_dict=environment('x'))
-    def test_6(self, x: Variable, var_dict: Environment) -> None:
-        assert IsEqual(x - 0, x).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_6(self, x: Variable, env: Environment) -> None:
+        assert IsEqual(x - 0, x).evaluate(env)
 
-    @given(var_dict=environment('x'))
-    def test_7(self, x: Variable, var_dict: Environment) -> None:
-        assert IsEqual(x + x, x * 2).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_7(self, x: Variable, env: Environment) -> None:
+        assert IsEqual(x + x, x * 2).evaluate(env)
 
-    @given(var_dict=environment('xy'))
-    def test_8(self, x: Variable, y: Variable, var_dict: Environment) -> None:
-        assert IsEqual(x * y, y * x).evaluate(var_dict)
+    @given(env=environment('xy'))
+    def test_8(self, x: Variable, y: Variable, env: Environment) -> None:
+        assert IsEqual(x * y, y * x).evaluate(env)
 
-    @given(var_dict=environment('xyz'))
-    def test_9(self, x: Variable, y: Variable, z: Variable, var_dict: Environment) -> None:
+    @given(env=environment('xyz'))
+    def test_9(self, x: Variable, y: Variable, z: Variable, env: Environment) -> None:
         try:
-            assert IsEqual((x * y) * z, x * (y * z)).evaluate(var_dict)
+            assert IsEqual((x * y) * z, x * (y * z)).evaluate(env)
         except EvaluationError:
             pass
 
-    @given(var_dict=environment('xyz'))
-    def test_10(self, x: Variable, y: Variable, z: Variable, var_dict: Environment) -> None:
+    @given(env=environment('xyz'))
+    def test_10(self, x: Variable, y: Variable, z: Variable, env: Environment) -> None:
         try:
-            assert IsEqual(x * (y + z), x * y + x * z).evaluate(var_dict)
+            assert IsEqual(x * (y + z), x * y + x * z).evaluate(env)
         except EvaluationError:
             pass
 
-    @given(var_dict=environment('x'))
-    def test_11(self, x: Variable, var_dict: Environment) -> None:
-        assert IsEqual(x * 1, x).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_11(self, x: Variable, env: Environment) -> None:
+        assert IsEqual(x * 1, x).evaluate(env)
 
-    @given(var_dict=environment('x'))
-    def test_12(self, x: Variable, var_dict: Environment) -> None:
-        assert IsEqual(x * 0, Integer(0)).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_12(self, x: Variable, env: Environment) -> None:
+        assert IsEqual(x * 0, Integer(0)).evaluate(env)
 
-    @given(var_dict=environment('x'))
-    def test_13(self, x: Variable, var_dict: Environment) -> None:
-        if x.evaluate(var_dict) != 0:
-            assert IsEqual(x * Invert(x), Integer(1)).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_13(self, x: Variable, env: Environment) -> None:
+        if x.evaluate(env) != 0:
+            assert IsEqual(x * Invert(x), Integer(1)).evaluate(env)
 
-    @given(var_dict=environment('xy'))
-    def test_14(self, x: Variable, y: Variable, var_dict: Environment) -> None:
+    @given(env=environment('xy'))
+    def test_14(self, x: Variable, y: Variable, env: Environment) -> None:
         try:
-            if y.evaluate(var_dict) != 0:
-                assert IsEqual(x * Invert(y), x / y).evaluate(var_dict)
+            if y.evaluate(env) != 0:
+                assert IsEqual(x * Invert(y), x / y).evaluate(env)
         except EvaluationError:
             pass
 
-    @given(var_dict=environment('x'))
-    def test_15(self, x: Variable, var_dict: Environment) -> None:
-        assert IsEqual(x / 1, x).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_15(self, x: Variable, env: Environment) -> None:
+        assert IsEqual(x / 1, x).evaluate(env)
 
-    @given(var_dict=environment('x'))
-    def test_16(self, x: Variable, var_dict: Environment) -> None:
+    @given(env=environment('x'))
+    def test_16(self, x: Variable, env: Environment) -> None:
         try:
-            assert IsEqual(x * x, x ** 2).evaluate(var_dict)
+            assert IsEqual(x * x, x ** 2).evaluate(env)
         except EvaluationError:
             pass
 
-    @given(var_dict=environment('x'))
-    def test_17(self, x: Variable, var_dict: Environment) -> None:
-        assert (IsEqual(x ** 1, x) | IsEqual(x, Integer(0))).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_17(self, x: Variable, env: Environment) -> None:
+        assert (IsEqual(x ** 1, x) | IsEqual(x, Integer(0))).evaluate(env)
 
-    @given(var_dict=environment('x'))
-    def test_18(self, x: Variable, var_dict: Environment) -> None:
-        assert IsEqual(x ** 0, Integer(1)).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_18(self, x: Variable, env: Environment) -> None:
+        assert IsEqual(x ** 0, Integer(1)).evaluate(env)
 
-    @given(var_dict=environment('xy'))
-    def test_19(self, x: Variable, y: Variable, var_dict: Environment) -> None:
+    @given(env=environment('xy'))
+    def test_19(self, x: Variable, y: Variable, env: Environment) -> None:
         try:
-            assert IsEqual((x + y) ** 2, x ** 2 + y ** 2 + 2 * x * y).evaluate(var_dict)
+            assert IsEqual((x + y) ** 2, x ** 2 + y ** 2 + 2 * x * y).evaluate(env)
         except EvaluationError:
             pass
 
-    @given(var_dict=environment('x'))
-    def test_20(self, x: Variable, var_dict: Environment) -> None:
+    @given(env=environment('x'))
+    def test_20(self, x: Variable, env: Environment) -> None:
         try:
-            assert IsEqual(Logarithm(x, x), Integer(1)).evaluate(var_dict)
+            assert IsEqual(Logarithm(x, x), Integer(1)).evaluate(env)
         except EvaluationError:
             pass
 
 
 class TestLogicOperators:
-    @given(var_dict=environment('x', True))
-    def test_not(self, x: Variable, var_dict: Environment) -> None:
-        assert IsEqual(Not(x), Nand(x, x)).evaluate(var_dict)
+    @given(env=environment('x', True))
+    def test_not(self, x: Variable, env: Environment) -> None:
+        assert IsEqual(Not(x), Nand(x, x)).evaluate(env)
 
-    @given(var_dict=environment('xy', True))
-    def test_and(self, x: Variable, y: Variable, var_dict: Environment) -> None:
-        assert IsEqual(And(x, y), Not(Nand(x, y))).evaluate(var_dict)
+    @given(env=environment('xy', True))
+    def test_and(self, x: Variable, y: Variable, env: Environment) -> None:
+        assert IsEqual(And(x, y), Not(Nand(x, y))).evaluate(env)
 
-    @given(var_dict=environment('xy', True))
-    def test_or(self, x: Variable, y: Variable, var_dict: Environment) -> None:
-        assert IsEqual(Or(x, y), Nand(Not(x), Not(y))).evaluate(var_dict)
+    @given(env=environment('xy', True))
+    def test_or(self, x: Variable, y: Variable, env: Environment) -> None:
+        assert IsEqual(Or(x, y), Nand(Not(x), Not(y))).evaluate(env)
 
-    @given(var_dict=environment('xy', True))
-    def test_xor(self, x: Variable, y: Variable, var_dict: Environment) -> None:
-        assert IsEqual(Xor(x, y), And(Or(x, y), Nand(x, y))).evaluate(var_dict)
+    @given(env=environment('xy', True))
+    def test_xor(self, x: Variable, y: Variable, env: Environment) -> None:
+        assert IsEqual(Xor(x, y), And(Or(x, y), Nand(x, y))).evaluate(env)
 
 
 class TestUnaryOperators:
-    @given(var_dict=environment('x'))
-    def test_1(self, x: Variable, var_dict: Environment) -> None:
-        assert GreaterEqual(Absolute(x), Integer(0)).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_1(self, x: Variable, env: Environment) -> None:
+        assert GreaterEqual(Absolute(x), Integer(0)).evaluate(env)
 
-    @given(var_dict=environment('x'))
-    def test_2(self, x: Variable, var_dict: Environment) -> None:
-        assert IsEqual(Absolute(x), Absolute(Absolute(x))).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_2(self, x: Variable, env: Environment) -> None:
+        assert IsEqual(Absolute(x), Absolute(Absolute(x))).evaluate(env)
 
-    @given(var_dict=environment('x'))
-    def test_3(self, x: Variable, var_dict: Environment) -> None:
-        assert Xnor(GreaterEqual(Negate(x), Integer(0)), LessEqual(x, Integer(0))).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_3(self, x: Variable, env: Environment) -> None:
+        assert Xnor(GreaterEqual(Negate(x), Integer(0)), LessEqual(x, Integer(0))).evaluate(env)
 
-    @given(var_dict=environment('x'))
-    def test_4(self, x: Variable, var_dict: Environment) -> None:
-        assert IsEqual(Negate(Negate(x)), x).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_4(self, x: Variable, env: Environment) -> None:
+        assert IsEqual(Negate(Negate(x)), x).evaluate(env)
 
-    @given(var_dict=environment('x'))
-    def test_5(self, x: Variable, var_dict: Environment) -> None:
-        assert IsEqual(Absolute(Negate(x)), Absolute(x)).evaluate(var_dict)
+    @given(env=environment('x'))
+    def test_5(self, x: Variable, env: Environment) -> None:
+        assert IsEqual(Absolute(Negate(x)), Absolute(x)).evaluate(env)
 
-    @given(var_dict=environment('x'))
-    def test_6(self, x: Variable, var_dict: Environment) -> None:
+    @given(env=environment('x'))
+    def test_6(self, x: Variable, env: Environment) -> None:
         try:
             assert Xnor(GreaterEqual(Absolute(Invert(x)), Integer(1)),
-                        LessEqual(Absolute(x), Integer(1))).evaluate(var_dict)
+                        LessEqual(Absolute(x), Integer(1))).evaluate(env)
         except EvaluationError:
-            assert x.evaluate(var_dict) == 0
+            assert x.evaluate(env) == 0
 
-    @given(var_dict=environment('x'))
-    def test_7(self, x: Variable, var_dict: Environment) -> None:
+    @given(env=environment('x'))
+    def test_7(self, x: Variable, env: Environment) -> None:
         try:
             assert Xnor(GreaterEqual(Invert(x), Integer(0)),
-                        GreaterEqual(x, Integer(0))).evaluate(var_dict)
+                        GreaterEqual(x, Integer(0))).evaluate(env)
         except EvaluationError:
-            assert x.evaluate(var_dict) == 0
+            assert x.evaluate(env) == 0
 
 
 # todo: add specific case tests for simplification rules
 class TestSimplify:
-    @given(var_dict=environment('xyz'), expr=math_expression)
-    def test_same_answer(self, expr: Node, var_dict: Environment) -> None:
+    @given(env=environment('xyz'), expr=math_expression)
+    def test_same_answer(self, expr: Node, env: Environment) -> None:
         try:
-            assert IsEqual(expr, expr.simplify()).evaluate(var_dict)
+            assert IsEqual(expr, expr.simplify()).evaluate(env)
         except EvaluationError:
             with raises(EvaluationError):
-                expr.evaluate(var_dict)
+                expr.evaluate(env)
 
     @given(expr=math_expression)
     def test_idempotence(self, expr: Node) -> None:
         assert repr(a := expr.simplify()) == repr(a.simplify())
 
-    @given(var_dict=environment('xyz', use_booleans=True), expr=bool_expression)
-    def test_same_answer_bool(self, expr: Node, var_dict: Environment) -> None:
+    @given(env=environment('xyz', use_booleans=True), expr=bool_expression)
+    def test_same_answer_bool(self, expr: Node, env: Environment) -> None:
         try:
-            assert expr.evaluate(var_dict) == expr.simplify().evaluate(var_dict)
+            assert expr.evaluate(env) == expr.simplify().evaluate(env)
         except EvaluationError:
             with raises(EvaluationError):
-                expr.evaluate(var_dict)
+                expr.evaluate(env)
 
     @given(expr=bool_expression)
     def test_idempotence_bool(self, expr: Node) -> None:
