@@ -56,7 +56,9 @@ def environment(keys: str, use_booleans: bool = False) -> SearchStrategy[Environ
 
 
 constant_number = builds(Nodeify,
-                         one_of(integers(), fractions(), floats(-1e200, 1e200, allow_nan=False, allow_infinity=False)))
+                         one_of(integers(int(-1e200), int(1e200)),
+                                fractions(),
+                                floats(-1e200, 1e200, allow_nan=False, allow_infinity=False)))
 constant_bool = builds(Nodeify, booleans())
 constant_any = one_of(constant_bool, constant_number)
 variable = builds(Variable, sampled_from('xyz'))
