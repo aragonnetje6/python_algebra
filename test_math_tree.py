@@ -4,7 +4,7 @@ Unittests for math_tree using pytest
 
 from typing import Callable
 
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis.strategies import booleans, builds, deferred, dictionaries, floats, fractions, integers, one_of, \
     sampled_from, SearchStrategy
 from math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcTangent, Cosine, Derivative, Division, \
@@ -50,15 +50,15 @@ def environment(keys: str, use_booleans: bool = False) -> SearchStrategy[Environ
                             min_size=len(keys))
     else:
         return dictionaries(sampled_from(keys),
-                            one_of(integers(),
-                                   floats(-1e200, 1e200, allow_nan=False, allow_infinity=False)),
+                            one_of(integers(int(-1e10), int(1e10)),
+                                   floats(-1e10, 1e10, allow_nan=False, allow_infinity=False)),
                             min_size=len(keys))
 
 
 constant_number = builds(Nodeify,
-                         one_of(integers(int(-1e200), int(1e200)),
+                         one_of(integers(int(-1e10), int(1e10)),
                                 fractions(),
-                                floats(-1e200, 1e200, allow_nan=False, allow_infinity=False)))
+                                floats(-1e10, 1e10, allow_nan=False, allow_infinity=False)))
 constant_bool = builds(Nodeify, booleans())
 constant_any = one_of(constant_bool, constant_number)
 variable = builds(Variable, sampled_from('xyz'))
@@ -242,6 +242,7 @@ class TestUnaryOperators:
 
 # todo: add specific case tests for simplification rules
 class TestSimplify:
+    @settings(deadline=1000)
     @given(env=environment('xyz'), expr=math_expression)
     def test_same_answer(self, expr: Node, env: Environment) -> None:
         try:
@@ -250,10 +251,12 @@ class TestSimplify:
             with raises(EvaluationError):
                 expr.evaluate(env)
 
+    @settings(deadline=1000)
     @given(expr=math_expression)
     def test_idempotence(self, expr: Node) -> None:
         assert repr(a := expr.simplify()) == repr(a.simplify())
 
+    @settings(deadline=1000)
     @given(env=environment('xyz', use_booleans=True), expr=bool_expression)
     def test_same_answer_bool(self, expr: Node, env: Environment) -> None:
         try:
@@ -262,6 +265,7 @@ class TestSimplify:
             with raises(EvaluationError):
                 expr.evaluate(env)
 
+    @settings(deadline=1000)
     @given(expr=bool_expression)
     def test_idempotence_bool(self, expr: Node) -> None:
         assert repr(a := expr.simplify()) == repr(a.simplify())
