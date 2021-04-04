@@ -11,7 +11,7 @@ from math import acos, asin, atan, ceil, cos, e, factorial, floor, gamma, isclos
 from typing import Any, Optional, Union
 
 ConstantType = Union[int, Fraction, float, complex, bool]
-Variables = dict[str, ConstantType]
+Environment = dict[str, ConstantType]
 
 
 def tag(xml_tag: str, content: str, args: Optional[str] = None) -> str:
@@ -253,8 +253,8 @@ class Node(metaclass=ABCMeta):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
 
     @abstractmethod
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
 
     @abstractmethod
     def infix(self) -> str:
@@ -269,7 +269,7 @@ class Node(metaclass=ABCMeta):
         """returns the MathML representation of the tree"""
 
     @abstractmethod
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
 
     @abstractmethod
@@ -318,7 +318,7 @@ class Constant(Term, metaclass=ABCMeta):
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
         return Nodeify(self.evaluate())
 
@@ -338,8 +338,8 @@ class Integer(Constant):
         """returns infix representation of the tree"""
         return str(self.value)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> int:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+    def evaluate(self, env: Optional[Environment] = None) -> int:
+        """Evaluates the expression tree using the values from env, returns int or float"""
         return self.value
 
     def mathml(self) -> str:
@@ -368,8 +368,8 @@ class Rational(Constant):
         """returns infix representation of the tree"""
         return str(self.value)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> Fraction:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+    def evaluate(self, env: Optional[Environment] = None) -> Fraction:
+        """Evaluates the expression tree using the values from env, returns int or float"""
         return self.value
 
     def mathml(self) -> str:
@@ -401,8 +401,8 @@ class Real(Constant):
         """returns infix representation of the tree"""
         return str(self.value)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> float:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+    def evaluate(self, env: Optional[Environment] = None) -> float:
+        """Evaluates the expression tree using the values from env, returns int or float"""
         return self.value
 
     def mathml(self) -> str:
@@ -431,8 +431,8 @@ class Complex(Constant):
         """returns infix representation of the tree"""
         return f'({self.value})'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> complex:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+    def evaluate(self, env: Optional[Environment] = None) -> complex:
+        """Evaluates the expression tree using the values from env, returns int or float"""
         return self.value
 
     def mathml(self) -> str:
@@ -465,8 +465,8 @@ class Pi(Constant):
         """returns infix representation of the tree"""
         return 'pi'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
         return self.value
 
     def mathml(self) -> str:
@@ -478,7 +478,7 @@ class Pi(Constant):
         """return wolfram language representation of the tree"""
         return 'Pi'
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
         return self
 
@@ -498,8 +498,8 @@ class E(Constant):
         """returns infix representation of the tree"""
         return 'e'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
         return self.value
 
     def mathml(self) -> str:
@@ -511,7 +511,7 @@ class E(Constant):
         """return wolfram language representation of the tree"""
         return 'E'
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
         return self
 
@@ -531,8 +531,8 @@ class Boolean(Constant):
         """returns infix representation of the tree"""
         return str(self.value)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
         return self.value
 
     def mathml(self) -> str:
@@ -545,7 +545,7 @@ class Boolean(Constant):
         """return wolfram language representation of the tree"""
         return str(self.value)
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
         return self
 
@@ -576,13 +576,12 @@ class Variable(Term):
             return Integer(1)
         return Integer(0)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        if env is None:
+            env = {}
         try:
-            if isinstance(var_dict, dict):
-                return Nodeify(var_dict[self.name]).evaluate()
-            else:
-                raise KeyError(f'{var_dict} does not contain {self.name}')
+            return Nodeify(env[self.name]).evaluate()
         except Exception as ex:
             raise EvaluationError from ex
 
@@ -592,12 +591,12 @@ class Variable(Term):
                           mathml_tag('i',
                                      str(self.name)))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-        if var_dict is None:
-            var_dict = {}
-        if self.name in var_dict.keys():
-            return Nodeify(var_dict[self.name])
+        if env is None:
+            env = {}
+        if self.name in env.keys():
+            return Nodeify(env[self.name])
         else:
             return self
 
@@ -642,10 +641,10 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def _eval_func(x: ConstantType, y: ConstantType) -> ConstantType:
         """calculation function for 2 elements"""
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
         try:
-            return reduce(self._eval_func, (child.evaluate(var_dict) for child in self.children))
+            return reduce(self._eval_func, (child.evaluate(env) for child in self.children))
         except Exception as ex:
             raise EvaluationError from ex
 
@@ -666,16 +665,16 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
                                                             else mathml_tag('fenced', mathml_tag('row', child.mathml()))
                                                             for child in self.children))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
         try:
-            return Nodeify(self.evaluate(var_dict)).simplify()
+            return Nodeify(self.evaluate(env)).simplify()
         except EvaluationError:
             pass
         children = list(self.children)
         old_repr = repr(children)
         while True:
-            children = [child.simplify(var_dict) for child in children]
+            children = [child.simplify(env) for child in children]
             # consolidate constants
             constants: list[Node] = []
             non_constants: list[Node] = []
@@ -685,17 +684,21 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
                 else:
                     non_constants.append(child)
             if len(constants) > 1:
-                children = non_constants + [self.__class__(*constants).simplify(var_dict)]
+                children = non_constants + [self.__class__(*constants).simplify(env)]
             else:
                 children = non_constants + constants
             # operator specific parts
-            children = self._simplify(children, var_dict)
+            children = self._simplify(children, env)
             # break out of loop
-            children = [child.simplify(var_dict) for child in children]
+            children = [child.simplify(env) for child in children]
             children.sort(key=lambda x: x.infix())
             if (new := repr(children)) == old_repr:
                 if len(children) > 1:
-                    return self.__class__(*children)
+                    out = self.__class__(*children)
+                    try:
+                        return Nodeify(out.evaluate(env))
+                    except EvaluationError:
+                        return out
                 else:
                     return children[0]
             else:
@@ -711,7 +714,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
+    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """Simplification rules for operator"""
 
 
@@ -732,7 +735,7 @@ class Sum(ArbitraryOperator):
         return x + y
 
     @staticmethod
-    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
+    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
 
         def separate(arr: tuple[Node, ...]) -> tuple[Node, tuple[Node, ...]]:
@@ -835,7 +838,7 @@ class Product(ArbitraryOperator):
         return x * y
 
     @staticmethod
-    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
+    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         if len(children) == 1:
             return children
@@ -856,13 +859,13 @@ class Product(ArbitraryOperator):
             # distribute over sums
             elif isinstance(child, Sum):
                 del children[i]
-                return [Sum(*(Product(child2, *children) for child2 in child.children)).simplify(var_dict)]
+                return [Sum(*(Product(child2, *children) for child2 in child.children)).simplify(env)]
             # consolidate exponents
             elif isinstance(child, Exponent):
                 for j, child2 in enumerate(children):
                     if i != j and isinstance(child2, Exponent) and repr(child.child1) == repr(child2.child1):
                         del children[j], children[i]
-                        return children + [Exponent(child.child1, Sum(child.child2, child2.child2)).simplify(var_dict)]
+                        return children + [Exponent(child.child1, Sum(child.child2, child2.child2)).simplify(env)]
             # remove inversions
             elif isinstance(child, Invert):
                 if child.child in children:
@@ -923,7 +926,7 @@ class Modulus(ArbitraryOperator):
             raise NotImplementedError('mod of complex numbers not implemented')
 
     @staticmethod
-    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
+    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         return children
 
@@ -977,11 +980,11 @@ class Exponent(BinaryOperator):
                                    Logarithm(self.child1,
                                              E()))))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
         """Evaluate expression tree"""
         try:
-            ans1 = self.child1.evaluate(var_dict)
-            ans2 = self.child2.evaluate(var_dict)
+            ans1 = self.child1.evaluate(env)
+            ans2 = self.child2.evaluate(env)
             test1 = float(ans1) if not isinstance(ans1, complex) else float(ans1.real ** 2 + ans1.imag ** 2) ** 0.5
             test2 = float(ans2) if not isinstance(ans2, complex) else float(ans2.real ** 2 + ans2.imag ** 2) ** 0.5
             float(test1) ** float(test2)
@@ -1009,12 +1012,12 @@ class Exponent(BinaryOperator):
                 + (self.child2.infix() if isinstance(self.child2,
                                                      (Term, UnaryOperator)) else f"({self.child2.infix()})"))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-        child1 = self.child1.simplify(var_dict)
-        child2 = self.child2.simplify(var_dict)
+        child1 = self.child1.simplify(env)
+        child2 = self.child2.simplify(env)
         try:
-            return Nodeify(self.__class__(child1, child2).evaluate(var_dict)).simplify()
+            return Nodeify(self.__class__(child1, child2).evaluate(env)).simplify()
         except EvaluationError:
             pass
         # special cases for powers
@@ -1033,12 +1036,12 @@ class Exponent(BinaryOperator):
                 return Integer(1)
         # distribute over products
         elif isinstance(child1, Product):
-            return Product(*(Exponent(child, child2) for child in child1.children)).simplify(var_dict)
+            return Product(*(Exponent(child, child2) for child in child1.children)).simplify(env)
         # nested exponents multiply
         elif isinstance(child1, Exponent):
-            return Exponent(child1.child1, Product(child1.child2, child2)).simplify(var_dict)
+            return Exponent(child1.child1, Product(child1.child2, child2)).simplify(env)
         elif isinstance(child1, Sum) and isinstance(child2, Integer) and child2.evaluate() > 0:
-            return Product(*([child1] * child2.evaluate())).simplify(var_dict)
+            return Product(*([child1] * child2.evaluate())).simplify(env)
         return self.__class__(child1, child2)
 
 
@@ -1054,10 +1057,10 @@ class Logarithm(BinaryOperator):
             child2 = E()
         super().__init__(child1, child2)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        x = self.child1.evaluate(var_dict)
-        y = self.child2.evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        x = self.child1.evaluate(env)
+        y = self.child2.evaluate(env)
         if isinstance(x, complex):
             if x.imag == 0:
                 x = float(x.real)
@@ -1103,18 +1106,18 @@ class Logarithm(BinaryOperator):
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child2.wolfram()}, {self.child1.wolfram()}]'
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-        child1 = self.child1.simplify(var_dict)
-        child2 = self.child2.simplify(var_dict)
+        child1 = self.child1.simplify(env)
+        child2 = self.child2.simplify(env)
         try:
-            return Nodeify(self.__class__(child1, child2).evaluate(var_dict)).simplify()
+            return Nodeify(self.__class__(child1, child2).evaluate(env)).simplify()
         except EvaluationError:
             pass
         if isinstance(child1, Product):
-            return Sum(*(Logarithm(child, child2) for child in child1.children)).simplify(var_dict)
+            return Sum(*(Logarithm(child, child2) for child in child1.children)).simplify(env)
         elif isinstance(child1, Exponent):
-            return Product(child1.child2, Logarithm(child1.child1, child2)).simplify(var_dict)
+            return Product(child1.child2, Logarithm(child1.child1, child2)).simplify(env)
         return self.__class__(child1, child2)
 
 
@@ -1140,7 +1143,7 @@ class And(ArbitraryLogicalOperator):
         return bool(x) & bool(y)
 
     @staticmethod
-    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
+    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         for i, child in enumerate(children):
             if isinstance(child, Constant):
@@ -1170,7 +1173,7 @@ class Or(ArbitraryLogicalOperator):
         return bool(x) | bool(y)
 
     @staticmethod
-    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
+    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         for i, child in enumerate(children):
             if isinstance(child, Constant):
@@ -1200,7 +1203,7 @@ class Xor(ArbitraryLogicalOperator):
         return bool(x) ^ bool(y)
 
     @staticmethod
-    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
+    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         if len(children) > 1:
             for i, child in enumerate(children):
@@ -1211,9 +1214,9 @@ class Xor(ArbitraryLogicalOperator):
                     else:
                         del children[i]
                         if len(children) > 1:
-                            return [Not(Xor(*children)).simplify(var_dict)]
+                            return [Not(Xor(*children)).simplify(env)]
                         elif len(children) == 1:
-                            return [Not(children[0]).simplify(var_dict)]
+                            return [Not(children[0]).simplify(env)]
                         else:
                             return [Boolean(False)]
         return children
@@ -1239,10 +1242,10 @@ class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
     __slots__ = ()
     _parentheses_needed = '(ComparisonOperator, )'
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> bool:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+    def evaluate(self, env: Optional[Environment] = None) -> bool:
+        """Evaluates the expression tree using the values from env, returns int or float"""
         try:
-            return all(self._eval_func(x.evaluate(var_dict), y.evaluate(var_dict))
+            return all(self._eval_func(x.evaluate(env), y.evaluate(env))
                        for x, y in zip(self.children[:-1], self.children[1:]))
         except Exception as ex:
             raise EvaluationError from ex
@@ -1252,7 +1255,7 @@ class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
         return Integer(0)
 
     @staticmethod
-    def _simplify(children: list[Node], var_dict: Optional[Variables] = None) -> list[Node]:
+    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         return children
 
@@ -1387,15 +1390,15 @@ class UnaryOperator(Node, metaclass=ABCMeta):
                           mathml_tag('i', self.symbol)
                           + mathml_tag('fenced', self.child.mathml()))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
         try:
-            return Nodeify(self.evaluate(var_dict)).simplify()
+            return Nodeify(self.evaluate(env)).simplify()
         except EvaluationError:
             pass
-        new = self.__class__(self.child.simplify(var_dict))
+        new = self.__class__(self.child.simplify(env))
         try:
-            return Nodeify(new.evaluate(var_dict))
+            return Nodeify(new.evaluate(env))
         except EvaluationError:
             pass
         return new
@@ -1420,9 +1423,9 @@ class Sine(UnaryOperator):
         return Product(Cosine(self.child),
                        self.child.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        child_ans = self.child.evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        child_ans = self.child.evaluate(env)
         if isinstance(child_ans, complex):
             if child_ans.imag == 0:
                 child_ans = child_ans.real
@@ -1453,9 +1456,9 @@ class Cosine(UnaryOperator):
                            Product(Sine(self.child),
                                    self.child.derivative(variable)))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        child_ans = self.child.evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        child_ans = self.child.evaluate(env)
         if isinstance(child_ans, complex):
             if child_ans.imag == 0:
                 child_ans = child_ans.real
@@ -1486,9 +1489,9 @@ class Tangent(UnaryOperator):
                         Exponent(Cosine(self.child),
                                  Integer(2)))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        child_ans = self.child.evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        child_ans = self.child.evaluate(env)
         if isinstance(child_ans, complex):
             if child_ans.imag == 0:
                 child_ans = child_ans.real
@@ -1519,9 +1522,9 @@ class ArcSine(UnaryOperator):
                                                       Integer(2))),
                                  Rational(Fraction(1 / 2))))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        child_ans = self.child.evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        child_ans = self.child.evaluate(env)
         if isinstance(child_ans, complex):
             if child_ans.imag == 0:
                 child_ans = child_ans.real
@@ -1553,9 +1556,9 @@ class ArcCosine(UnaryOperator):
                                                                   Integer(2))),
                                              Rational(Fraction(1 / 2)))))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        child_ans = self.child.evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        child_ans = self.child.evaluate(env)
         if isinstance(child_ans, complex):
             if child_ans.imag == 0:
                 child_ans = child_ans.real
@@ -1587,9 +1590,9 @@ class ArcTangent(UnaryOperator):
                             Exponent(self.child,
                                      Integer(2))))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        child_ans = self.child.evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        child_ans = self.child.evaluate(env)
         if isinstance(child_ans, complex):
             if child_ans.imag == 0:
                 child_ans = child_ans.real
@@ -1616,9 +1619,9 @@ class Absolute(UnaryOperator):
                                 self.child.derivative(variable)),
                         Absolute(self.child))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        child_ans = self.child.evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        child_ans = self.child.evaluate(env)
         try:
             if isinstance(child_ans, complex):
                 return (child_ans.real ** 2 + child_ans.imag ** 2) ** 0.5
@@ -1636,14 +1639,14 @@ class Absolute(UnaryOperator):
                           + self.child.mathml()
                           + mathml_tag('o', '|'))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
+        simplified = super().simplify(env)
         if isinstance(simplified, self.__class__):
             if isinstance(simplified.child, (Absolute, Negate)):
-                return self.__class__(simplified.child.child).simplify(var_dict)
+                return self.__class__(simplified.child.child).simplify(env)
             elif isinstance(simplified.child, Product):
-                return Product(*(self.__class__(x) for x in simplified.child.children)).simplify(var_dict)
+                return Product(*(self.__class__(x) for x in simplified.child.children)).simplify(env)
         return simplified
 
 
@@ -1658,10 +1661,10 @@ class Negate(UnaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Negate(self.child.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
         try:
-            return -self.child.evaluate(var_dict)
+            return -self.child.evaluate(env)
         except Exception as ex:
             raise EvaluationError from ex
 
@@ -1683,14 +1686,14 @@ class Negate(UnaryOperator):
                               mathml_tag('i', self.symbol)
                               + self.child.mathml())
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
+        simplified = super().simplify(env)
         if isinstance(simplified, self.__class__):
             if isinstance(simplified.child, Negate):
-                return simplified.child.child.simplify(var_dict)
+                return simplified.child.child.simplify(env)
             elif isinstance(simplified.child, Sum):
-                return Sum(*(self.__class__(x) for x in simplified.child.children)).simplify(var_dict)
+                return Sum(*(self.__class__(x) for x in simplified.child.children)).simplify(env)
         return simplified
 
 
@@ -1708,9 +1711,9 @@ class Invert(UnaryOperator):
         else:
             return Integer(0)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        child = self.child.evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        child = self.child.evaluate(env)
         try:
             ans = 1 / child
             if isinstance(ans, complex):
@@ -1744,9 +1747,9 @@ class Invert(UnaryOperator):
                                                 mathml_tag('n', '1'))
                                      + self.child.mathml()))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
+        simplified = super().simplify(env)
         if isinstance(simplified, self.__class__):
             if isinstance(simplified.child, Invert):
                 return simplified.child.child.simplify()
@@ -1767,9 +1770,9 @@ class Floor(UnaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Integer(0)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        ans = self.child.evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        ans = self.child.evaluate(env)
         try:
             return floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag))
         except Exception as ex:
@@ -1782,12 +1785,12 @@ class Floor(UnaryOperator):
                           + self.child.mathml()
                           + mathml_tag('o', '⌋'))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
+        simplified = super().simplify(env)
         if isinstance(simplified, self.__class__):
             if isinstance(simplified.child, (Floor, Ceiling)):
-                return simplified.child.child.simplify(var_dict)
+                return simplified.child.child.simplify(env)
         return simplified
 
     def wolfram(self) -> str:
@@ -1805,9 +1808,9 @@ class Ceiling(UnaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Integer(0)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        ans = self.child.evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        ans = self.child.evaluate(env)
         try:
             return ceil(ans) if not isinstance(ans, complex) else complex(ceil(ans.real), ceil(ans.imag))
         except Exception as ex:
@@ -1820,12 +1823,12 @@ class Ceiling(UnaryOperator):
                           + self.child.mathml()
                           + mathml_tag('o', '⌉'))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
+        simplified = super().simplify(env)
         if isinstance(simplified, self.__class__):
             if isinstance(simplified.child, (Floor, Ceiling)):
-                return simplified.child.child.simplify(var_dict)
+                return simplified.child.child.simplify(env)
         return simplified
 
     def wolfram(self) -> str:
@@ -1844,9 +1847,9 @@ class Factorial(UnaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         raise NotImplementedError('derivative of factorial not implemented')
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        ans = self.child.evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        ans = self.child.evaluate(env)
         try:
             if isinstance(ans, int):
                 return factorial(ans)
@@ -1887,9 +1890,9 @@ class Not(UnaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Not(self.child.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> bool:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return not self.child.evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> bool:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        return not self.child.evaluate(env)
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -1909,16 +1912,16 @@ class Not(UnaryOperator):
                               mathml_tag('i', self.symbol)
                               + self.child.mathml())
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-        simplified = super().simplify(var_dict)
+        simplified = super().simplify(env)
         if isinstance(simplified, self.__class__):
             if isinstance(simplified.child, Not):
-                return simplified.child.child.simplify(var_dict)
+                return simplified.child.child.simplify(env)
             elif isinstance(simplified.child, And):
-                return Or(*(Not(child2) for child2 in simplified.child.children)).simplify(var_dict)
+                return Or(*(Not(child2) for child2 in simplified.child.children)).simplify(env)
             elif isinstance(simplified.child, Or):
-                return And(*(Not(child2) for child2 in simplified.child.children)).simplify(var_dict)
+                return And(*(Not(child2) for child2 in simplified.child.children)).simplify(env)
         return simplified
 
 
@@ -1953,9 +1956,9 @@ class Derivative(Node):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Derivative(self, variable)
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
-        return self.child.derivative(self.variable).evaluate(var_dict)
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        return self.child.derivative(self.variable).evaluate(env)
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -1973,9 +1976,9 @@ class Derivative(Node):
                                                   + mathml_tag('i', self.variable)))
                           + mathml_tag('fenced', self.child.mathml()))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-        return self.child.simplify(var_dict).derivative(self.variable).simplify(var_dict)
+        return self.child.simplify(env).derivative(self.variable).simplify(env)
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
@@ -2001,13 +2004,13 @@ class Piecewise(Node):
         return Piecewise(tuple((expr.derivative(variable), cond) for expr, cond in self.expressions),
                          self.default.derivative(variable))
 
-    def evaluate(self, var_dict: Optional[Variables] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from var_dict, returns int or float"""
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
         for expression, condition in self.expressions:
-            if condition.evaluate(var_dict):
-                return expression.evaluate(var_dict)
+            if condition.evaluate(env):
+                return expression.evaluate(env)
         else:
-            return self.default.evaluate(var_dict)
+            return self.default.evaluate(env)
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
@@ -2047,20 +2050,20 @@ class Piecewise(Node):
                           + mathml_tag('table',
                                        expression_part))
 
-    def simplify(self, var_dict: Optional[Variables] = None) -> Node:
+    def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
 
         def check_child(child: Node) -> bool:
             """checks if node is always false"""
             try:
-                return bool(child.evaluate(var_dict))
+                return bool(child.evaluate(env))
             except (EvaluationError, TypeError):
                 pass
             return True
 
         expressions = tuple(filter(lambda x: check_child(x[1]), self.expressions))
-        return self.__class__(tuple((x.simplify(var_dict), y.simplify(var_dict)) for x, y in expressions),
-                              self.default.simplify(var_dict))
+        return self.__class__(tuple((x.simplify(env), y.simplify(env)) for x, y in expressions),
+                              self.default.simplify(env))
 
     def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
