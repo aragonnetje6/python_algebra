@@ -667,42 +667,51 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
 
     def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
+        # try to return single constant
         try:
             return Nodeify(self.evaluate(env)).simplify()
         except EvaluationError:
             pass
         children = list(self.children)
-        old_repr = repr(children)
-        while True:
+        old_repr = ''
+        while (new_repr := repr(children)) != old_repr:
+            # update loop condition
+            old_repr = new_repr
+            # simplify the children
             children = [child.simplify(env) for child in children]
-            # consolidate constants
-            constants: list[Node] = []
-            non_constants: list[Node] = []
-            for child in children:
-                if isinstance(child, (Integer, Rational, Real, Complex)):
-                    constants.append(child)
-                else:
-                    non_constants.append(child)
-            if len(constants) > 1:
-                children = non_constants + [self.__class__(*constants).simplify(env)]
-            else:
-                children = non_constants + constants
-            # operator specific parts
-            children = self._simplify(children, env)
-            # break out of loop
-            children = [child.simplify(env) for child in children]
+            # consolidate all constants
+            children = self._consolidate_constants(children)
+            # use operator specific rules
+            children = self._simplify_terms(children, env)
+            # sort children
             children.sort(key=lambda x: x.infix())
-            if (new := repr(children)) == old_repr:
-                if len(children) > 1:
-                    out = self.__class__(*children)
-                    try:
-                        return Nodeify(out.evaluate(env))
-                    except EvaluationError:
-                        return out
-                else:
-                    return children[0]
+        children = [child.simplify(env) for child in children]
+        # sort children
+        children.sort(key=lambda x: x.infix())
+        # figure out what to return
+        if len(children) > 1:
+            out = self.__class__(*children)
+            try:
+                return Nodeify(out.evaluate(env)).simplify()
+            except EvaluationError:
+                return out
+        else:
+            return children[0]
+
+    def _consolidate_constants(self, children: list[Node]) -> list[Node]:
+        """takes in a list of child nodes, consolidates all constants in the list"""
+        constants: list[Node] = []
+        non_constants: list[Node] = []
+        for child in children:
+            if isinstance(child, (Integer, Rational, Real, Complex)):
+                constants.append(child)
             else:
-                old_repr = new
+                non_constants.append(child)
+        if len(constants) > 1:
+            children = non_constants + [self.__class__(*constants).simplify()]
+        else:
+            children = non_constants + constants
+        return children
 
     def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
@@ -714,7 +723,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """Simplification rules for operator"""
 
 
@@ -735,7 +744,7 @@ class Sum(ArbitraryOperator):
         return x + y
 
     @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
 
         def separate(arr: tuple[Node, ...]) -> tuple[Node, tuple[Node, ...]]:
@@ -838,7 +847,7 @@ class Product(ArbitraryOperator):
         return x * y
 
     @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         if len(children) == 1:
             return children
@@ -926,7 +935,7 @@ class Modulus(ArbitraryOperator):
             raise NotImplementedError('mod of complex numbers not implemented')
 
     @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         return children
 
@@ -1143,7 +1152,7 @@ class And(ArbitraryLogicalOperator):
         return bool(x) & bool(y)
 
     @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         for i, child in enumerate(children):
             if isinstance(child, Constant):
@@ -1173,7 +1182,7 @@ class Or(ArbitraryLogicalOperator):
         return bool(x) | bool(y)
 
     @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         for i, child in enumerate(children):
             if isinstance(child, Constant):
@@ -1203,7 +1212,7 @@ class Xor(ArbitraryLogicalOperator):
         return bool(x) ^ bool(y)
 
     @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         if len(children) > 1:
             for i, child in enumerate(children):
@@ -1255,7 +1264,7 @@ class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
         return Integer(0)
 
     @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
         """returns a simplified version of the tree"""
         return children
 
