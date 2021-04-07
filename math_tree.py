@@ -611,8 +611,8 @@ class Variable(Term):
         return self.name
 
 
-class ArbitraryOperator(Node, metaclass=ABCMeta):
-    """Abstract Base Class for multi-input operator in expression tree"""
+class Operator(Node, metaclass=ABCMeta):
+    """Abstract Base Class for operator node in expression tree"""
     __slots__ = 'children',
     symbol = ''
     _parentheses_needed = '()'
@@ -622,13 +622,11 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def wolfram_func(self) -> str:
         """abstract property, returns function name for wolfram language"""
 
-    @property
-    @abstractmethod
-    def default_value(self) -> ConstantType:
-        """abstract property, returns function name for wolfram language"""
-
-    def __init__(self, *args: Node) -> None:
-        self.children = tuple(child for child in args)
+    def __init__(self, child: Optional[Node] = None) -> None:
+        if not hasattr(self, 'children'):
+            self.children: tuple[Node, ...] = ()
+        if child is not None:
+            self.children += (child,)
         super().__init__()
 
     def __repr__(self) -> str:
@@ -644,30 +642,9 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def _eval_func(x: ConstantType, y: ConstantType) -> ConstantType:
         """calculation function for 2 elements"""
 
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        try:
-            return reduce(self._eval_func, (child.evaluate(env) for child in self.children)) \
-                if len(self.children) else self.default_value
-        except Exception as ex:
-            raise EvaluationError from ex
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        return self.symbol.join(child.infix() if not isinstance(child, eval(self._parentheses_needed))
-                                else f"({child.infix()})" for child in self.children)
-
     def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
         return sum((child.list_nodes() for child in self.children), [self])
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        return mathml_tag('row',
-                          mathml_tag('o', self.symbol).join(child.mathml()
-                                                            if isinstance(child, eval(self._parentheses_needed))
-                                                            else mathml_tag('fenced', mathml_tag('row', child.mathml()))
-                                                            for child in self.children))
 
     def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
@@ -717,6 +694,11 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
             children = non_constants + constants
         return children
 
+    @staticmethod
+    @abstractmethod
+    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+        """Simplification rules for operator"""
+
     def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(*(child.substitute(var, sub) for child in self.children))
@@ -725,10 +707,42 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[' + ', '.join(child.wolfram() for child in self.children) + ']'
 
-    @staticmethod
+
+class ArbitraryOperator(Operator, metaclass=ABCMeta):
+    """Abstract Base Class for multi-input operator in expression tree"""
+    __slots__ = 'children',
+    symbol = ''
+    _parentheses_needed = '()'
+
+    @property
     @abstractmethod
-    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
-        """Simplification rules for operator"""
+    def default_value(self) -> ConstantType:
+        """abstract property, returns function name for wolfram language"""
+
+    def __init__(self, *children: Node) -> None:
+        self.children = children
+        super().__init__()
+
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        try:
+            return reduce(self._eval_func, (child.evaluate(env) for child in self.children)) \
+                if len(self.children) else self.default_value
+        except Exception as ex:
+            raise EvaluationError from ex
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        return self.symbol.join(child.infix() if not isinstance(child, eval(self._parentheses_needed))
+                                else f"({child.infix()})" for child in self.children)
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('o', self.symbol).join(child.mathml()
+                                                            if isinstance(child, eval(self._parentheses_needed))
+                                                            else mathml_tag('fenced', mathml_tag('row', child.mathml()))
+                                                            for child in self.children))
 
 
 class Sum(ArbitraryOperator):
