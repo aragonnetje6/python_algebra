@@ -647,7 +647,8 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
         """Evaluates the expression tree using the values from env, returns int or float"""
         try:
-            return reduce(self._eval_func, (child.evaluate(env) for child in self.children), self.default_value)
+            return reduce(self._eval_func, (child.evaluate(env) for child in self.children)) \
+                if len(self.children) else self.default_value
         except Exception as ex:
             raise EvaluationError from ex
 
