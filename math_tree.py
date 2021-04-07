@@ -622,9 +622,12 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def wolfram_func(self) -> str:
         """abstract property, returns function name for wolfram language"""
 
+    @property
+    @abstractmethod
+    def default_value(self) -> ConstantType:
+        """abstract property, returns function name for wolfram language"""
+
     def __init__(self, *args: Node) -> None:
-        assert len(args) > 1
-        assert all(isinstance(x, Node) for x in args)
         self.children = tuple(child for child in args)
         super().__init__()
 
@@ -644,7 +647,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
         """Evaluates the expression tree using the values from env, returns int or float"""
         try:
-            return reduce(self._eval_func, (child.evaluate(env) for child in self.children))
+            return reduce(self._eval_func, (child.evaluate(env) for child in self.children), self.default_value)
         except Exception as ex:
             raise EvaluationError from ex
 
@@ -733,6 +736,7 @@ class Sum(ArbitraryOperator):
     symbol = '+'
     wolfram_func = 'Plus'
     _parentheses_needed = '(ArbitraryLogicalOperator, ComparisonOperator)'
+    default_value = 0
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -831,6 +835,7 @@ class Product(ArbitraryOperator):
     symbol = '*'
     wolfram_func = 'Times'
     _parentheses_needed = '(Sum, Modulus, ArbitraryLogicalOperator, ComparisonOperator)'
+    default_value = 1
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -915,6 +920,7 @@ class Modulus(ArbitraryOperator):
     symbol = '%'
     wolfram_func = 'Mod'
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
+    default_value = 0
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1134,6 +1140,7 @@ class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
     __slots__ = ()
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
+    default_value = False
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1274,6 +1281,7 @@ class IsEqual(ComparisonOperator):
     __slots__ = ()
     symbol = '=='
     wolfram_func = 'EqualTo'
+    default_value = True
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -1294,6 +1302,7 @@ class GreaterThan(ComparisonOperator):
     __slots__ = ()
     symbol = '>'
     wolfram_func = 'Greater'
+    default_value = False
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -1313,6 +1322,7 @@ class LessThan(ComparisonOperator):
     __slots__ = ()
     symbol = '<'
     wolfram_func = 'Less'
+    default_value = False
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -1332,6 +1342,7 @@ class GreaterEqual(ComparisonOperator):
     __slots__ = ()
     symbol = '>='
     wolfram_func = 'GreaterEqual'
+    default_value = True
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -1351,6 +1362,7 @@ class LessEqual(ComparisonOperator):
     __slots__ = ()
     symbol = '<='
     wolfram_func = 'LessEqual'
+    default_value = True
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
