@@ -69,9 +69,9 @@ def Nodeify(other: Union[Node, ConstantType, str]) -> Node:
         else:
             return Rational(other)
     elif isinstance(other, float):
-        if other.is_integer() and other <= 1e6:
+        if other.is_integer() and other <= 1e10:
             return Integer(int(other))
-        elif other.as_integer_ratio()[1] < 1e6:
+        elif other.as_integer_ratio()[0] < 1e10 and other.as_integer_ratio()[1] < 1e10:
             return Rational(Fraction(other))
         else:
             return Real(other)
