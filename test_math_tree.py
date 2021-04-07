@@ -187,19 +187,19 @@ class TestBinaryOperators:
 class TestLogicOperators:
     @given(env=environment('x', True))
     def test_not(self, x: Variable, env: Environment) -> None:
-        assert IsEqual(Not(x), Nand(x, x)).evaluate(env)
+        assert Not(x).evaluate(env) == Nand(x, x).evaluate(env)
 
     @given(env=environment('xy', True))
     def test_and(self, x: Variable, y: Variable, env: Environment) -> None:
-        assert IsEqual(And(x, y), Not(Nand(x, y))).evaluate(env)
+        assert And(x, y).evaluate(env) == Not(Nand(x, y)).evaluate(env)
 
     @given(env=environment('xy', True))
     def test_or(self, x: Variable, y: Variable, env: Environment) -> None:
-        assert IsEqual(Or(x, y), Nand(Not(x), Not(y))).evaluate(env)
+        assert Or(x, y).evaluate(env) == Nand(Not(x), Not(y)).evaluate(env)
 
     @given(env=environment('xy', True))
     def test_xor(self, x: Variable, y: Variable, env: Environment) -> None:
-        assert IsEqual(Xor(x, y), And(Or(x, y), Nand(x, y))).evaluate(env)
+        assert Xor(x, y).evaluate(env) == And(Or(x, y), Nand(x, y)).evaluate(env)
 
 
 class TestUnaryOperators:
