@@ -13,6 +13,8 @@ from math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcT
     UnaryOperator, Variable, Environment, Xnor, Xor
 from pytest import fixture, raises
 
+debug = False
+
 
 @fixture(scope="module")
 def x() -> Variable:
@@ -93,7 +95,7 @@ class TestBinaryOperators:
 
     @given(env=environment('x'))
     def test_3(self, x: Variable, env: Environment) -> None:
-        assert IsEqual(x + 0, x).evaluate(env)
+        assert (x + 0).evaluate(env) == x.evaluate(env)
 
     @given(env=environment('x'))
     def test_4(self, x: Variable, env: Environment) -> None:
@@ -245,6 +247,9 @@ class TestSimplify:
     @settings(deadline=1000)
     @given(env=environment('xyz'), expr=math_expression)
     def test_same_answer(self, expr: Node, env: Environment) -> None:
+        if debug:
+            with open('tests.txt', 'w') as file:
+                file.write(repr(expr))
         try:
             assert IsEqual(expr, expr.simplify()).evaluate(env)
         except EvaluationError:
@@ -254,11 +259,17 @@ class TestSimplify:
     @settings(deadline=1000)
     @given(expr=math_expression)
     def test_idempotence(self, expr: Node) -> None:
+        if debug:
+            with open('tests.txt', 'w') as file:
+                file.write(repr(expr))
         assert repr(a := expr.simplify()) == repr(a.simplify())
 
     @settings(deadline=1000)
     @given(env=environment('xyz', use_booleans=True), expr=bool_expression)
     def test_same_answer_bool(self, expr: Node, env: Environment) -> None:
+        if debug:
+            with open('tests.txt', 'w') as file:
+                file.write(repr(expr))
         try:
             assert expr.evaluate(env) == expr.simplify().evaluate(env)
         except EvaluationError:
@@ -268,6 +279,9 @@ class TestSimplify:
     @settings(deadline=1000)
     @given(expr=bool_expression)
     def test_idempotence_bool(self, expr: Node) -> None:
+        if debug:
+            with open('tests.txt', 'w') as file:
+                file.write(repr(expr))
         assert repr(a := expr.simplify()) == repr(a.simplify())
 
 
