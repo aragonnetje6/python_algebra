@@ -171,15 +171,8 @@ class TestBinaryOperators:
     def test_18(self, x: Variable, env: Environment) -> None:
         assert IsEqual(x ** 0, Integer(1)).evaluate(env)
 
-    @given(env=environment('xy'))
-    def test_19(self, x: Variable, y: Variable, env: Environment) -> None:
-        try:
-            assert IsEqual((x + y) ** 2, x ** 2 + y ** 2 + 2 * x * y).evaluate(env)
-        except EvaluationError:
-            pass
-
     @given(env=environment('x'))
-    def test_20(self, x: Variable, env: Environment) -> None:
+    def test_19(self, x: Variable, env: Environment) -> None:
         try:
             assert IsEqual(Logarithm(x, x), Integer(1)).evaluate(env)
         except EvaluationError:
