@@ -60,18 +60,21 @@ def Nodeify(other: Union[Node, ConstantType, str]) -> Node:
     elif isinstance(other, bool):
         return Boolean(other)
     elif isinstance(other, int):
-        return Integer(other)
+        if other <= 1e10:
+            return Integer(other)
+        else:
+            return Real(other)
     elif isinstance(other, Fraction):
         if other.denominator == 1:
             return Integer(int(other))
-        elif other.denominator >= 1e6:
+        elif other.denominator >= 1e6 or other.numerator >= 1e6:
             return Real(float(other))
         else:
             return Rational(other)
     elif isinstance(other, float):
         if other.is_integer() and other <= 1e10:
             return Integer(int(other))
-        elif other.as_integer_ratio()[0] < 1e10 and other.as_integer_ratio()[1] < 1e10:
+        elif other.as_integer_ratio()[0] < 1e6 and other.as_integer_ratio()[1] < 1e6:
             return Rational(Fraction(other))
         else:
             return Real(other)
@@ -450,72 +453,6 @@ class Complex(Constant):
         return f'{self.value.real} + {self.value.imag} \\[ImaginaryI]'
 
 
-class Pi(Constant):
-    """mathematical constant in expression tree"""
-    __slots__ = ('value',)
-
-    def __init__(self) -> None:
-        self.value = pi
-        super().__init__()
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}()'
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        return 'pi'
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        return self.value
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        return mathml_tag('row',
-                          mathml_tag('n', 'PI'))
-
-    def wolfram(self) -> str:
-        """return wolfram language representation of the tree"""
-        return 'Pi'
-
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        return self
-
-
-class E(Constant):
-    """mathematical constant in expression tree"""
-    __slots__ = ('value',)
-
-    def __init__(self) -> None:
-        self.value = e
-        super().__init__()
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}()'
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        return 'e'
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        return self.value
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        return mathml_tag('row',
-                          mathml_tag('n', 'E'))
-
-    def wolfram(self) -> str:
-        """return wolfram language representation of the tree"""
-        return 'E'
-
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        return self
-
-
 class Boolean(Constant):
     """real number in expression tree"""
     __slots__ = ('value',)
@@ -548,6 +485,12 @@ class Boolean(Constant):
     def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
         return self
+
+
+Pi = Real(pi)
+E = Real(e)
+One = Integer(1)
+Zero = Integer(0)
 
 
 class Variable(Term):
@@ -623,24 +566,18 @@ class Operator(Node, metaclass=ABCMeta):
         """abstract property, returns function name for wolfram language"""
 
     def __init__(self, child: Optional[Node] = None) -> None:
-        if not hasattr(self, 'children'):
-            self.children: tuple[Node, ...] = ()
+        self.children: tuple[Node, ...] = () if not hasattr(self, 'children') else self.children
         if child is not None:
             self.children += (child,)
         super().__init__()
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}{self.children}'
+        return f'{self.__class__.__name__}{repr(self.children)}'
 
     def dependencies(self) -> set[str]:
         """returns set of all variables present in the tree"""
         # ugly but at least mypy shuts up
         return set('').union(*(child.dependencies() for child in self.children)).difference(set(''))
-
-    @staticmethod
-    @abstractmethod
-    def _eval_func(x: ConstantType, y: ConstantType) -> ConstantType:
-        """calculation function for 2 elements"""
 
     def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
@@ -653,51 +590,7 @@ class Operator(Node, metaclass=ABCMeta):
             return Nodeify(self.evaluate(env)).simplify()
         except EvaluationError:
             pass
-        children = list(self.children)
-        old_repr = ''
-        while (new_repr := repr(children)) != old_repr:
-            # update loop condition
-            old_repr = new_repr
-            # simplify the children
-            children = [child.simplify(env) for child in children]
-            # consolidate all constants
-            children = self._consolidate_constants(children)
-            # use operator specific rules
-            children = self._simplify_terms(children, env)
-            # sort children
-            children.sort(key=lambda x: x.infix())
-        children = [child.simplify(env) for child in children]
-        # sort children
-        children.sort(key=lambda x: x.infix())
-        # figure out what to return
-        if len(children) > 1:
-            out = self.__class__(*children)
-            try:
-                return Nodeify(out.evaluate(env)).simplify()
-            except EvaluationError:
-                return out
-        else:
-            return children[0]
-
-    def _consolidate_constants(self, children: list[Node]) -> list[Node]:
-        """takes in a list of child nodes, consolidates all constants in the list"""
-        constants: list[Node] = []
-        non_constants: list[Node] = []
-        for child in children:
-            if isinstance(child, (Integer, Rational, Real, Complex)):
-                constants.append(child)
-            else:
-                non_constants.append(child)
-        if len(constants) > 1:
-            children = non_constants + [self.__class__(*constants).simplify()]
-        else:
-            children = non_constants + constants
-        return children
-
-    @staticmethod
-    @abstractmethod
-    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
-        """Simplification rules for operator"""
+        return self.__class__(*sorted([child.simplify(env) for child in self.children]))
 
     def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
@@ -706,6 +599,598 @@ class Operator(Node, metaclass=ABCMeta):
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[' + ', '.join(child.wolfram() for child in self.children) + ']'
+
+
+class UnaryOperator(Operator, metaclass=ABCMeta):
+    """Abstract Base Class for single-input operator in expression tree"""
+    __slots__ = 'child',
+    symbol = ''
+    wolfram_func = ''
+
+    def __init__(self, child: Node) -> None:
+        self.child = child
+        super().__init__(child)
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}({repr(self.child)})'
+
+    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
+        """Evaluates the expression tree using the values from env, returns int or float"""
+        try:
+            return self._eval_func(self.child.evaluate(env))
+        except Exception as ex:
+            raise EvaluationError from ex
+
+    @staticmethod
+    @abstractmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        return f'{self.symbol}({self.child.infix()})'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('i', self.symbol)
+                          + mathml_tag('fenced', self.child.mathml()))
+
+
+class TrigOperator(UnaryOperator, metaclass=ABCMeta):
+    """abstract base class for trigonometric operators"""
+
+
+class NonInvertedTrigOperator(TrigOperator, metaclass=ABCMeta):
+    """abstract base class for non-inverted trigonometric operators"""
+
+    def simplify(self, env: Optional[Environment] = None) -> Node:
+        """Simplification rules for operator"""
+        simplified = super().simplify(env)
+        if isinstance(simplified, NonInvertedTrigOperator):
+            child = simplified.child
+            if isinstance(child, Sum):
+                for i, child2 in enumerate(child.children):
+                    if isinstance(child2, Constant):
+                        ans = child2.evaluate()
+                        if not isinstance(ans, complex):
+                            if ans > pi:
+                                return simplified.__class__(Sum(*child.children[:i], *child.children[i + 1:],
+                                                                Nodeify(ans % pi)))
+                    elif isinstance(child2, Product):
+                        for j, child3 in enumerate(child2.children):
+                            if isinstance(child3, Constant):
+                                ans = child3.evaluate()
+                                if not isinstance(ans, complex):
+                                    if ans > pi:
+                                        return simplified.__class__(Sum(*child.children[:i], *child.children[i + 1:],
+                                                                        Product(*child2.children[:j],
+                                                                                *child2.children[j + 1:],
+                                                                                Nodeify(ans % pi))))
+        return simplified
+
+
+class InvertedTrigOperator(TrigOperator, metaclass=ABCMeta):
+    """abstract base class for non-inverted trigonometric operators"""
+
+
+class Sine(NonInvertedTrigOperator):
+    """Sine operator node in radians"""
+    __slots__ = ()
+    symbol = 'sin'
+    wolfram_func = 'Sin'
+
+    def derivative(self, variable: str) -> Node:
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Product(Cosine(self.child),
+                       self.child.derivative(variable))
+
+    @staticmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+        if isinstance(x, complex):
+            if x.imag == 0:
+                x = x.real
+            else:
+                raise EvaluationError from TypeError('sin of complex number')
+        try:
+            if (mod2pi := x % 2 * pi) == 0 or mod2pi == pi:
+                return 0
+            elif mod2pi == pi / 2:
+                return 1
+            elif mod2pi == pi + pi / 2:
+                return -1
+            else:
+                return sin(x)
+        except Exception as ex:
+            raise EvaluationError from ex
+
+
+class Cosine(NonInvertedTrigOperator):
+    """Cosine operator node in radians"""
+    __slots__ = ()
+    symbol = 'cos'
+    wolfram_func = 'Cos'
+
+    def derivative(self, variable: str) -> Node:
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Subtraction(Integer(0),
+                           Product(Sine(self.child),
+                                   self.child.derivative(variable)))
+
+    @staticmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+        if isinstance(x, complex):
+            if x.imag == 0:
+                x = x.real
+            else:
+                raise EvaluationError from TypeError('cos of complex number')
+        try:
+            if (mod2pi := x % 2 * pi) == 0:
+                return 1
+            elif mod2pi == pi:
+                return -1
+            elif mod2pi == pi / 2 or mod2pi == pi + pi / 2:
+                return 0
+            else:
+                return cos(x)
+        except Exception as ex:
+            raise EvaluationError from ex
+
+
+class Tangent(NonInvertedTrigOperator):
+    """Tangent operator node in radians"""
+    __slots__ = ()
+    symbol = 'tan'
+    wolfram_func = 'Tan'
+
+    def derivative(self, variable: str) -> Node:
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Division(self.child.derivative(variable),
+                        Exponent(Cosine(self.child),
+                                 Integer(2)))
+
+    @staticmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+        if isinstance(x, complex):
+            if x.imag == 0:
+                x = x.real
+            else:
+                raise EvaluationError from TypeError('tan of complex number')
+        try:
+            if (mod_pi := x % pi) == 0:
+                return 0
+            elif mod_pi == pi / 2:
+                raise EvaluationError from ValueError('tan of k*pi+pi/2 is infinity')
+            else:
+                return tan(x)
+        except Exception as ex:
+            raise EvaluationError from ex
+
+
+class ArcSine(InvertedTrigOperator):
+    """Arcsine operator node in radians"""
+    __slots__ = ()
+    symbol = 'asin'
+    wolfram_func = 'ArcSin'
+
+    def derivative(self, variable: str) -> Node:
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Division(self.child.derivative(variable),
+                        Exponent(Subtraction(Integer(1),
+                                             Exponent(self.child,
+                                                      Integer(2))),
+                                 Rational(Fraction(1 / 2))))
+
+    @staticmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+        if isinstance(x, complex):
+            if x.imag == 0:
+                x = x.real
+            else:
+                raise EvaluationError from TypeError('asin of complex number')
+        if x == 0:
+            return 0
+        elif x == 1:
+            return pi / 2
+        else:
+            try:
+                return asin(x)
+            except Exception as ex:
+                raise EvaluationError from ex
+
+
+class ArcCosine(InvertedTrigOperator):
+    """Arccosine operator node in radians"""
+    __slots__ = ()
+    symbol = 'acos'
+    wolfram_func = 'ArcCos'
+
+    def derivative(self, variable: str) -> Node:
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Subtraction(Integer(0),
+                           Division(self.child.derivative(variable),
+                                    Exponent(Subtraction(Integer(1),
+                                                         Exponent(self.child,
+                                                                  Integer(2))),
+                                             Rational(Fraction(1 / 2)))))
+
+    @staticmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+        if isinstance(x, complex):
+            if x.imag == 0:
+                x = x.real
+            else:
+                raise EvaluationError from TypeError('acos of complex number')
+        if x == 0:
+            return pi / 2
+        elif x == 1:
+            return 0
+        elif x == -1:
+            return pi
+        else:
+            try:
+                return acos(x)
+            except Exception as ex:
+                raise EvaluationError from ex
+
+
+class ArcTangent(InvertedTrigOperator):
+    """Arctangent operator node in radians"""
+    __slots__ = ()
+    symbol = 'atan'
+    wolfram_func = 'ArcTan'
+
+    def derivative(self, variable: str) -> Node:
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Division(self.child.derivative(variable),
+                        Sum(Integer(1),
+                            Exponent(self.child,
+                                     Integer(2))))
+
+    @staticmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+        if isinstance(x, complex):
+            if x.imag == 0:
+                x = x.real
+            else:
+                raise EvaluationError from TypeError('atan of complex number')
+        if x == 0:
+            return 0
+        else:
+            try:
+                return atan(x)
+            except Exception as ex:
+                raise EvaluationError from ex
+
+
+class Absolute(UnaryOperator):
+    """Absolute operator node"""
+    __slots__ = ()
+    symbol = 'abs'
+    wolfram_func = 'Abs'
+
+    def derivative(self, variable: str) -> Node:
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Division(Product(self.child,
+                                self.child.derivative(variable)),
+                        Absolute(self.child))
+
+    @staticmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+        try:
+            if isinstance(x, complex):
+                return (x.real ** 2 + x.imag ** 2) ** 0.5
+            elif x >= 0:
+                return x
+            else:
+                return -x
+        except Exception as ex:
+            raise EvaluationError from ex
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('o', '|')
+                          + self.child.mathml()
+                          + mathml_tag('o', '|'))
+
+    def simplify(self, env: Optional[Environment] = None) -> Node:
+        """returns a simplified version of the tree"""
+        out = super().simplify(env)
+        if isinstance(out, Absolute):
+            if isinstance(out.child, (Absolute, Negate)):
+                return out.child
+            elif isinstance(out.child, Product):
+                return Product(*(Absolute(x) for x in out.child.children)).simplify(env)
+            return out
+        else:
+            return out.simplify(env)
+
+
+class Negate(UnaryOperator):
+    """Unary negative operator"""
+    __slots__ = ()
+    symbol = '-'
+    wolfram_func = 'Minus'
+    _parentheses_needed = '(ArbitraryOperator, Negate, Derivative, Piecewise, Factorial)'
+
+    def derivative(self, variable: str) -> Node:
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Negate(self.child.derivative(variable))
+
+    @staticmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+        return -x
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        if isinstance(self.child, eval(self._parentheses_needed)):
+            return f'{self.symbol}({self.child.infix()})'
+        else:
+            return f'{self.symbol}{self.child.infix()}'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        if len(self.child.list_nodes()) > 1:
+            return mathml_tag('row',
+                              mathml_tag('i', self.symbol)
+                              + mathml_tag('fenced', self.child.mathml()))
+        else:
+            return mathml_tag('row',
+                              mathml_tag('i', self.symbol)
+                              + self.child.mathml())
+
+    def simplify(self, env: Optional[Environment] = None) -> Node:
+        """returns a simplified version of the tree"""
+        out = super().simplify(env)
+        if isinstance(out, Negate):
+            if isinstance(out.child, Negate):
+                return out.child.child
+            elif isinstance(out.child, Product):
+                return Product(Integer(-1), *out.child.children).simplify(env)
+            elif isinstance(out.child, Sum):
+                return Sum(*(Negate(x) for x in out.child.children)).simplify(env)
+            return out
+        else:
+            return out.simplify(env)
+
+
+class Invert(UnaryOperator):
+    """Unary inversion operator"""
+    __slots__ = ()
+    symbol = '1/'
+    wolfram_func = 'Divide'
+    _parentheses_needed = '(ArbitraryOperator, Derivative, Piecewise, Factorial)'
+
+    def derivative(self, variable: str) -> Node:
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        if variable in self.dependencies():
+            return Division(self.child.derivative(variable), Exponent(self.child, Integer(2)))
+        else:
+            return Integer(0)
+
+    @staticmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+        try:
+            ans = 1 / x
+            if isinstance(ans, complex):
+                if ans.imag == 0:
+                    ans = ans.real
+                else:
+                    return ans
+            try:
+                if int(ans) == ans:
+                    final_ans: ConstantType = int(ans)
+                else:
+                    final_ans = ans
+            except OverflowError:
+                final_ans = ans
+            return final_ans
+        except Exception as ex:
+            raise EvaluationError from ex
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        if isinstance(self.child, eval(self._parentheses_needed)):
+            return f'{self.symbol}({self.child.infix()})'
+        else:
+            return f'{self.symbol}{self.child.infix()}'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('frac',
+                                     mathml_tag('row',
+                                                mathml_tag('n', '1'))
+                                     + self.child.mathml()))
+
+    def simplify(self, env: Optional[Environment] = None) -> Node:
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(env)
+        if isinstance(simplified, self.__class__):
+            if isinstance(simplified.child, Invert):
+                return simplified.child.child.simplify()
+            elif isinstance(simplified.child, Exponent):
+                return Exponent(simplified.child.child1, -simplified.child.child2).simplify(env)
+        return simplified
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'Divide[1, {self.child.wolfram()}]'
+
+
+class Floor(UnaryOperator):
+    """floor operator"""
+    __slots__ = ()
+    symbol = 'floor'
+    wolfram_func = 'Floor'
+
+    def derivative(self, variable: str) -> Node:
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Integer(0)
+
+    @staticmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+        try:
+            return floor(x) if not isinstance(x, complex) else complex(floor(x.real), floor(x.imag))
+        except Exception as ex:
+            raise EvaluationError from ex
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('o', '⌊')
+                          + self.child.mathml()
+                          + mathml_tag('o', '⌋'))
+
+    def simplify(self, env: Optional[Environment] = None) -> Node:
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(env)
+        if isinstance(simplified, self.__class__):
+            if isinstance(simplified.child, (Floor, Ceiling)):
+                return simplified.child.child.simplify(env)
+        return simplified
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[{self.child.wolfram()}]'
+
+
+class Ceiling(UnaryOperator):
+    """ceiling operator"""
+    __slots__ = ()
+    symbol = 'ceil'
+    wolfram_func = 'Ceiling'
+
+    def derivative(self, variable: str) -> Node:
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+
+    @staticmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+        try:
+            return ceil(x) if not isinstance(x, complex) else complex(ceil(x.real), ceil(x.imag))
+        except Exception as ex:
+            raise EvaluationError from ex
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          mathml_tag('o', '⌈')
+                          + self.child.mathml()
+                          + mathml_tag('o', '⌉'))
+
+    def simplify(self, env: Optional[Environment] = None) -> Node:
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(env)
+        if isinstance(simplified, self.__class__):
+            if isinstance(simplified.child, (Floor, Ceiling)):
+                return simplified.child.child.simplify(env)
+        return simplified
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'{self.wolfram_func}[{self.child.wolfram()}]'
+
+
+class Factorial(UnaryOperator):
+    """factorial operator"""
+    __slots__ = ()
+    symbol = '!'
+    wolfram_func = 'Factorial'
+    _parentheses_needed = '(ArbitraryOperator, Negate, Invert, Derivative, Piecewise)'
+
+    def derivative(self, variable: str) -> Node:
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        raise NotImplementedError('derivative of factorial not implemented')
+
+    @staticmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+        try:
+            if isinstance(x, int):
+                return factorial(x)
+            elif isinstance(x, complex) and x.imag == 0 and x.real % 1 == 0:
+                return factorial(x.real)
+            elif not isinstance(x, complex):
+                return gamma(1 + x)
+            else:
+                raise EvaluationError from TypeError('factorial not defined for complex number')
+        except Exception as ex:
+            raise EvaluationError from ex
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        if len(self.child.list_nodes()) > 1:
+            return f'({self.child.infix()}){self.symbol}'
+        else:
+            return f'{self.child.infix()}{self.symbol}'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        return mathml_tag('row',
+                          self.child.mathml()
+                          + mathml_tag('o', '!'))
+
+    def wolfram(self) -> str:
+        """return wolfram language representation of the tree"""
+        return f'Factorial[{self.child.wolfram()}]'
+
+
+class Not(UnaryOperator):
+    """Logical not operator"""
+    __slots__ = ()
+    symbol = '~'
+    wolfram_func = 'Not'
+
+    def derivative(self, variable: str) -> Node:
+        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
+        return Not(self.child.derivative(variable))
+
+    @staticmethod
+    def _eval_func(x: ConstantType) -> ConstantType:
+        """calculation function for 1 element"""
+        return not x
+
+    def infix(self) -> str:
+        """returns infix representation of the tree"""
+        if len(self.child.list_nodes()) > 1:
+            return f'{self.symbol}({self.child.infix()})'
+        else:
+            return f'{self.symbol}{self.child.infix()}'
+
+    def mathml(self) -> str:
+        """returns the MathML representation of the tree"""
+        if len(self.child.list_nodes()) > 1:
+            return mathml_tag('row',
+                              mathml_tag('i', self.symbol)
+                              + mathml_tag('fenced', self.child.mathml()))
+        else:
+            return mathml_tag('row',
+                              mathml_tag('i', self.symbol)
+                              + self.child.mathml())
+
+    def simplify(self, env: Optional[Environment] = None) -> Node:
+        """returns a simplified version of the tree"""
+        simplified = super().simplify(env)
+        if isinstance(simplified, self.__class__):
+            if isinstance(simplified.child, Not):
+                return simplified.child.child.simplify(env)
+            elif isinstance(simplified.child, And):
+                return Or(*(Not(child2) for child2 in simplified.child.children)).simplify(env)
+            elif isinstance(simplified.child, Or):
+                return And(*(Not(child2) for child2 in simplified.child.children)).simplify(env)
+        return simplified
 
 
 class ArbitraryOperator(Operator, metaclass=ABCMeta):
@@ -731,6 +1216,11 @@ class ArbitraryOperator(Operator, metaclass=ABCMeta):
         except Exception as ex:
             raise EvaluationError from ex
 
+    @staticmethod
+    @abstractmethod
+    def _eval_func(x: ConstantType, y: ConstantType) -> ConstantType:
+        """calculation function for 2 elements"""
+
     def infix(self) -> str:
         """returns infix representation of the tree"""
         return self.symbol.join(child.infix() if not isinstance(child, eval(self._parentheses_needed))
@@ -743,6 +1233,65 @@ class ArbitraryOperator(Operator, metaclass=ABCMeta):
                                                             if isinstance(child, eval(self._parentheses_needed))
                                                             else mathml_tag('fenced', mathml_tag('row', child.mathml()))
                                                             for child in self.children))
+
+    def simplify(self, env: Optional[Environment] = None) -> Node:
+        """returns a simplified version of the tree"""
+        """returns a simplified version of the tree"""
+        # try to return single constant
+        try:
+            return Nodeify(self.evaluate(env)).simplify()
+        except EvaluationError:
+            pass
+        children = list(self.children)
+        old_repr = ''
+        while (new_repr := repr(children)) != old_repr:
+            # update loop condition
+            old_repr = new_repr
+            # simplify the children
+            children = [child.simplify(env) for child in children]
+            # consolidate all constants
+            children = self._consolidate_constants(children)
+            # use operator specific rules
+            children = self._simplify_terms(children)
+            # sort children
+            children.sort(key=lambda x: x.infix())
+        children = [child.simplify(env) for child in children]
+        # sort children
+        children.sort(key=lambda x: x.infix())
+        # figure out what to return
+        out = self.__class__(*children)
+        try:
+            return Nodeify(out.evaluate(env)).simplify()
+        except EvaluationError:
+            pass
+        if isinstance(out, Operator):
+            if len(out.children) == 1:
+                return out.children[0]
+            elif len(out.children) == 0:
+                return Nodeify(self.default_value)
+            else:
+                return out
+        return out.simplify()
+
+    def _consolidate_constants(self, children: list[Node]) -> list[Node]:
+        """takes in a list of child nodes, consolidates all constants in the list"""
+        constants: list[Node] = []
+        non_constants: list[Node] = []
+        for child in children:
+            if isinstance(child, (Integer, Rational, Real, Complex)):
+                constants.append(child)
+            else:
+                non_constants.append(child)
+        if len(constants) > 1:
+            children = non_constants + [self.__class__(*constants).simplify()]
+        else:
+            children = non_constants + constants
+        return children
+
+    @staticmethod
+    def _simplify_terms(children: list[Node]) -> list[Node]:
+        """Simplification rules for operator"""
+        return children
 
 
 class Sum(ArbitraryOperator):
@@ -763,7 +1312,7 @@ class Sum(ArbitraryOperator):
         return x + y
 
     @staticmethod
-    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node]) -> list[Node]:
         """returns a simplified version of the tree"""
 
         def separate(arr: tuple[Node, ...]) -> tuple[Node, tuple[Node, ...]]:
@@ -867,7 +1416,7 @@ class Product(ArbitraryOperator):
         return x * y
 
     @staticmethod
-    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node]) -> list[Node]:
         """returns a simplified version of the tree"""
         if len(children) == 1:
             return children
@@ -888,13 +1437,13 @@ class Product(ArbitraryOperator):
             # distribute over sums
             elif isinstance(child, Sum):
                 del children[i]
-                return [Sum(*(Product(child2, *children) for child2 in child.children)).simplify(env)]
+                return [Sum(*(Product(child2, *children) for child2 in child.children)).simplify()]
             # consolidate exponents
             elif isinstance(child, Exponent):
                 for j, child2 in enumerate(children):
                     if i != j and isinstance(child2, Exponent) and repr(child.child1) == repr(child2.child1):
                         del children[j], children[i]
-                        return children + [Exponent(child.child1, Sum(child.child2, child2.child2)).simplify(env)]
+                        return children + [Exponent(child.child1, Sum(child.child2, child2.child2)).simplify()]
             # remove inversions
             elif isinstance(child, Invert):
                 if child.child in children:
@@ -956,7 +1505,7 @@ class Modulus(ArbitraryOperator):
             raise NotImplementedError('mod of complex numbers not implemented')
 
     @staticmethod
-    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node]) -> list[Node]:
         """returns a simplified version of the tree"""
         return children
 
@@ -997,7 +1546,7 @@ class Exponent(BinaryOperator):
 
     def __init__(self, child1: Node, child2: Optional[Node] = None):
         if child2 is None:
-            child1, child2 = E(), child1
+            child1, child2 = E, child1
         super().__init__(child1, child2)
 
     def derivative(self, variable: str) -> Node:
@@ -1008,7 +1557,7 @@ class Exponent(BinaryOperator):
                                             self.child1)),
                            Product(self.child2.derivative(variable),
                                    Logarithm(self.child1,
-                                             E()))))
+                                             E))))
 
     def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
         """Evaluate expression tree"""
@@ -1017,8 +1566,10 @@ class Exponent(BinaryOperator):
             ans2 = self.child2.evaluate(env)
             test1 = float(ans1) if not isinstance(ans1, complex) else float(ans1.real ** 2 + ans1.imag ** 2) ** 0.5
             test2 = float(ans2) if not isinstance(ans2, complex) else float(ans2.real ** 2 + ans2.imag ** 2) ** 0.5
-            float(test1) ** float(test2)
-            return ans1 ** ans2
+            if float(test1) ** float(test2) < 1e6:
+                return ans1 ** ans2
+            else:
+                return float(test1) ** float(test2)
         except Exception as ex:
             raise EvaluationError from ex
 
@@ -1084,7 +1635,7 @@ class Logarithm(BinaryOperator):
 
     def __init__(self, child1: Node, child2: Optional[Node] = None):
         if child2 is None:
-            child2 = E()
+            child2 = E
         super().__init__(child1, child2)
 
     def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
@@ -1110,14 +1661,14 @@ class Logarithm(BinaryOperator):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Division(Subtraction(Division(Product(self.child1.derivative(variable),
                                                      Logarithm(self.child2,
-                                                               E())),
+                                                               E)),
                                              self.child1),
                                     Division(Product(self.child2.derivative(variable),
                                                      Logarithm(self.child1,
-                                                               E())),
+                                                               E)),
                                              self.child2)),
                         Exponent(Logarithm(self.child2,
-                                           E()),
+                                           E),
                                  Integer(2)))
 
     def infix(self) -> str:
@@ -1174,7 +1725,7 @@ class And(ArbitraryLogicalOperator):
         return bool(x) & bool(y)
 
     @staticmethod
-    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node]) -> list[Node]:
         """returns a simplified version of the tree"""
         for i, child in enumerate(children):
             if isinstance(child, Constant):
@@ -1204,7 +1755,7 @@ class Or(ArbitraryLogicalOperator):
         return bool(x) | bool(y)
 
     @staticmethod
-    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node]) -> list[Node]:
         """returns a simplified version of the tree"""
         for i, child in enumerate(children):
             if isinstance(child, Constant):
@@ -1234,7 +1785,7 @@ class Xor(ArbitraryLogicalOperator):
         return bool(x) ^ bool(y)
 
     @staticmethod
-    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node]) -> list[Node]:
         """returns a simplified version of the tree"""
         if len(children) > 1:
             for i, child in enumerate(children):
@@ -1245,9 +1796,9 @@ class Xor(ArbitraryLogicalOperator):
                     else:
                         del children[i]
                         if len(children) > 1:
-                            return [Not(Xor(*children)).simplify(env)]
+                            return [Not(Xor(*children)).simplify()]
                         elif len(children) == 1:
-                            return [Not(children[0]).simplify(env)]
+                            return [Not(children[0]).simplify()]
                         else:
                             return [Boolean(False)]
         return children
@@ -1286,7 +1837,7 @@ class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
         return Integer(0)
 
     @staticmethod
-    def _simplify_terms(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify_terms(children: list[Node]) -> list[Node]:
         """returns a simplified version of the tree"""
         return children
 
@@ -1391,574 +1942,6 @@ class LessEqual(ComparisonOperator):
             return x <= y
         else:
             raise EvaluationError from TypeError('Comparison not defined in complex space')
-
-
-class UnaryOperator(Node, metaclass=ABCMeta):
-    """Abstract Base Class for single-input operator in expression tree"""
-    __slots__ = 'child',
-    symbol = ''
-    wolfram_func = ''
-
-    def __init__(self, child: Node) -> None:
-        assert isinstance(child, Node)
-        self.child = child
-        super().__init__()
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({repr(self.child)})'
-
-    def dependencies(self) -> set[str]:
-        """returns set of all variables present in the tree"""
-        return self.child.dependencies()
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        return f'{self.symbol}({self.child.infix()})'
-
-    def list_nodes(self) -> list[Node]:
-        """returns a list of all nodes in the tree"""
-        out: list[Node] = [self]
-        return out + self.child.list_nodes()
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        return mathml_tag('row',
-                          mathml_tag('i', self.symbol)
-                          + mathml_tag('fenced', self.child.mathml()))
-
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        try:
-            return Nodeify(self.evaluate(env)).simplify()
-        except EvaluationError:
-            pass
-        new = self.__class__(self.child.simplify(env))
-        try:
-            return Nodeify(new.evaluate(env))
-        except EvaluationError:
-            pass
-        return new
-
-    def substitute(self, var: str, sub: Node) -> Node:
-        """substitute a variable with an expression inside this tree, returns the resulting tree"""
-        return self.__class__(self.child.substitute(var, sub))
-
-    def wolfram(self) -> str:
-        """return wolfram language representation of the tree"""
-        return f'{self.wolfram_func}[{self.child.wolfram()}]'
-
-
-class Sine(UnaryOperator):
-    """Sine operator node in radians"""
-    __slots__ = ()
-    symbol = 'sin'
-    wolfram_func = 'Sin'
-
-    def derivative(self, variable: str) -> Node:
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Product(Cosine(self.child),
-                       self.child.derivative(variable))
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        child_ans = self.child.evaluate(env)
-        if isinstance(child_ans, complex):
-            if child_ans.imag == 0:
-                child_ans = child_ans.real
-            else:
-                raise EvaluationError from TypeError('mod of complex number')
-        try:
-            if (mod2pi := child_ans % 2 * pi) == 0 or mod2pi == pi:
-                return 0
-            elif mod2pi == pi / 2:
-                return 1
-            elif mod2pi == pi + pi / 2:
-                return -1
-            else:
-                return sin(child_ans)
-        except Exception as ex:
-            raise EvaluationError from ex
-
-
-class Cosine(UnaryOperator):
-    """Cosine operator node in radians"""
-    __slots__ = ()
-    symbol = 'cos'
-    wolfram_func = 'Cos'
-
-    def derivative(self, variable: str) -> Node:
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Subtraction(Integer(0),
-                           Product(Sine(self.child),
-                                   self.child.derivative(variable)))
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        child_ans = self.child.evaluate(env)
-        if isinstance(child_ans, complex):
-            if child_ans.imag == 0:
-                child_ans = child_ans.real
-            else:
-                raise EvaluationError from TypeError('mod of complex number')
-        try:
-            if (mod2pi := child_ans % 2 * pi) == 0:
-                return 1
-            elif mod2pi == pi:
-                return -1
-            elif mod2pi == pi / 2 or mod2pi == pi + pi / 2:
-                return 0
-            else:
-                return cos(child_ans)
-        except Exception as ex:
-            raise EvaluationError from ex
-
-
-class Tangent(UnaryOperator):
-    """Tangent operator node in radians"""
-    __slots__ = ()
-    symbol = 'tan'
-    wolfram_func = 'Tan'
-
-    def derivative(self, variable: str) -> Node:
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Division(self.child.derivative(variable),
-                        Exponent(Cosine(self.child),
-                                 Integer(2)))
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        child_ans = self.child.evaluate(env)
-        if isinstance(child_ans, complex):
-            if child_ans.imag == 0:
-                child_ans = child_ans.real
-            else:
-                raise EvaluationError from TypeError('mod of complex number')
-        try:
-            if (mod_pi := child_ans % pi) == 0:
-                return 0
-            elif mod_pi == pi / 2:
-                raise EvaluationError from ValueError('tan of k*pi+pi/2 is infinity')
-            else:
-                return tan(child_ans)
-        except Exception as ex:
-            raise EvaluationError from ex
-
-
-class ArcSine(UnaryOperator):
-    """Arcsine operator node in radians"""
-    __slots__ = ()
-    symbol = 'asin'
-    wolfram_func = 'ArcSin'
-
-    def derivative(self, variable: str) -> Node:
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Division(self.child.derivative(variable),
-                        Exponent(Subtraction(Integer(1),
-                                             Exponent(self.child,
-                                                      Integer(2))),
-                                 Rational(Fraction(1 / 2))))
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        child_ans = self.child.evaluate(env)
-        if isinstance(child_ans, complex):
-            if child_ans.imag == 0:
-                child_ans = child_ans.real
-            else:
-                raise EvaluationError from TypeError('mod of complex number')
-        if child_ans == 0:
-            return 0
-        elif child_ans == 1:
-            return pi / 2
-        else:
-            try:
-                return asin(child_ans)
-            except Exception as ex:
-                raise EvaluationError from ex
-
-
-class ArcCosine(UnaryOperator):
-    """Arccosine operator node in radians"""
-    __slots__ = ()
-    symbol = 'acos'
-    wolfram_func = 'ArcCos'
-
-    def derivative(self, variable: str) -> Node:
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Subtraction(Integer(0),
-                           Division(self.child.derivative(variable),
-                                    Exponent(Subtraction(Integer(1),
-                                                         Exponent(self.child,
-                                                                  Integer(2))),
-                                             Rational(Fraction(1 / 2)))))
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        child_ans = self.child.evaluate(env)
-        if isinstance(child_ans, complex):
-            if child_ans.imag == 0:
-                child_ans = child_ans.real
-            else:
-                raise EvaluationError from TypeError('mod of complex number')
-        if child_ans == 0:
-            return pi / 2
-        elif child_ans == 1:
-            return 0
-        elif child_ans == -1:
-            return pi
-        else:
-            try:
-                return acos(child_ans)
-            except Exception as ex:
-                raise EvaluationError from ex
-
-
-class ArcTangent(UnaryOperator):
-    """Arctangent operator node in radians"""
-    __slots__ = ()
-    symbol = 'atan'
-    wolfram_func = 'ArcTan'
-
-    def derivative(self, variable: str) -> Node:
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Division(self.child.derivative(variable),
-                        Sum(Integer(1),
-                            Exponent(self.child,
-                                     Integer(2))))
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        child_ans = self.child.evaluate(env)
-        if isinstance(child_ans, complex):
-            if child_ans.imag == 0:
-                child_ans = child_ans.real
-            else:
-                raise EvaluationError from TypeError('mod of complex number')
-        if child_ans == 0:
-            return 0
-        else:
-            try:
-                return atan(child_ans)
-            except Exception as ex:
-                raise EvaluationError from ex
-
-
-class Absolute(UnaryOperator):
-    """Absolute operator node"""
-    __slots__ = ()
-    symbol = 'abs'
-    wolfram_func = 'Abs'
-
-    def derivative(self, variable: str) -> Node:
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Division(Product(self.child,
-                                self.child.derivative(variable)),
-                        Absolute(self.child))
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        child_ans = self.child.evaluate(env)
-        try:
-            if isinstance(child_ans, complex):
-                return (child_ans.real ** 2 + child_ans.imag ** 2) ** 0.5
-            elif child_ans >= 0:
-                return child_ans
-            else:
-                return -child_ans
-        except Exception as ex:
-            raise EvaluationError from ex
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        return mathml_tag('row',
-                          mathml_tag('o', '|')
-                          + self.child.mathml()
-                          + mathml_tag('o', '|'))
-
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(env)
-        if isinstance(simplified, self.__class__):
-            if isinstance(simplified.child, (Absolute, Negate)):
-                return self.__class__(simplified.child.child).simplify(env)
-            elif isinstance(simplified.child, Product):
-                return Product(*(self.__class__(x) for x in simplified.child.children)).simplify(env)
-        return simplified
-
-
-class Negate(UnaryOperator):
-    """Unary negative operator"""
-    __slots__ = ()
-    symbol = '-'
-    wolfram_func = 'Minus'
-    _parentheses_needed = '(ArbitraryOperator, Negate, Derivative, Piecewise, Factorial)'
-
-    def derivative(self, variable: str) -> Node:
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Negate(self.child.derivative(variable))
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        try:
-            return -self.child.evaluate(env)
-        except Exception as ex:
-            raise EvaluationError from ex
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        if isinstance(self.child, eval(self._parentheses_needed)):
-            return f'{self.symbol}({self.child.infix()})'
-        else:
-            return f'{self.symbol}{self.child.infix()}'
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        if len(self.child.list_nodes()) > 1:
-            return mathml_tag('row',
-                              mathml_tag('i', self.symbol)
-                              + mathml_tag('fenced', self.child.mathml()))
-        else:
-            return mathml_tag('row',
-                              mathml_tag('i', self.symbol)
-                              + self.child.mathml())
-
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(env)
-        if isinstance(simplified, self.__class__):
-            if isinstance(simplified.child, Negate):
-                return simplified.child.child.simplify(env)
-            elif isinstance(simplified.child, Sum):
-                return Sum(*(self.__class__(x) for x in simplified.child.children)).simplify(env)
-        return simplified
-
-
-class Invert(UnaryOperator):
-    """Unary inversion operator"""
-    __slots__ = ()
-    symbol = '1/'
-    wolfram_func = 'Divide'
-    _parentheses_needed = '(ArbitraryOperator, Derivative, Piecewise, Factorial)'
-
-    def derivative(self, variable: str) -> Node:
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        if variable in self.dependencies():
-            return Division(self.child.derivative(variable), Exponent(self.child, Integer(2)))
-        else:
-            return Integer(0)
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        child = self.child.evaluate(env)
-        try:
-            ans = 1 / child
-            if isinstance(ans, complex):
-                if ans.imag == 0:
-                    ans = ans.real
-                else:
-                    return ans
-            try:
-                if int(ans) == ans:
-                    final_ans: ConstantType = int(ans)
-                else:
-                    final_ans = ans
-            except OverflowError:
-                final_ans = ans
-            return final_ans
-        except Exception as ex:
-            raise EvaluationError from ex
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        if isinstance(self.child, eval(self._parentheses_needed)):
-            return f'{self.symbol}({self.child.infix()})'
-        else:
-            return f'{self.symbol}{self.child.infix()}'
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        return mathml_tag('row',
-                          mathml_tag('frac',
-                                     mathml_tag('row',
-                                                mathml_tag('n', '1'))
-                                     + self.child.mathml()))
-
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(env)
-        if isinstance(simplified, self.__class__):
-            if isinstance(simplified.child, Invert):
-                return simplified.child.child.simplify()
-        return simplified
-
-    def wolfram(self) -> str:
-        """return wolfram language representation of the tree"""
-        return f'Divide[1, {self.child.wolfram()}]'
-
-
-class Floor(UnaryOperator):
-    """floor operator"""
-    __slots__ = ()
-    symbol = 'floor'
-    wolfram_func = 'Floor'
-
-    def derivative(self, variable: str) -> Node:
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Integer(0)
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        ans = self.child.evaluate(env)
-        try:
-            return floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag))
-        except Exception as ex:
-            raise EvaluationError from ex
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        return mathml_tag('row',
-                          mathml_tag('o', '⌊')
-                          + self.child.mathml()
-                          + mathml_tag('o', '⌋'))
-
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(env)
-        if isinstance(simplified, self.__class__):
-            if isinstance(simplified.child, (Floor, Ceiling)):
-                return simplified.child.child.simplify(env)
-        return simplified
-
-    def wolfram(self) -> str:
-        """return wolfram language representation of the tree"""
-        return f'{self.wolfram_func}[{self.child.wolfram()}]'
-
-
-class Ceiling(UnaryOperator):
-    """ceiling operator"""
-    __slots__ = ()
-    symbol = 'ceil'
-    wolfram_func = 'Ceiling'
-
-    def derivative(self, variable: str) -> Node:
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Integer(0)
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        ans = self.child.evaluate(env)
-        try:
-            return ceil(ans) if not isinstance(ans, complex) else complex(ceil(ans.real), ceil(ans.imag))
-        except Exception as ex:
-            raise EvaluationError from ex
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        return mathml_tag('row',
-                          mathml_tag('o', '⌈')
-                          + self.child.mathml()
-                          + mathml_tag('o', '⌉'))
-
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(env)
-        if isinstance(simplified, self.__class__):
-            if isinstance(simplified.child, (Floor, Ceiling)):
-                return simplified.child.child.simplify(env)
-        return simplified
-
-    def wolfram(self) -> str:
-        """return wolfram language representation of the tree"""
-        return f'{self.wolfram_func}[{self.child.wolfram()}]'
-
-
-class Factorial(UnaryOperator):
-    """factorial operator"""
-    __slots__ = ()
-    symbol = '!'
-    wolfram_func = 'Factorial'
-    _parentheses_needed = '(ArbitraryOperator, Negate, Invert, Derivative, Piecewise)'
-
-    def derivative(self, variable: str) -> Node:
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        raise NotImplementedError('derivative of factorial not implemented')
-
-    def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        ans = self.child.evaluate(env)
-        try:
-            if isinstance(ans, int):
-                return factorial(ans)
-            elif isinstance(ans, complex) and ans.imag == 0 and ans.real % 1 == 0:
-                return factorial(ans.real)
-            elif not isinstance(ans, complex):
-                return gamma(1 + ans)
-            else:
-                raise EvaluationError from TypeError('factorial not defined for complex number')
-        except Exception as ex:
-            raise EvaluationError from ex
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        if len(self.child.list_nodes()) > 1:
-            return f'({self.child.infix()}){self.symbol}'
-        else:
-            return f'{self.child.infix()}{self.symbol}'
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        return mathml_tag('row',
-                          self.child.mathml()
-                          + mathml_tag('o', '!'))
-
-    def wolfram(self) -> str:
-        """return wolfram language representation of the tree"""
-        return f'Factorial[{self.child.wolfram()}]'
-
-
-class Not(UnaryOperator):
-    """Logical not operator"""
-    __slots__ = ()
-    symbol = '~'
-    wolfram_func = 'Not'
-
-    def derivative(self, variable: str) -> Node:
-        """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
-        return Not(self.child.derivative(variable))
-
-    def evaluate(self, env: Optional[Environment] = None) -> bool:
-        """Evaluates the expression tree using the values from env, returns int or float"""
-        return not self.child.evaluate(env)
-
-    def infix(self) -> str:
-        """returns infix representation of the tree"""
-        if len(self.child.list_nodes()) > 1:
-            return f'{self.symbol}({self.child.infix()})'
-        else:
-            return f'{self.symbol}{self.child.infix()}'
-
-    def mathml(self) -> str:
-        """returns the MathML representation of the tree"""
-        if len(self.child.list_nodes()) > 1:
-            return mathml_tag('row',
-                              mathml_tag('i', self.symbol)
-                              + mathml_tag('fenced', self.child.mathml()))
-        else:
-            return mathml_tag('row',
-                              mathml_tag('i', self.symbol)
-                              + self.child.mathml())
-
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(env)
-        if isinstance(simplified, self.__class__):
-            if isinstance(simplified.child, Not):
-                return simplified.child.child.simplify(env)
-            elif isinstance(simplified.child, And):
-                return Or(*(Not(child2) for child2 in simplified.child.children)).simplify(env)
-            elif isinstance(simplified.child, Or):
-                return And(*(Not(child2) for child2 in simplified.child.children)).simplify(env)
-        return simplified
 
 
 class Derivative(Node):
