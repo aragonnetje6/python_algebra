@@ -13,6 +13,8 @@ from math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcT
     UnaryOperator, Variable, Environment, Xnor, Xor
 from pytest import fixture, raises
 
+debug = False
+
 
 @fixture(scope="module")
 def x() -> Variable:
@@ -93,7 +95,7 @@ class TestBinaryOperators:
 
     @given(env=environment('x'))
     def test_3(self, x: Variable, env: Environment) -> None:
-        assert IsEqual(x + 0, x).evaluate(env)
+        assert (x + 0).evaluate(env) == x.evaluate(env)
 
     @given(env=environment('x'))
     def test_4(self, x: Variable, env: Environment) -> None:
@@ -169,15 +171,8 @@ class TestBinaryOperators:
     def test_18(self, x: Variable, env: Environment) -> None:
         assert IsEqual(x ** 0, Integer(1)).evaluate(env)
 
-    @given(env=environment('xy'))
-    def test_19(self, x: Variable, y: Variable, env: Environment) -> None:
-        try:
-            assert IsEqual((x + y) ** 2, x ** 2 + y ** 2 + 2 * x * y).evaluate(env)
-        except EvaluationError:
-            pass
-
     @given(env=environment('x'))
-    def test_20(self, x: Variable, env: Environment) -> None:
+    def test_19(self, x: Variable, env: Environment) -> None:
         try:
             assert IsEqual(Logarithm(x, x), Integer(1)).evaluate(env)
         except EvaluationError:
@@ -187,19 +182,19 @@ class TestBinaryOperators:
 class TestLogicOperators:
     @given(env=environment('x', True))
     def test_not(self, x: Variable, env: Environment) -> None:
-        assert IsEqual(Not(x), Nand(x, x)).evaluate(env)
+        assert Not(x).evaluate(env) == Nand(x, x).evaluate(env)
 
     @given(env=environment('xy', True))
     def test_and(self, x: Variable, y: Variable, env: Environment) -> None:
-        assert IsEqual(And(x, y), Not(Nand(x, y))).evaluate(env)
+        assert And(x, y).evaluate(env) == Not(Nand(x, y)).evaluate(env)
 
     @given(env=environment('xy', True))
     def test_or(self, x: Variable, y: Variable, env: Environment) -> None:
-        assert IsEqual(Or(x, y), Nand(Not(x), Not(y))).evaluate(env)
+        assert Or(x, y).evaluate(env) == Nand(Not(x), Not(y)).evaluate(env)
 
     @given(env=environment('xy', True))
     def test_xor(self, x: Variable, y: Variable, env: Environment) -> None:
-        assert IsEqual(Xor(x, y), And(Or(x, y), Nand(x, y))).evaluate(env)
+        assert Xor(x, y).evaluate(env) == And(Or(x, y), Nand(x, y)).evaluate(env)
 
 
 class TestUnaryOperators:
@@ -245,6 +240,9 @@ class TestSimplify:
     @settings(deadline=1000)
     @given(env=environment('xyz'), expr=math_expression)
     def test_same_answer(self, expr: Node, env: Environment) -> None:
+        if debug:
+            with open('tests.txt', 'w') as file:
+                file.write(repr(expr))
         try:
             assert IsEqual(expr, expr.simplify()).evaluate(env)
         except EvaluationError:
@@ -254,11 +252,17 @@ class TestSimplify:
     @settings(deadline=1000)
     @given(expr=math_expression)
     def test_idempotence(self, expr: Node) -> None:
+        if debug:
+            with open('tests.txt', 'w') as file:
+                file.write(repr(expr))
         assert repr(a := expr.simplify()) == repr(a.simplify())
 
     @settings(deadline=1000)
     @given(env=environment('xyz', use_booleans=True), expr=bool_expression)
     def test_same_answer_bool(self, expr: Node, env: Environment) -> None:
+        if debug:
+            with open('tests.txt', 'w') as file:
+                file.write(repr(expr))
         try:
             assert expr.evaluate(env) == expr.simplify().evaluate(env)
         except EvaluationError:
@@ -268,6 +272,9 @@ class TestSimplify:
     @settings(deadline=1000)
     @given(expr=bool_expression)
     def test_idempotence_bool(self, expr: Node) -> None:
+        if debug:
+            with open('tests.txt', 'w') as file:
+                file.write(repr(expr))
         assert repr(a := expr.simplify()) == repr(a.simplify())
 
 
