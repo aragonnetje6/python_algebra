@@ -37,7 +37,7 @@ def generate_html_code(expression: Node) -> str:
                  + tag('body',
                        tag('math',
                            expression.mathml(),
-                           'xmlns = "http://www.w3.org/1998/Math/MathML" id = "expr"')), 'lang=\'en\'')
+                           'xmlns = "https://www.w3.org/1998/Math/MathML" id = "expr"')), 'lang=\'en\'')
 
 
 def generate_html_doc(expression: Node) -> None:
