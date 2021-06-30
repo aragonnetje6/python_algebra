@@ -55,13 +55,22 @@ from math_tree import Absolute, And, ArcCosine, ArcSine, ArcTangent, Boolean, Co
 #     assert IsEqual(val1, val2).evaluate() == (val1.evaluate() == val2.evaluate())
 
 
-test_expressions: list[Node] = [Variable('x') + 1,
+test_expressions: list[Node] = [(Variable('x') + 1) ** 0,
+                                (Variable('x') + 1) ** 1,
                                 (Variable('x') + 1) ** 2,
                                 (Variable('x') + 1) ** 3,
-                                (Variable('x') + 1) ** 4,
-                                (Variable('x') + 1) ** 5,
-                                (Variable('x') + 1) ** 6,
-                                (Variable('x') + 1) ** 7]
+                                (Variable('x') * 1) ** 0,
+                                (Variable('x') * 1) ** 1,
+                                (Variable('x') * 1) ** 2,
+                                (Variable('x') * 1) ** 3,
+                                (Variable('x') + Variable('y')) ** 0,
+                                (Variable('x') + Variable('y')) ** 1,
+                                (Variable('x') + Variable('y')) ** 2,
+                                (Variable('x') + Variable('y')) ** 3,
+                                (Variable('x') * Variable('y')) ** 0,
+                                (Variable('x') * Variable('y')) ** 1,
+                                (Variable('x') * Variable('y')) ** 2,
+                                (Variable('x') * Variable('y')) ** 3]
 
 
 def environment(keys: str, use_booleans: bool = False, use_floats: bool = False) -> SearchStrategy[Environment]:
@@ -72,12 +81,12 @@ def environment(keys: str, use_booleans: bool = False, use_floats: bool = False)
                             min_size=len(keys))
     elif use_floats:
         return dictionaries(sampled_from(keys),
-                            one_of(integers(int(-1e10), int(1e10)),
+                            one_of(integers(int(-1000), int(1000)),
                                    floats(-1e10, 1e10, allow_nan=False, allow_infinity=False)),
                             min_size=len(keys))
     else:
         return dictionaries(sampled_from(keys),
-                            integers(int(-1e10), int(1e10)),
+                            integers(int(-1000), int(1000)),
                             min_size=len(keys))
 
 
@@ -377,7 +386,7 @@ class TestSimplifyGeneral:
         simplified = expression.simplify()
         assert repr(simplified.simplify()) == repr(simplified)
 
-    @given(env=environment('xyz', use_floats=False))
+    @given(env=environment('xy'))
     def test_same_answer(self, expression: Node, env: Environment) -> None:
         simplified = expression.simplify()
         assert expression.evaluate(env) == simplified.evaluate(env)
