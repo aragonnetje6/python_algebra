@@ -8,7 +8,7 @@ from typing import Callable
 from hypothesis import given
 from hypothesis.strategies import booleans, builds, complex_numbers, deferred, dictionaries, floats, fractions, \
     integers, one_of, sampled_from, SearchStrategy
-from pytest import fixture
+import pytest
 
 from math_tree import Absolute, And, ArcCosine, ArcSine, ArcTangent, Boolean, Complex, Cosine, Derivative, Division, \
     E, Environment, EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, \
@@ -16,19 +16,19 @@ from math_tree import Absolute, And, ArcCosine, ArcSine, ArcTangent, Boolean, Co
     Sine, Subtraction, Sum, Tangent, Variable, Xnor, Xor
 
 
-@fixture(scope="module")
+@pytest.fixture(scope="module")
 def var_x() -> Variable:
     """variable x fixture"""
     return Variable('x')
 
 
-@fixture(scope="module")
+@pytest.fixture(scope="module")
 def var_y() -> Variable:
     """variable x fixture"""
     return Variable('y')
 
 
-@fixture(scope="module")
+@pytest.fixture(scope="module")
 def var_z() -> Variable:
     """variable x fixture"""
     return Variable('z')
@@ -351,3 +351,29 @@ class TestSimplifyCases:
         simplified = value.simplify()
         assert simplified.evaluate(env) == value.evaluate(env)
         assert repr(simplified.simplify()) == repr(simplified)
+
+    @given(env=environment('x'))
+    def test_simple_product(self, env: Environment) -> None:
+        value = Product(Variable('x'), Integer(2))
+        simplified = value.simplify()
+        assert simplified.evaluate(env) == value.evaluate(env)
+        assert repr(simplified.simplify()) == repr(simplified)
+
+    @given(env=environment('x'))
+    def test_zero_product(self, env: Environment) -> None:
+        value = Product(Variable('x'), Integer(0))
+        simplified = value.simplify()
+        assert simplified.evaluate(env) == value.evaluate(env)
+        assert repr(simplified.simplify()) == repr(simplified)
+
+    @given(env=environment('x'))
+    def test_identity_product(self, env: Environment) -> None:
+        value = Product(Variable('x'), Integer(1))
+        simplified = value.simplify()
+        assert simplified.evaluate(env) == value.evaluate(env)
+        assert repr(simplified.simplify()) == repr(simplified)
+
+
+@pytest.mark.parametrize('expression', expressions)
+class TestSimplifyGeneral:
+    pass
