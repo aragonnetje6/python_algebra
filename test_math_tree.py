@@ -379,6 +379,27 @@ class TestSimplifyCases:
         assert simplified.evaluate(env) == value.evaluate(env)
         assert repr(simplified.simplify()) == repr(simplified)
 
+    @given(env=environment('x'))
+    def test_simple_exponent(self, env: Environment) -> None:
+        value = Exponent(Variable('x'), Integer(2))
+        simplified = value.simplify()
+        assert simplified.evaluate(env) == value.evaluate(env)
+        assert repr(simplified.simplify()) == repr(simplified)
+
+    @given(env=environment('x'))
+    def test_zero_exponent(self, env: Environment) -> None:
+        value = Exponent(Variable('x'), Integer(0))
+        simplified = value.simplify()
+        assert simplified.evaluate(env) == value.evaluate(env)
+        assert repr(simplified.simplify()) == repr(simplified)
+
+    @given(env=environment('x'))
+    def test_identity_exponent(self, env: Environment) -> None:
+        value = Exponent(Variable('x'), Integer(1))
+        simplified = value.simplify()
+        assert simplified.evaluate(env) == value.evaluate(env)
+        assert repr(simplified.simplify()) == repr(simplified)
+
 
 @pytest.mark.parametrize('expression', test_expressions)
 class TestSimplifyGeneral:
