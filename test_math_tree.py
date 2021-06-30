@@ -17,19 +17,19 @@ from math_tree import Absolute, And, ArcCosine, ArcSine, ArcTangent, Boolean, Co
 
 
 @fixture(scope="module")
-def x() -> Variable:
+def var_x() -> Variable:
     """variable x fixture"""
     return Variable('x')
 
 
 @fixture(scope="module")
-def y() -> Variable:
+def var_y() -> Variable:
     """variable x fixture"""
     return Variable('y')
 
 
 @fixture(scope="module")
-def z() -> Variable:
+def var_z() -> Variable:
     """variable x fixture"""
     return Variable('z')
 
@@ -86,66 +86,90 @@ def test_equality(val1: Node, val2: Node) -> None:
 
 class TestBinaryOperators:
     @given(env=environment('xy'))
-    def test_1(self, x: Variable, y: Variable, env: Environment) -> None:
+    def test_1(self, env: Environment) -> None:
+        x = Variable('x')
+        y = Variable('y')
         assert IsEqual(x + y, y + x).evaluate(env)
 
     @given(env=environment('xyz'))
-    def test_2(self, x: Variable, y: Variable, z: Variable, env: Environment) -> None:
+    def test_2(self, env: Environment) -> None:
+        x = Variable('x')
+        y = Variable('y')
+        z = Variable('z')
         assert IsEqual((x + y) + z, x + (y + z)).evaluate(env)
 
     @given(env=environment('x'))
-    def test_3(self, x: Variable, env: Environment) -> None:
+    def test_3(self, env: Environment) -> None:
+        x = Variable('x')
         assert IsEqual(x + 0, x).evaluate(env)
 
     @given(env=environment('x'))
-    def test_4(self, x: Variable, env: Environment) -> None:
+    def test_4(self, env: Environment) -> None:
+        x = Variable('x')
         assert IsEqual(x + -x, Integer(0)).evaluate(env)
 
     @given(env=environment('xy'))
-    def test_5(self, x: Variable, y: Variable, env: Environment) -> None:
+    def test_5(self, env: Environment) -> None:
+        x = Variable('x')
+        y = Variable('y')
         assert IsEqual(x + -y, x - y).evaluate(env)
 
     @given(env=environment('x'))
-    def test_6(self, x: Variable, env: Environment) -> None:
+    def test_6(self, env: Environment) -> None:
+        x = Variable('x')
         assert IsEqual(x - 0, x).evaluate(env)
 
     @given(env=environment('x'))
-    def test_7(self, x: Variable, env: Environment) -> None:
+    def test_7(self, env: Environment) -> None:
+        x = Variable('x')
         assert IsEqual(x + x, x * 2).evaluate(env)
 
     @given(env=environment('xy'))
-    def test_8(self, x: Variable, y: Variable, env: Environment) -> None:
+    def test_8(self, env: Environment) -> None:
+        x = Variable('x')
+        y = Variable('y')
         assert IsEqual(x * y, y * x).evaluate(env)
 
     @given(env=environment('xyz'))
-    def test_9(self, x: Variable, y: Variable, z: Variable, env: Environment) -> None:
+    def test_9(self, env: Environment) -> None:
+        x = Variable('x')
+        y = Variable('y')
+        z = Variable('z')
         try:
             assert IsEqual((x * y) * z, x * (y * z)).evaluate(env)
         except EvaluationError:
             pass
 
     @given(env=environment('xyz'))
-    def test_10(self, x: Variable, y: Variable, z: Variable, env: Environment) -> None:
+    def test_10(self, env: Environment) -> None:
+        x = Variable('x')
+        y = Variable('y')
+        z = Variable('z')
         try:
             assert IsEqual(x * (y + z), x * y + x * z).evaluate(env)
         except EvaluationError:
             pass
 
     @given(env=environment('x'))
-    def test_11(self, x: Variable, env: Environment) -> None:
+    def test_11(self, env: Environment) -> None:
+        x = Variable('x')
         assert IsEqual(x * 1, x).evaluate(env)
 
     @given(env=environment('x'))
-    def test_12(self, x: Variable, env: Environment) -> None:
+    def test_12(self, env: Environment) -> None:
+        x = Variable('x')
         assert IsEqual(x * 0, Integer(0)).evaluate(env)
 
     @given(env=environment('x'))
-    def test_13(self, x: Variable, env: Environment) -> None:
+    def test_13(self, env: Environment) -> None:
+        x = Variable('x')
         if x.evaluate(env) != 0:
             assert IsEqual(x * Invert(x), Integer(1)).evaluate(env)
 
     @given(env=environment('xy'))
-    def test_14(self, x: Variable, y: Variable, env: Environment) -> None:
+    def test_14(self, env: Environment) -> None:
+        x = Variable('x')
+        y = Variable('y')
         try:
             if y.evaluate(env) != 0:
                 assert IsEqual(x * Invert(y), x / y).evaluate(env)
@@ -153,33 +177,40 @@ class TestBinaryOperators:
             pass
 
     @given(env=environment('x'))
-    def test_15(self, x: Variable, env: Environment) -> None:
+    def test_15(self, env: Environment) -> None:
+        x = Variable('x')
         assert IsEqual(x / 1, x).evaluate(env)
 
     @given(env=environment('x'))
-    def test_16(self, x: Variable, env: Environment) -> None:
+    def test_16(self, env: Environment) -> None:
+        x = Variable('x')
         try:
             assert IsEqual(x * x, x ** 2).evaluate(env)
         except EvaluationError:
             pass
 
     @given(env=environment('x'))
-    def test_17(self, x: Variable, env: Environment) -> None:
+    def test_17(self, env: Environment) -> None:
+        x = Variable('x')
         assert (IsEqual(x ** 1, x) | IsEqual(x, Integer(0))).evaluate(env)
 
     @given(env=environment('x'))
-    def test_18(self, x: Variable, env: Environment) -> None:
+    def test_18(self, env: Environment) -> None:
+        x = Variable('x')
         assert IsEqual(x ** 0, Integer(1)).evaluate(env)
 
     @given(env=environment('xy'))
-    def test_19(self, x: Variable, y: Variable, env: Environment) -> None:
+    def test_19(self, env: Environment) -> None:
+        x = Variable('x')
+        y = Variable('y')
         try:
             assert IsEqual((x + y) ** 2, x ** 2 + y ** 2 + 2 * x * y).evaluate(env)
         except EvaluationError:
             pass
 
     @given(env=environment('x'))
-    def test_20(self, x: Variable, env: Environment) -> None:
+    def test_20(self, env: Environment) -> None:
+        x = Variable('x')
         try:
             assert IsEqual(Logarithm(x, x), Integer(1)).evaluate(env)
         except EvaluationError:
@@ -188,45 +219,58 @@ class TestBinaryOperators:
 
 class TestLogicOperators:
     @given(env=environment('x', True))
-    def test_not(self, x: Variable, env: Environment) -> None:
+    def test_not(self, env: Environment) -> None:
+        x = Variable('x')
         assert IsEqual(Not(x), Nand(x, x)).evaluate(env)
 
     @given(env=environment('xy', True))
-    def test_and(self, x: Variable, y: Variable, env: Environment) -> None:
+    def test_and(self, env: Environment) -> None:
+        x = Variable('x')
+        y = Variable('y')
         assert IsEqual(And(x, y), Not(Nand(x, y))).evaluate(env)
 
     @given(env=environment('xy', True))
-    def test_or(self, x: Variable, y: Variable, env: Environment) -> None:
+    def test_or(self, env: Environment) -> None:
+        x = Variable('x')
+        y = Variable('y')
         assert IsEqual(Or(x, y), Nand(Not(x), Not(y))).evaluate(env)
 
     @given(env=environment('xy', True))
-    def test_xor(self, x: Variable, y: Variable, env: Environment) -> None:
+    def test_xor(self, env: Environment) -> None:
+        x = Variable('x')
+        y = Variable('y')
         assert IsEqual(Xor(x, y), And(Or(x, y), Nand(x, y))).evaluate(env)
 
 
 class TestUnaryOperators:
     @given(env=environment('x'))
-    def test_1(self, x: Variable, env: Environment) -> None:
+    def test_1(self, env: Environment) -> None:
+        x = Variable('x')
         assert GreaterEqual(Absolute(x), Integer(0)).evaluate(env)
 
     @given(env=environment('x'))
-    def test_2(self, x: Variable, env: Environment) -> None:
+    def test_2(self, env: Environment) -> None:
+        x = Variable('x')
         assert IsEqual(Absolute(x), Absolute(Absolute(x))).evaluate(env)
 
     @given(env=environment('x'))
-    def test_3(self, x: Variable, env: Environment) -> None:
+    def test_3(self, env: Environment) -> None:
+        x = Variable('x')
         assert Xnor(GreaterEqual(Negate(x), Integer(0)), LessEqual(x, Integer(0))).evaluate(env)
 
     @given(env=environment('x'))
-    def test_4(self, x: Variable, env: Environment) -> None:
+    def test_4(self, env: Environment) -> None:
+        x = Variable('x')
         assert IsEqual(Negate(Negate(x)), x).evaluate(env)
 
     @given(env=environment('x'))
-    def test_5(self, x: Variable, env: Environment) -> None:
+    def test_5(self, env: Environment) -> None:
+        x = Variable('x')
         assert IsEqual(Absolute(Negate(x)), Absolute(x)).evaluate(env)
 
     @given(env=environment('x'))
-    def test_6(self, x: Variable, env: Environment) -> None:
+    def test_6(self, env: Environment) -> None:
+        x = Variable('x')
         try:
             assert Xnor(GreaterEqual(Absolute(Invert(x)), Integer(1)),
                         LessEqual(Absolute(x), Integer(1))).evaluate(env)
@@ -234,7 +278,8 @@ class TestUnaryOperators:
             assert x.evaluate(env) == 0
 
     @given(env=environment('x'))
-    def test_7(self, x: Variable, env: Environment) -> None:
+    def test_7(self, env: Environment) -> None:
+        x = Variable('x')
         try:
             assert Xnor(GreaterEqual(Invert(x), Integer(0)),
                         GreaterEqual(x, Integer(0))).evaluate(env)
@@ -246,33 +291,47 @@ class TestSimplify:
     @given(x=integers())
     def test_integer(self, x: int) -> None:
         value = Nodeify(x)
-        assert isinstance(value.simplify(), Integer)
-        assert value.simplify().evaluate() == x
-        assert value.simplify() == value.simplify().simplify()
+        simplified = value.simplify()
+        assert isinstance(simplified, Integer)
+        assert simplified.evaluate() == x
+        assert simplified == simplified.simplify()
 
     @given(x=booleans())
     def test_bool(self, x: bool) -> None:
         value = Nodeify(x)
-        assert isinstance(value.simplify(), Boolean)
-        assert value.simplify().evaluate() == x
-        assert value.simplify() == value.simplify().simplify()
+        simplified = value.simplify()
+        assert isinstance(simplified, Boolean)
+        assert simplified.evaluate() == x
+        assert simplified == simplified.simplify()
 
     @given(x=floats(allow_nan=False, allow_infinity=False))
     def test_float(self, x: float) -> None:
         value = Nodeify(x)
-        assert isinstance(value.simplify(), (Real, Rational)) or (
-                isinstance(value.simplify(), Integer) and x.is_integer())
-        assert value.simplify().evaluate() == x or value.simplify().evaluate() == Fraction(x)
-        assert value.simplify() == value.simplify().simplify()
+        simplified = value.simplify()
+        assert isinstance(simplified, (Real, Rational)) or (
+                isinstance(simplified, Integer) and x.is_integer())
+        assert simplified.evaluate() == x or simplified.evaluate() == Fraction(x)
+        assert simplified == simplified.simplify()
 
     @given(x=complex_numbers(allow_infinity=False, allow_nan=False))
     def test_complex(self, x: complex) -> None:
         value = Nodeify(x)
+        simplified = value.simplify()
         if x.imag != 0:
-            assert isinstance(value.simplify(), Complex)
+            assert isinstance(simplified, Complex)
         elif x.real.is_integer():
-            assert isinstance(value.simplify(), Integer)
+            assert isinstance(simplified, Integer)
         else:
-            assert isinstance(value.simplify(), (Real, Rational))
-        assert value.simplify().evaluate() == x or value.simplify().evaluate() == Fraction(x.real)
-        assert value.simplify() == value.simplify().simplify()
+            assert isinstance(simplified, (Real, Rational))
+        assert simplified.evaluate() == x or simplified.evaluate() == Fraction(x.real)
+        assert simplified == simplified.simplify()
+
+    @given(env=environment('x'))
+    def test_variable(self, env: Environment) -> None:
+        value = Variable('x')
+        simplified = value.simplify()
+        simplified_alt = value.simplify(env)
+        assert isinstance(simplified, Variable)
+        assert value.name == simplified.name
+        assert isinstance(simplified_alt, (Integer, Rational, Real, Complex))
+        assert simplified_alt.evaluate() == value.evaluate(env)
