@@ -240,6 +240,15 @@ class TestUnaryOperators:
             assert x.evaluate(env) == 0
 
 
+class TestSimplify:
+    @given(x=integers())
+    def test_integer(self, x) -> None:
+        integer = Integer(x)
+        assert isinstance(integer.simplify(), Integer)
+        assert integer.simplify().evaluate() == x
+        assert integer.simplify() == integer.simplify().simplify()
+
+
 # todo: add specific case tests for simplification rules
 # class TestSimplify:
 #     @settings(deadline=1000)
