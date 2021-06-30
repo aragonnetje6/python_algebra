@@ -3,6 +3,7 @@ Unittests for math_tree using pytest
 """
 
 from typing import Callable
+from fractions import Fraction
 
 from hypothesis import given, settings
 from hypothesis.strategies import booleans, builds, deferred, dictionaries, floats, fractions, integers, one_of, \
@@ -10,7 +11,7 @@ from hypothesis.strategies import booleans, builds, deferred, dictionaries, floa
 from math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcTangent, Cosine, Derivative, Division, \
     E, EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, LessThan, Logarithm, \
     Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Pi, Piecewise, Product, Sine, Subtraction, Sum, Tangent, \
-    UnaryOperator, Variable, Environment, Xnor, Xor
+    UnaryOperator, Variable, Environment, Xnor, Xor, Rational, Real, Boolean
 from pytest import fixture, raises
 
 
@@ -243,11 +244,24 @@ class TestUnaryOperators:
 class TestSimplify:
     @given(x=integers())
     def test_integer(self, x) -> None:
-        integer = Integer(x)
-        assert isinstance(integer.simplify(), Integer)
-        assert integer.simplify().evaluate() == x
-        assert integer.simplify() == integer.simplify().simplify()
+        value = Nodeify(x)
+        assert isinstance(value.simplify(), Integer)
+        assert value.simplify().evaluate() == x
+        assert value.simplify() == value.simplify().simplify()
 
+    @given(x=booleans())
+    def test_bool(self, x) -> None:
+        value = Nodeify(x)
+        assert isinstance(value.simplify(), Boolean)
+        assert value.simplify().evaluate() == x
+        assert value.simplify() == value.simplify().simplify()
+
+    @given(x=floats(allow_nan=False, allow_infinity=False))
+    def test_float(self, x) -> None:
+        value = Nodeify(x)
+        assert isinstance(value.simplify(), (Real, Rational)) or (isinstance(value.simplify(), Integer) and x.is_integer())
+        assert value.simplify().evaluate() == x or value.simplify().evaluate() == Fraction(x)
+        assert value.simplify() == value.simplify().simplify()
 
 # todo: add specific case tests for simplification rules
 # class TestSimplify:
