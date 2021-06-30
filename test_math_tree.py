@@ -287,7 +287,7 @@ class TestUnaryOperators:
             assert x.evaluate(env) == 0
 
 
-class TestSimplify:
+class TestSimplifyTerms:
     @given(x=integers())
     def test_integer(self, x: int) -> None:
         value = Nodeify(x)
@@ -335,3 +335,19 @@ class TestSimplify:
         assert value.name == simplified.name
         assert isinstance(simplified_alt, (Integer, Rational, Real, Complex))
         assert simplified_alt.evaluate() == value.evaluate(env)
+
+
+class TestSimplifyCases:
+    @given(env=environment('x'))
+    def test_simple_sum(self, env: Environment) -> None:
+        value = Sum(Variable('x'), Integer(1))
+        simplified = value.simplify()
+        assert simplified.evaluate(env) == value.evaluate(env)
+        assert repr(simplified.simplify()) == repr(simplified)
+
+    @given(env=environment('x'))
+    def test_zero_sum(self, env: Environment) -> None:
+        value = Sum(Variable('x'), Integer(0))
+        simplified = value.simplify()
+        assert simplified.evaluate(env) == value.evaluate(env)
+        assert repr(simplified.simplify()) == repr(simplified)
