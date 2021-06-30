@@ -10,10 +10,10 @@ from hypothesis.strategies import booleans, builds, complex_numbers, deferred, d
     integers, one_of, sampled_from, SearchStrategy
 from pytest import fixture
 
-from math_tree import Absolute, And, ArcCosine, ArcSine, ArcTangent, Boolean, Complex, Cosine, Derivative, Division, E, \
-    Environment, EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, LessThan, \
-    Logarithm, Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Pi, Piecewise, Product, Rational, Real, Sine, \
-    Subtraction, Sum, Tangent, Variable, Xnor, Xor
+from math_tree import Absolute, And, ArcCosine, ArcSine, ArcTangent, Boolean, Complex, Cosine, Derivative, Division, \
+    E, Environment, EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, \
+    LessThan, Logarithm, Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Pi, Piecewise, Product, Rational, Real, \
+    Sine, Subtraction, Sum, Tangent, Variable, Xnor, Xor
 
 
 @fixture(scope="module")
@@ -261,7 +261,7 @@ class TestSimplify:
     def test_float(self, x: float) -> None:
         value = Nodeify(x)
         assert isinstance(value.simplify(), (Real, Rational)) or (
-                    isinstance(value.simplify(), Integer) and x.is_integer())
+                isinstance(value.simplify(), Integer) and x.is_integer())
         assert value.simplify().evaluate() == x or value.simplify().evaluate() == Fraction(x)
         assert value.simplify() == value.simplify().simplify()
 
@@ -276,60 +276,3 @@ class TestSimplify:
             assert isinstance(value.simplify(), (Real, Rational))
         assert value.simplify().evaluate() == x or value.simplify().evaluate() == Fraction(x.real)
         assert value.simplify() == value.simplify().simplify()
-
-
-# todo: add specific case tests for simplification rules
-# class TestSimplify:
-#     @settings(deadline=1000)
-#     @given(env=environment('xyz'), expr=math_expression)
-#     def test_same_answer(self, expr: Node, env: Environment) -> None:
-#         try:
-#             assert IsEqual(expr, expr.simplify()).evaluate(env)
-#         except EvaluationError:
-#             with raises(EvaluationError):
-#                 expr.evaluate(env)
-#
-#     @settings(deadline=1000)
-#     @given(expr=math_expression)
-#     def test_idempotence(self, expr: Node) -> None:
-#         assert repr(a := expr.simplify()) == repr(a.simplify())
-#
-#     @settings(deadline=1000)
-#     @given(env=environment('xyz', use_booleans=True), expr=bool_expression)
-#     def test_same_answer_bool(self, expr: Node, env: Environment) -> None:
-#         try:
-#             assert expr.evaluate(env) == expr.simplify().evaluate(env)
-#         except EvaluationError:
-#             with raises(EvaluationError):
-#                 expr.evaluate(env)
-#
-#     @settings(deadline=1000)
-#     @given(expr=bool_expression)
-#     def test_idempotence_bool(self, expr: Node) -> None:
-#         assert repr(a := expr.simplify()) == repr(a.simplify())
-#
-#
-# class TestDisplayMethods:
-#     @given(expr=math_expression)
-#     def test_wolfram_type(self, expr: Node) -> None:
-#         assert isinstance(expr.wolfram(), str)
-#
-#     @given(expr=math_expression)
-#     def test_wolfram_recursive(self, expr: Node) -> None:
-#         if isinstance(expr, (UnaryOperator, Derivative)):
-#             assert expr.child.wolfram() in expr.wolfram()
-#         elif isinstance(expr, ArbitraryOperator):
-#             for child in expr.children:
-#                 assert child.wolfram() in expr.wolfram()
-#
-#     @given(expr=math_expression)
-#     def test_mathml_type(self, expr: Node) -> None:
-#         assert isinstance(expr.mathml(), str)
-#
-#     @given(expr=math_expression)
-#     def test_mathml_recursive(self, expr: Node) -> None:
-#         if isinstance(expr, (UnaryOperator, Derivative)):
-#             assert expr.child.mathml() in expr.mathml()
-#         elif isinstance(expr, ArbitraryOperator):
-#             for child in expr.children:
-#                 assert child.mathml() in expr.mathml()
