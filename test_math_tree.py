@@ -16,32 +16,43 @@ from math_tree import Absolute, And, ArcCosine, ArcSine, ArcTangent, Boolean, Co
     Sine, Subtraction, Sum, Tangent, Variable, Xnor, Xor
 
 
-@pytest.fixture(scope="module")
-def var_x() -> Variable:
-    """variable x fixture"""
-    return Variable('x')
+# # sets of classes
+# n_ary_operators = [Sum, Subtraction, Product, Division]
+# binary_operators = [Exponent, Logarithm]
+# unary_operators = [Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert]
+# comparison_operators: list[Callable[..., Node]] = [IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual]
+# logical_operators = [And, Or, Nand, Nor, Xor, Xnor]
+# unary_logical_operators = [Not]
+# calculus_operators = [Derivative]
+# misc_operators = [Piecewise]
 
 
-@pytest.fixture(scope="module")
-def var_y() -> Variable:
-    """variable x fixture"""
-    return Variable('y')
-
-
-@pytest.fixture(scope="module")
-def var_z() -> Variable:
-    """variable x fixture"""
-    return Variable('z')
-
-
-n_ary_operators = [Sum, Subtraction, Product, Division]
-binary_operators = [Exponent, Logarithm]
-unary_operators = [Sine, Cosine, Tangent, ArcSine, ArcCosine, ArcTangent, Absolute, Negate, Invert]
-comparison_operators: list[Callable[..., Node]] = [IsEqual, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual]
-logical_operators = [And, Or, Nand, Nor, Xor, Xnor]
-unary_logical_operators = [Not]
-calculus_operators = [Derivative]
-misc_operators = [Piecewise]
+# # hypothesis strategies
+# constant_number = builds(Nodeify,
+#                          one_of(integers(int(-1e10), int(1e10)),
+#                                 fractions(),
+#                                 floats(-1e10, 1e10, allow_nan=False, allow_infinity=False)))
+# constant_bool = builds(Nodeify, booleans())
+# constant_any = one_of(constant_bool, constant_number)
+# variable = builds(Variable, sampled_from('xyz'))
+# func = lambda: (constant_number
+#                 | one_of(builds(E), builds(Pi))
+#                 | variable
+#                 | one_of(*[builds(operator, math_expression) for operator in unary_operators])
+#                 | one_of(*[builds(operator, math_expression, math_expression) for operator in binary_operators])
+#                 | one_of(*[builds(operator, math_expression, math_expression, math_expression)
+#                            for operator in n_ary_operators]))
+# math_expression = deferred(func)  # type: SearchStrategy[Node]
+# func2 = lambda: (constant_bool
+#                  | variable
+#                  | one_of(*[builds(operator, bool_expression) for operator in unary_logical_operators])
+#                  | one_of(*[builds(operator, bool_expression, bool_expression) for operator in logical_operators]))
+# bool_expression = deferred(func2)  # type: SearchStrategy[Node]
+#
+#
+# @given(val1=constant_any, val2=constant_any)
+# def test_equality(val1: Node, val2: Node) -> None:
+#     assert IsEqual(val1, val2).evaluate() == (val1.evaluate() == val2.evaluate())
 
 
 def environment(keys: str, use_booleans: bool = False) -> SearchStrategy[Environment]:
@@ -55,33 +66,6 @@ def environment(keys: str, use_booleans: bool = False) -> SearchStrategy[Environ
                             one_of(integers(int(-1e10), int(1e10)),
                                    floats(-1e10, 1e10, allow_nan=False, allow_infinity=False)),
                             min_size=len(keys))
-
-
-constant_number = builds(Nodeify,
-                         one_of(integers(int(-1e10), int(1e10)),
-                                fractions(),
-                                floats(-1e10, 1e10, allow_nan=False, allow_infinity=False)))
-constant_bool = builds(Nodeify, booleans())
-constant_any = one_of(constant_bool, constant_number)
-variable = builds(Variable, sampled_from('xyz'))
-func = lambda: (constant_number
-                | one_of(builds(E), builds(Pi))
-                | variable
-                | one_of(*[builds(operator, math_expression) for operator in unary_operators])
-                | one_of(*[builds(operator, math_expression, math_expression) for operator in binary_operators])
-                | one_of(*[builds(operator, math_expression, math_expression, math_expression)
-                           for operator in n_ary_operators]))
-math_expression = deferred(func)  # type: SearchStrategy[Node]
-func2 = lambda: (constant_bool
-                 | variable
-                 | one_of(*[builds(operator, bool_expression) for operator in unary_logical_operators])
-                 | one_of(*[builds(operator, bool_expression, bool_expression) for operator in logical_operators]))
-bool_expression = deferred(func2)  # type: SearchStrategy[Node]
-
-
-@given(val1=constant_any, val2=constant_any)
-def test_equality(val1: Node, val2: Node) -> None:
-    assert IsEqual(val1, val2).evaluate() == (val1.evaluate() == val2.evaluate())
 
 
 class TestBinaryOperators:
