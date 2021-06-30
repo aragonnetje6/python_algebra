@@ -243,21 +243,21 @@ class TestUnaryOperators:
 
 class TestSimplify:
     @given(x=integers())
-    def test_integer(self, x) -> None:
+    def test_integer(self, x: int) -> None:
         value = Nodeify(x)
         assert isinstance(value.simplify(), Integer)
         assert value.simplify().evaluate() == x
         assert value.simplify() == value.simplify().simplify()
 
     @given(x=booleans())
-    def test_bool(self, x) -> None:
+    def test_bool(self, x: bool) -> None:
         value = Nodeify(x)
         assert isinstance(value.simplify(), Boolean)
         assert value.simplify().evaluate() == x
         assert value.simplify() == value.simplify().simplify()
 
     @given(x=floats(allow_nan=False, allow_infinity=False))
-    def test_float(self, x) -> None:
+    def test_float(self, x: float) -> None:
         value = Nodeify(x)
         assert isinstance(value.simplify(), (Real, Rational)) or (isinstance(value.simplify(), Integer) and x.is_integer())
         assert value.simplify().evaluate() == x or value.simplify().evaluate() == Fraction(x)
