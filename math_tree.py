@@ -117,7 +117,11 @@ class Node(metaclass=ABCMeta):
             return int(value)
 
     def __complex__(self) -> complex:
-        return complex(self.evaluate())
+        ans = self.evaluate()
+        if isinstance(ans, complex):
+            return ans
+        else:
+            return complex(float(ans))
 
     def __eq__(self, other: Any) -> bool:
         return self is other or repr(self.simplify()) == repr(Nodeify(other).simplify())
