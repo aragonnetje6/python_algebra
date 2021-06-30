@@ -274,7 +274,7 @@ class TestSimplify:
             assert isinstance(value.simplify(), Integer)
         else:
             assert isinstance(value.simplify(), (Real, Rational))
-        assert value.simplify().evaluate() == x or value.simplify().evaluate() == Fraction(x)
+        assert value.simplify().evaluate() == x or value.simplify().evaluate() == Fraction(x.real)
         assert value.simplify() == value.simplify().simplify()
 
 
