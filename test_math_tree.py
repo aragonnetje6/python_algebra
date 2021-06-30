@@ -2,17 +2,18 @@
 Unittests for math_tree using pytest
 """
 
-from typing import Callable
 from fractions import Fraction
+from typing import Callable
 
-from hypothesis import given, settings
-from hypothesis.strategies import booleans, builds, deferred, dictionaries, floats, fractions, integers, one_of, \
-    sampled_from, SearchStrategy
-from math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcTangent, Cosine, Derivative, Division, \
-    E, EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, LessThan, Logarithm, \
-    Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Pi, Piecewise, Product, Sine, Subtraction, Sum, Tangent, \
-    UnaryOperator, Variable, Environment, Xnor, Xor, Rational, Real, Boolean
-from pytest import fixture, raises
+from hypothesis import given
+from hypothesis.strategies import booleans, builds, complex_numbers, deferred, dictionaries, floats, fractions, \
+    integers, one_of, sampled_from, SearchStrategy
+from pytest import fixture
+
+from math_tree import Absolute, And, ArcCosine, ArcSine, ArcTangent, Boolean, Complex, Cosine, Derivative, Division, E, \
+    Environment, EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, LessThan, \
+    Logarithm, Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Pi, Piecewise, Product, Rational, Real, Sine, \
+    Subtraction, Sum, Tangent, Variable, Xnor, Xor
 
 
 @fixture(scope="module")
@@ -259,9 +260,23 @@ class TestSimplify:
     @given(x=floats(allow_nan=False, allow_infinity=False))
     def test_float(self, x: float) -> None:
         value = Nodeify(x)
-        assert isinstance(value.simplify(), (Real, Rational)) or (isinstance(value.simplify(), Integer) and x.is_integer())
+        assert isinstance(value.simplify(), (Real, Rational)) or (
+                    isinstance(value.simplify(), Integer) and x.is_integer())
         assert value.simplify().evaluate() == x or value.simplify().evaluate() == Fraction(x)
         assert value.simplify() == value.simplify().simplify()
+
+    @given(x=complex_numbers(allow_infinity=False, allow_nan=False))
+    def test_complex(self, x: complex) -> None:
+        value = Nodeify(x)
+        if x.imag != 0:
+            assert isinstance(value.simplify(), Complex)
+        elif x.real.is_integer():
+            assert isinstance(value.simplify(), Integer)
+        else:
+            assert isinstance(value.simplify(), (Real, Rational))
+        assert value.simplify().evaluate() == x or value.simplify().evaluate() == Fraction(x)
+        assert value.simplify() == value.simplify().simplify()
+
 
 # todo: add specific case tests for simplification rules
 # class TestSimplify:

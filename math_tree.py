@@ -76,7 +76,10 @@ def Nodeify(other: Union[Node, ConstantType, str]) -> Node:
         else:
             return Real(other)
     elif isinstance(other, complex):
-        return Complex(other)
+        if other.imag != 0:
+            return Complex(other)
+        else:
+            return Nodeify(other.real)
     elif isinstance(other, str):
         return Variable(other)
     else:
