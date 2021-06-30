@@ -70,7 +70,11 @@ test_expressions: list[Node] = [(Variable('x') + 1) ** 0,
                                 (Variable('x') * Variable('y')) ** 0,
                                 (Variable('x') * Variable('y')) ** 1,
                                 (Variable('x') * Variable('y')) ** 2,
-                                (Variable('x') * Variable('y')) ** 3]
+                                (Variable('x') * Variable('y')) ** 3,
+                                (Variable('x') + 1) * (Variable('x') - 1),
+                                (Variable('x') + 1) * (Variable('x') + 10),
+                                (Variable('x') + Variable('y')) * (Variable('x') - Variable('y')),
+                                (Variable('x') + Variable('y')) * (Variable('x') - 10 * Variable('y'))]
 
 
 def environment(keys: str, use_booleans: bool = False, use_floats: bool = False) -> SearchStrategy[Environment]:
