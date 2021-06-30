@@ -13,7 +13,7 @@ import pytest
 from math_tree import Absolute, And, ArcCosine, ArcSine, ArcTangent, Boolean, Complex, Cosine, Derivative, Division, \
     E, Environment, EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, \
     LessThan, Logarithm, Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Pi, Piecewise, Product, Rational, Real, \
-    Sine, Subtraction, Sum, Tangent, Variable, Xnor, Xor
+    Sine, Subtraction, Sum, Tangent, Term, Variable, Xnor, Xor
 
 
 # # sets of classes
@@ -415,3 +415,21 @@ class TestSimplifyGeneral:
     def test_same_answer(self, expression: Node, env: Environment) -> None:
         simplified = expression.simplify()
         assert expression.evaluate(env) == simplified.evaluate(env)
+
+    def test_exponent_children(self, expression: Node) -> None:
+        simplified = expression.simplify()
+        for node in simplified.list_nodes():
+            if isinstance(node, Exponent):
+                assert isinstance(node.child1, Term)
+
+    def test_product_children(self, expression: Node) -> None:
+        simplified = expression.simplify()
+        for node in simplified.list_nodes():
+            if isinstance(node, Product):
+                assert all(isinstance(x, (Term, Exponent, Logarithm)) for x in node.children)
+
+    def test_sum_children(self, expression: Node) -> None:
+        simplified = expression.simplify()
+        for node in simplified.list_nodes():
+            if isinstance(node, Sum):
+                assert all(isinstance(x, (Term, Exponent, Logarithm, Product)) for x in node.children)
