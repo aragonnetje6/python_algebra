@@ -674,14 +674,19 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
 
     def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
+        if env is not None:
+            ans = self
+            for var, val in env.items():
+                ans = ans.substitute(var, Nodeify(val))
+            return ans.simplify()
         try:
-            return Nodeify(self.evaluate(env)).simplify()
+            return Nodeify(self.evaluate()).simplify()
         except EvaluationError:
             pass
         children = list(self.children)
         old_repr = repr(children)
         while True:
-            children = [child.simplify(env) for child in children]
+            children = [child.simplify() for child in children]
             # consolidate constants
             constants: list[Node] = []
             non_constants: list[Node] = []
@@ -691,19 +696,19 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
                 else:
                     non_constants.append(child)
             if len(constants) > 1:
-                children = non_constants + [self.__class__(*constants).simplify(env)]
+                children = non_constants + [self.__class__(*constants).simplify()]
             else:
                 children = non_constants + constants
             # operator specific parts
-            children = self._simplify(children, env)
+            children = self._simplify(children)
             # break out of loop
-            children = [child.simplify(env) for child in children]
+            children = [child.simplify() for child in children]
             children.sort(key=lambda x: x.infix())
             if (new := repr(children)) == old_repr:
                 if len(children) > 1:
                     out = self.__class__(*children)
                     try:
-                        return Nodeify(out.evaluate(env))
+                        return Nodeify(out.evaluate())
                     except EvaluationError:
                         return out
                 else:
