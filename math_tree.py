@@ -630,7 +630,6 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         """abstract property, returns function name for wolfram language"""
 
     def __init__(self, *args: Node) -> None:
-        assert len(args) > 1
         assert all(isinstance(x, Node) for x in args)
         self.children = tuple(child for child in args)
         super().__init__()
@@ -675,7 +674,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
     def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
         if env is not None:
-            ans = self
+            ans: Node = self
             for var, val in env.items():
                 ans = ans.substitute(var, Nodeify(val))
             return ans.simplify()
@@ -684,7 +683,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         except EvaluationError:
             pass
         children = list(self.children)
-        old_repr = repr(children)
+        old_repr = repr(self)
         while True:
             children = [child.simplify() for child in children]
             # consolidate constants
@@ -700,19 +699,13 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
             else:
                 children = non_constants + constants
             # operator specific parts
-            children = self._simplify(children)
+            new_node = self._simplify(children)
             # break out of loop
-            children = [child.simplify() for child in children]
-            children.sort(key=lambda x: x.infix())
-            if (new := repr(children)) == old_repr:
-                if len(children) > 1:
-                    out = self.__class__(*children)
-                    try:
-                        return Nodeify(out.evaluate())
-                    except EvaluationError:
-                        return out
-                else:
-                    return children[0]
+            if (new := repr(new_node)) == old_repr:
+                try:
+                    return Nodeify(new_node.evaluate())
+                except EvaluationError:
+                    return new_node
             else:
                 old_repr = new
 
@@ -726,7 +719,7 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    def _simplify(children: list[Node], env: Optional[Environment] = None) -> Node:
         """Simplification rules for operator"""
 
 
@@ -746,8 +739,8 @@ class Sum(ArbitraryOperator):
         """calculation function for 2 elements"""
         return x + y
 
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    @classmethod
+    def _simplify(cls, children: list[Node], env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
 
         def separate(arr: tuple[Node, ...]) -> tuple[Node, tuple[Node, ...]]:
@@ -761,28 +754,28 @@ class Sum(ArbitraryOperator):
             return constant, non_constants
 
         if len(children) == 1:
-            return children
+            return children[0]
         elif len(children) == 0:
-            return [Integer(0)]
+            return Integer(0)
         for i, child in enumerate(children):
             # eliminate zeroes
             if isinstance(child, Constant):
                 if child.evaluate() == 0:
                     del children[i]
-                    return children
+                    return cls(*children)
             # consolidate sums
             elif isinstance(child, Sum):
                 del children[i]
-                return children + list(child.children)
+                return cls(*(children + list(child.children)))
             # eliminate negations
             elif isinstance(child, Negate):
                 if child.child in children:
                     j = children.index(child.child)
                     del children[max(i, j)], children[min(i, j)]
                     if len(children) > 0:
-                        return children
+                        return cls(*children)
                     else:
-                        return [Integer(0)]
+                        return Integer(0)
                 else:
                     for j, child2 in enumerate(children):
                         if isinstance(child2, Product):
@@ -790,11 +783,11 @@ class Sum(ArbitraryOperator):
                             if isinstance(child.child, Product):
                                 if repr(child.child.children) == repr(child2_variable_terms):
                                     del children[max(i, j)], children[min(i, j)]
-                                    return children + [Product(child2_constant - 1, *child.child.children)]
+                                    return cls(*(children + [Product(child2_constant - 1, *child.child.children)]))
                                 elif len(child2_variable_terms) == 1 and repr(child.child) == repr(
                                         child2_variable_terms[0]):
                                     del children[max(i, j)], children[min(i, j)]
-                                    return children + [Product(child2_constant - 1, child.child)]
+                                    return cls(*(children + [Product(child2_constant - 1, child.child)]))
             # join like products
             elif isinstance(child, Product):
                 constant1, non_constants1 = separate(child.children)
@@ -803,7 +796,7 @@ class Sum(ArbitraryOperator):
                         child2_constant, child2_variable_terms = separate(child2.children)
                         if repr(non_constants1) == repr(child2_variable_terms):
                             del children[max(j, i)], children[min(j, i)]
-                            return children + [Product(Sum(constant1, child2_constant), *non_constants1)]
+                            return cls(*(children + [Product(Sum(constant1, child2_constant), *non_constants1)]))
             # assimilate like terms into products
             else:
                 for j, child2 in enumerate(children):
@@ -813,14 +806,14 @@ class Sum(ArbitraryOperator):
                         a, b = child2.children
                         if repr(a) == repr(child) and isinstance(b, Constant):
                             del children[max(i, j)], children[min(i, j)]
-                            return children + [Product(b + 1, a).simplify()]
+                            return cls(*(children + [Product(b + 1, a).simplify()]))
                         elif isinstance(a, Constant) and repr(b) == repr(child):
                             del children[max(i, j)], children[min(i, j)]
-                            return children + [Product(a + 1, b).simplify()]
+                            return cls(*(children + [Product(a + 1, b).simplify()]))
                     elif repr(child) == repr(child2):
                         del children[max(i, j)], children[min(i, j)]
-                        return children + [Product(Integer(2), child).simplify()]
-        return children
+                        return cls(*(children + [Product(Integer(2), child).simplify()]))
+        return cls(*children)
 
 
 def Subtraction(*args: Node) -> Node:
@@ -849,49 +842,50 @@ class Product(ArbitraryOperator):
         """calculation function for 2 elements"""
         return x * y
 
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    @classmethod
+    def _simplify(cls, children: list[Node], env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
         if len(children) == 1:
-            return children
+            return children[0]
         elif len(children) == 0:
-            return [Integer(0)]
+            return Integer(0)
         for i, child in enumerate(children):
             # eliminate ones and zeros
             if isinstance(child, Constant):
                 if (ans := child.evaluate()) == 1:
                     del children[i]
-                    return children
+                    return cls(*children)
                 elif ans == 0:
-                    return [Integer(0)]
+                    return Integer(0)
             # consolidate child products
             elif isinstance(child, Product):
                 del children[i]
-                return children + list(child.children)
+                return cls(*(children + list(child.children)))
             # distribute over sums
             elif isinstance(child, Sum):
                 del children[i]
-                return [Sum(*(Product(child2, *children) for child2 in child.children)).simplify(env)]
+                return cls(*[Sum(*(Product(child2, *children) for child2 in child.children)).simplify(env)])
             # consolidate exponents
             elif isinstance(child, Exponent):
                 for j, child2 in enumerate(children):
                     if i != j and isinstance(child2, Exponent) and repr(child.child1) == repr(child2.child1):
                         del children[j], children[i]
-                        return children + [Exponent(child.child1, Sum(child.child2, child2.child2)).simplify(env)]
+                        return cls(*(children
+                                     + [Exponent(child.child1, Sum(child.child2, child2.child2)).simplify(env)]))
             # remove inversions
             elif isinstance(child, Invert):
                 if child.child in children:
                     j = children.index(child.child)
                     del children[max(i, j)], children[min(i, j)]
                     if len(children) > 0:
-                        return children
+                        return cls(*children)
                     else:
-                        return [Integer(0)]
+                        return Integer(0)
                 else:
                     for j, child2 in enumerate(children):
                         if isinstance(child2, Exponent) and repr(child2.child2) == repr(child):
                             del children[max(i, j)], children[min(i, j)]
-                            return children + [Exponent(child, child2.child2 - 1)]
+                            return cls(*(children + [Exponent(child, child2.child2 - 1)]))
             # put like terms into exponents
             else:
                 for j, child2 in enumerate(children):
@@ -900,11 +894,11 @@ class Product(ArbitraryOperator):
                     elif isinstance(child2, Exponent):
                         if repr(child) == repr(child2.child1):
                             del children[max(i, j)], children[min(i, j)]
-                            return children + [Exponent(child, child2.child2 + 1).simplify()]
+                            return cls(*(children + [Exponent(child, child2.child2 + 1).simplify()]))
                     elif repr(child) == repr(child2):
                         del children[max(i, j)], children[min(i, j)]
-                        return children + [Exponent(child, Integer(2)).simplify()]
-        return children
+                        return cls(*(children + [Exponent(child, Integer(2)).simplify()]))
+        return cls(*children)
 
 
 def Division(*args: Node) -> Node:
@@ -937,10 +931,10 @@ class Modulus(ArbitraryOperator):
         else:
             raise NotImplementedError('mod of complex numbers not implemented')
 
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    @classmethod
+    def _simplify(cls, children: list[Node], env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-        return children
+        return cls(*children)
 
 
 class BinaryOperator(Node, metaclass=ABCMeta):
@@ -1154,23 +1148,23 @@ class And(ArbitraryLogicalOperator):
         """calculation function for 2 elements"""
         return bool(x) & bool(y)
 
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    @classmethod
+    def _simplify(cls, children: list[Node], env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
         for i, child in enumerate(children):
             if isinstance(child, Constant):
                 if child.evaluate():
                     del children[i]
-                    return children if len(children) else [Boolean(True)]
+                    return cls(*children) if len(children) else Boolean(True)
                 else:
-                    return [Boolean(False)]
+                    return Boolean(False)
             elif isinstance(child, And):
                 del children[i]
-                return children + list(child.children)
+                return cls(*(children + list(child.children)))
             elif isinstance(child, Not):
                 if child.child in children:
-                    return [Boolean(False)]
-        return children
+                    return Boolean(False)
+        return cls(*children)
 
 
 class Or(ArbitraryLogicalOperator):
@@ -1184,23 +1178,23 @@ class Or(ArbitraryLogicalOperator):
         """calculation function for 2 elements"""
         return bool(x) | bool(y)
 
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    @classmethod
+    def _simplify(cls, children: list[Node], env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
         for i, child in enumerate(children):
             if isinstance(child, Constant):
                 if not child.evaluate():
                     del children[i]
-                    return children if len(children) else [Boolean(False)]
+                    return cls(*children) if len(children) else Boolean(False)
                 else:
-                    return [Boolean(True)]
+                    return Boolean(True)
             elif isinstance(child, Or):
                 del children[i]
-                return children + list(child.children)
+                return cls(*(children + list(child.children)))
             elif isinstance(child, Not):
                 if child.child in children:
-                    return [Boolean(True)]
-        return children
+                    return Boolean(True)
+        return cls(*children)
 
 
 class Xor(ArbitraryLogicalOperator):
@@ -1214,24 +1208,24 @@ class Xor(ArbitraryLogicalOperator):
         """calculation function for 2 elements"""
         return bool(x) ^ bool(y)
 
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    @classmethod
+    def _simplify(cls, children: list[Node], env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
         if len(children) > 1:
             for i, child in enumerate(children):
                 if isinstance(child, Constant):
                     if not child.evaluate():
                         del children[i]
-                        return children if len(children) else [Boolean(False)]
+                        return cls(*children) if len(children) else Boolean(False)
                     else:
                         del children[i]
                         if len(children) > 1:
-                            return [Not(Xor(*children)).simplify(env)]
+                            return Not(Xor(*children)).simplify(env)
                         elif len(children) == 1:
-                            return [Not(children[0]).simplify(env)]
+                            return Not(children[0]).simplify(env)
                         else:
-                            return [Boolean(False)]
-        return children
+                            return Boolean(False)
+        return cls(*children)
 
 
 def Nand(*args: Node) -> Not:
@@ -1266,10 +1260,10 @@ class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Integer(0)
 
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
+    @classmethod
+    def _simplify(cls, children: list[Node], env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-        return children
+        return cls(*children)
 
 
 class IsEqual(ComparisonOperator):
