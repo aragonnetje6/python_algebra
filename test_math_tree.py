@@ -54,7 +54,9 @@ from math_tree import Absolute, And, ArcCosine, ArcSine, ArcTangent, Boolean, Co
 # def test_equality(val1: Node, val2: Node) -> None:
 #     assert IsEqual(val1, val2).evaluate() == (val1.evaluate() == val2.evaluate())
 
-
+X = Variable('x')
+Y = Variable('y')
+Z = Variable('z')
 test_expressions: list[Node] = [(Variable('x') + 1) ** 0,
                                 (Variable('x') + 1) ** 1,
                                 (Variable('x') + 1) ** 2,
