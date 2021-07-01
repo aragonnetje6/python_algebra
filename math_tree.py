@@ -682,10 +682,10 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
             return Nodeify(self.evaluate()).simplify()
         except EvaluationError:
             pass
-        children = list(self.children)
         old_repr = repr(self)
+        new_node = self
         while True:
-            children = [child.simplify() for child in children]
+            children = [child.simplify() for child in new_node.children]
             # consolidate constants
             constants: list[Node] = []
             non_constants: list[Node] = []
@@ -706,6 +706,8 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
                     return Nodeify(new_node.evaluate())
                 except EvaluationError:
                     return new_node
+            elif not isinstance(new_node, ArbitraryOperator):
+                return new_node.simplify()
             else:
                 old_repr = new
 
@@ -1020,10 +1022,15 @@ class Exponent(BinaryOperator):
 
     def simplify(self, env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-        child1 = self.child1.simplify(env)
-        child2 = self.child2.simplify(env)
+        if env is not None:
+            ans: Node = self
+            for var, val in env.items():
+                ans = ans.substitute(var, Nodeify(val))
+            return ans.simplify()
+        child1 = self.child1.simplify()
+        child2 = self.child2.simplify()
         try:
-            return Nodeify(self.__class__(child1, child2).evaluate(env)).simplify()
+            return Nodeify(self.__class__(child1, child2).evaluate()).simplify()
         except EvaluationError:
             pass
         # special cases for powers
@@ -1042,12 +1049,13 @@ class Exponent(BinaryOperator):
                 return Integer(1)
         # distribute over products
         elif isinstance(child1, Product):
-            return Product(*(Exponent(child, child2) for child in child1.children)).simplify(env)
+            return Product(*(Exponent(child, child2) for child in child1.children)).simplify()
         # nested exponents multiply
         elif isinstance(child1, Exponent):
-            return Exponent(child1.child1, Product(child1.child2, child2)).simplify(env)
-        elif isinstance(child1, Sum) and isinstance(child2, Integer) and child2.evaluate() > 0:
-            return Product(*([child1] * child2.evaluate())).simplify(env)
+            return Exponent(child1.child1, Product(child1.child2, child2)).simplify()
+        # integer powers expand into sums
+        elif isinstance(child1, Sum) and isinstance(child2, Integer):
+            return Product(*([child1] * child2.evaluate())).simplify()
         return self.__class__(child1, child2)
 
 
