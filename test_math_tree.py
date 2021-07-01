@@ -76,7 +76,27 @@ test_expressions: list[Node] = [(Variable('x') + 1) ** 0,
                                 (Variable('x') + 1) * (Variable('x') - 1),
                                 (Variable('x') + 1) * (Variable('x') + 10),
                                 (Variable('x') + Variable('y')) * (Variable('x') - Variable('y')),
-                                (Variable('x') + Variable('y')) * (Variable('x') - 10 * Variable('y'))]
+                                -(Variable('x') + Variable('y')) * (Variable('x') - 10 * Variable('y')),
+                                -(Variable('x') + 1) ** 0,
+                                -(Variable('x') + 1) ** 1,
+                                -(Variable('x') + 1) ** 2,
+                                -(Variable('x') + 1) ** 3,
+                                -(Variable('x') * 1) ** 0,
+                                -(Variable('x') * 1) ** 1,
+                                -(Variable('x') * 1) ** 2,
+                                -(Variable('x') * 1) ** 3,
+                                -(Variable('x') + Variable('y')) ** 0,
+                                -(Variable('x') + Variable('y')) ** 1,
+                                -(Variable('x') + Variable('y')) ** 2,
+                                -(Variable('x') + Variable('y')) ** 3,
+                                -(Variable('x') * Variable('y')) ** 0,
+                                -(Variable('x') * Variable('y')) ** 1,
+                                -(Variable('x') * Variable('y')) ** 2,
+                                -(Variable('x') * Variable('y')) ** 3,
+                                -(Variable('x') + 1) * (Variable('x') - 1),
+                                -(Variable('x') + 1) * (Variable('x') + 10),
+                                -(Variable('x') + Variable('y')) * (Variable('x') - Variable('y')),
+                                -(Variable('x') + Variable('y')) * (Variable('x') - 10 * Variable('y'))]
 
 
 def environment(keys: str, use_booleans: bool = False, use_floats: bool = False) -> SearchStrategy[Environment]:
@@ -422,7 +442,7 @@ class TestSimplifyGeneral:
         simplified = expression.simplify()
         for node in simplified.list_nodes():
             if isinstance(node, Exponent):
-                assert isinstance(node.child1, Term)
+                assert isinstance(node.child1, (Term, Negate))
 
     def test_product_children(self, expression: Node) -> None:
         simplified = expression.simplify()
@@ -434,4 +454,10 @@ class TestSimplifyGeneral:
         simplified = expression.simplify()
         for node in simplified.list_nodes():
             if isinstance(node, Sum):
-                assert all(isinstance(x, (Term, Exponent, Logarithm, Product)) for x in node.children)
+                assert all(isinstance(x, (Term, Exponent, Logarithm, Product, Negate)) for x in node.children)
+
+    def test_negate_children(self, expression: Node) -> None:
+        simplified = expression.simplify()
+        for node in simplified.list_nodes():
+            if isinstance(node, Negate):
+                assert isinstance(node.child, (Term, Exponent, Logarithm, Product))
