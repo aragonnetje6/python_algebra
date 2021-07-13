@@ -686,21 +686,8 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         new_node = self
         while True:
             children = [child.simplify() for child in new_node.children]
-            # consolidate constants
-            constants: list[Node] = []
-            non_constants: list[Node] = []
-            for child in children:
-                if isinstance(child, (Integer, Rational, Real, Complex)):
-                    constants.append(child)
-                else:
-                    non_constants.append(child)
-            if len(constants) > 1:
-                children = non_constants + [self.__class__(*constants).simplify()]
-            else:
-                children = non_constants + constants
-            # operator specific parts
+            children = self._consolidate_constants(children)
             new_node = self._simplify(children)
-            # break out of loop
             if (new := repr(new_node)) == old_repr:
                 try:
                     return Nodeify(new_node.evaluate())
@@ -710,6 +697,20 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
                 return new_node.simplify()
             else:
                 old_repr = new
+
+    def _consolidate_constants(self, children):
+        constants: list[Node] = []
+        non_constants: list[Node] = []
+        for child in children:
+            if isinstance(child, (Integer, Rational, Real, Complex)):
+                constants.append(child)
+            else:
+                non_constants.append(child)
+        if len(constants) > 1:
+            children = non_constants + [self.__class__(*constants).simplify()]
+        else:
+            children = non_constants + constants
+        return children
 
     def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
@@ -741,20 +742,20 @@ class Sum(ArbitraryOperator):
         """calculation function for 2 elements"""
         return x + y
 
+    @staticmethod
+    def _separate(arr: tuple[Node, ...]) -> tuple[Node, tuple[Node, ...]]:
+        """separates array into a constant and any non-constant parts"""
+        if any(isinstance(x, Constant) for x in arr):
+            constant = next(filter(lambda x: isinstance(x, Constant), arr))
+            non_constants = arr[:(k := arr.index(constant))] + arr[k + 1:]
+        else:
+            constant = Integer(0)
+            non_constants = arr
+        return constant, non_constants
+
     @classmethod
     def _simplify(cls, children: list[Node], env: Optional[Environment] = None) -> Node:
         """returns a simplified version of the tree"""
-
-        def separate(arr: tuple[Node, ...]) -> tuple[Node, tuple[Node, ...]]:
-            """separates array into a constant and any non-constant parts"""
-            if any(isinstance(x, Constant) for x in arr):
-                constant = next(filter(lambda x: isinstance(x, Constant), arr))
-                non_constants = arr[:(k := arr.index(constant))] + arr[k + 1:]
-            else:
-                constant = Integer(1)
-                non_constants = arr
-            return constant, non_constants
-
         if len(children) == 1:
             return children[0]
         elif len(children) == 0:
@@ -781,7 +782,7 @@ class Sum(ArbitraryOperator):
                 else:
                     for j, child2 in enumerate(children):
                         if isinstance(child2, Product):
-                            child2_constant, child2_variable_terms = separate(child2.children)
+                            child2_constant, child2_variable_terms = cls._separate(child2.children)
                             if isinstance(child.child, Product):
                                 if repr(child.child.children) == repr(child2_variable_terms):
                                     del children[max(i, j)], children[min(i, j)]
@@ -792,10 +793,10 @@ class Sum(ArbitraryOperator):
                                     return cls(*(children + [Product(child2_constant - 1, child.child)]))
             # join like products
             elif isinstance(child, Product):
-                constant1, non_constants1 = separate(child.children)
+                constant1, non_constants1 = cls._separate(child.children)
                 for j, child2 in enumerate(children):
                     if i != j and isinstance(child2, Product):
-                        child2_constant, child2_variable_terms = separate(child2.children)
+                        child2_constant, child2_variable_terms = cls._separate(child2.children)
                         if repr(non_constants1) == repr(child2_variable_terms):
                             del children[max(j, i)], children[min(j, i)]
                             return cls(*(children + [Product(Sum(constant1, child2_constant), *non_constants1)]))
@@ -866,14 +867,14 @@ class Product(ArbitraryOperator):
             # distribute over sums
             elif isinstance(child, Sum):
                 del children[i]
-                return cls(*[Sum(*(Product(child2, *children) for child2 in child.children)).simplify(env)])
+                return Sum(*(Product(child2, *children) for child2 in child.children)).simplify()
             # consolidate exponents
             elif isinstance(child, Exponent):
                 for j, child2 in enumerate(children):
                     if i != j and isinstance(child2, Exponent) and repr(child.child1) == repr(child2.child1):
                         del children[j], children[i]
                         return cls(*(children
-                                     + [Exponent(child.child1, Sum(child.child2, child2.child2)).simplify(env)]))
+                                     + [Exponent(child.child1, Sum(child.child2, child2.child2)).simplify()]))
             # remove inversions
             elif isinstance(child, Invert):
                 if child.child in children:
