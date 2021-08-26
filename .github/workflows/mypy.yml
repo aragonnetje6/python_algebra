@@ -37,4 +37,9 @@ jobs:
     - name: Typecheck with mypy
       timeout-minutes: 10
       run: |
-        python -m mypy --install-types --non-interactive --strict .
+        if (Test-Path -Path Pipfile -PathType Leaf) {
+          pipenv run python -m mypy --install-types --non-interactive --strict .
+        } else {
+          python -m mypy --install-types --non-interactive --strict .
+        }
+
