@@ -8,6 +8,7 @@ name = "pypi"
 [dev-packages]
 hypothesis = "*"
 pytest = "*"
+mypy = "*"
 
 [requires]
 python_version = "3.9"
