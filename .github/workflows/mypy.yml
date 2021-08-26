@@ -30,4 +30,4 @@ jobs:
     - name: Typecheck with mypy
       timeout-minutes: 10
       run: |
-        mypy --install-types --non-interactive --strict .
+        python -m mypy --install-types --non-interactive --strict .
