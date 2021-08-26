@@ -23,11 +23,13 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if exist requirements.txt pip install -r requirements.txt
-        if exist Pipfile (
-        pip install pipenv
-        pipenv install --dev
-        )
+        if (Test-Path -Path requirements.txt -PathType Leaf) {
+          pip install -r requirements.txt
+        }
+        if (Test-Path -Path Pipfile -PathType Leaf) {
+          pip install pipenv
+          pipenv install --dev
+        }
     - name: Test with pytest
       timeout-minutes: 10
       run: |
