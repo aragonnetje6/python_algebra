@@ -26,11 +26,8 @@ jobs:
         fi
         if [ -f Pipfile ]
         then
-          if [ -f Pipfile.lock ]
-          then
-            rm Pipfile.lock
-          fi
           pip install pipenv
+          pipenv lock
           pipenv install --dev
         fi
     - name: Lint with flake8
