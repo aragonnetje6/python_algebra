@@ -5,12 +5,11 @@ from __future__ import annotations
 
 import webbrowser
 from abc import ABCMeta, abstractmethod
-from fractions import Fraction
 from functools import reduce
 from math import acos, asin, atan, ceil, cos, e, factorial, floor, gamma, isclose, log, pi, sin, tan
-from typing import Any, Optional, Union
+from typing import Any, Optional, overload, Union
 
-ConstantType = Union[int, Fraction, float, complex, bool]
+ConstantType = Union[int, float, complex, bool]
 Environment = dict[str, ConstantType]
 
 
@@ -53,7 +52,7 @@ def display(expression: Node) -> None:
     webbrowser.open('output.html')
 
 
-def Nodeify(other: Union[Node, ConstantType, str]) -> Node:
+def Nodeify(other: Union[Node, ConstantType, str, tuple[int, int]]) -> Node:
     """turn given input into constant or variable leaf node"""
     if isinstance(other, Node):
         return other
@@ -61,20 +60,15 @@ def Nodeify(other: Union[Node, ConstantType, str]) -> Node:
         return Boolean(other)
     elif isinstance(other, int):
         return Integer(other)
-    elif isinstance(other, Fraction):
-        if other.denominator == 1:
-            return Integer(int(other))
-        elif other.denominator >= 1e6:
-            return Real(float(other))
-        else:
-            return Rational(other)
     elif isinstance(other, float):
         if other.is_integer() and other <= 1e6:
             return Integer(int(other))
         elif other.as_integer_ratio()[1] < 1e6:
-            return Rational(Fraction(other))
+            return Rational(other)
         else:
             return Real(other)
+    elif isinstance(other, tuple):
+        return Rational(*other)
     elif isinstance(other, complex):
         return Complex(other)
     elif isinstance(other, str):
@@ -352,35 +346,47 @@ class Integer(Constant):
 
 class Rational(Constant):
     """rational number in expression tree"""
-    __slots__ = ('value',)
+    __slots__ = ('denominator', 'numerator')
 
-    def __init__(self, value: Fraction) -> None:
-        self.value = value
+    @overload
+    def __init__(self, value: int, value2: int) -> None:
+        ...
+
+    @overload
+    def __init__(self, value: float) -> None:
+        ...
+
+    def __init__(self, value: Union[int, float], value2: Optional[int] = None) -> None:
+        if value2 is not None:
+            self.denominator = value
+            self.numerator = value2
+        else:
+            self.denominator, self.numerator = value.as_integer_ratio()
         super().__init__()
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.value})'
+        return f'{self.__class__.__name__}({self.denominator}, {self.numerator})'
 
     def infix(self) -> str:
         """returns infix representation of the tree"""
-        return str(self.value)
+        return f'{self.denominator}/{self.numerator}'
 
-    def evaluate(self, env: Optional[Environment] = None) -> Fraction:
+    def evaluate(self, env: Optional[Environment] = None) -> float:
         """Evaluates the expression tree using the values from env, returns int or float"""
-        return self.value
+        return self.denominator / self.numerator
 
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
         return mathml_tag('row',
                           mathml_tag('frac',
                                      mathml_tag('row',
-                                                mathml_tag('n', str(self.value.numerator)))
+                                                mathml_tag('n', str(self.numerator)))
                                      + mathml_tag('row',
-                                                  mathml_tag('n', str(self.value.denominator)))))
+                                                  mathml_tag('n', str(self.denominator)))))
 
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
-        return f'FractionBox[{self.value.numerator}, {self.value.denominator})'
+        return f'FractionBox[{self.numerator}, {self.denominator})'
 
 
 class Real(Constant):
@@ -982,8 +988,14 @@ class Exponent(BinaryOperator):
         try:
             ans1 = self.child1.evaluate(env)
             ans2 = self.child2.evaluate(env)
-            test1 = float(ans1) if not isinstance(ans1, complex) else float(ans1.real ** 2 + ans1.imag ** 2) ** 0.5
-            test2 = float(ans2) if not isinstance(ans2, complex) else float(ans2.real ** 2 + ans2.imag ** 2) ** 0.5
+            if not isinstance(ans1, complex):
+                test1 = float(ans1)
+            else:
+                test1 = float(ans1.real ** 2 + ans1.imag ** 2) ** 0.5
+            if not isinstance(ans2, complex):
+                test2 = float(ans2)
+            else:
+                test2 = float(ans2.real ** 2 + ans2.imag ** 2) ** 0.5
             float(test1) ** float(test2)
             return ans1 ** ans2
         except Exception as ex:
@@ -1266,7 +1278,7 @@ class IsEqual(ComparisonOperator):
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
-        if isinstance(x, (int, Fraction, float)) and isinstance(y, (int, Fraction, float)):
+        if isinstance(x, (int, float)) and isinstance(y, (int, float)):
             return x == y or isclose(x, y)
         else:
             return x == y
@@ -1517,7 +1529,7 @@ class ArcSine(UnaryOperator):
                         Exponent(Subtraction(Integer(1),
                                              Exponent(self.child,
                                                       Integer(2))),
-                                 Rational(Fraction(1 / 2))))
+                                 Rational(1, 2)))
 
     def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
         """Evaluates the expression tree using the values from env, returns int or float"""
@@ -1551,7 +1563,7 @@ class ArcCosine(UnaryOperator):
                                     Exponent(Subtraction(Integer(1),
                                                          Exponent(self.child,
                                                                   Integer(2))),
-                                             Rational(Fraction(1 / 2)))))
+                                             Rational(1, 2))))
 
     def evaluate(self, env: Optional[Environment] = None) -> ConstantType:
         """Evaluates the expression tree using the values from env, returns int or float"""
@@ -1771,7 +1783,10 @@ class Floor(UnaryOperator):
         """Evaluates the expression tree using the values from env, returns int or float"""
         ans = self.child.evaluate(env)
         try:
-            return floor(ans) if not isinstance(ans, complex) else complex(floor(ans.real), floor(ans.imag))
+            if not isinstance(ans, complex):
+                return floor(ans)
+            else:
+                return complex(floor(ans.real), floor(ans.imag))
         except Exception as ex:
             raise EvaluationError from ex
 
@@ -1809,7 +1824,10 @@ class Ceiling(UnaryOperator):
         """Evaluates the expression tree using the values from env, returns int or float"""
         ans = self.child.evaluate(env)
         try:
-            return ceil(ans) if not isinstance(ans, complex) else complex(ceil(ans.real), ceil(ans.imag))
+            if not isinstance(ans, complex):
+                return ceil(ans)
+            else:
+                return complex(ceil(ans.real), ceil(ans.imag))
         except Exception as ex:
             raise EvaluationError from ex
 

@@ -5,7 +5,7 @@ Unittests for math_tree using pytest
 from typing import Callable
 
 from hypothesis import given, settings
-from hypothesis.strategies import booleans, builds, deferred, dictionaries, floats, fractions, integers, one_of, \
+from hypothesis.strategies import booleans, builds, deferred, dictionaries, floats, integers, one_of, \
     sampled_from, SearchStrategy
 from math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcTangent, Cosine, Derivative, Division, \
     E, EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, LessThan, Logarithm, \
@@ -57,7 +57,6 @@ def environment(keys: str, use_booleans: bool = False) -> SearchStrategy[Environ
 
 constant_number = builds(Nodeify,
                          one_of(integers(int(-1e10), int(1e10)),
-                                fractions(),
                                 floats(-1e10, 1e10, allow_nan=False, allow_infinity=False)))
 constant_bool = builds(Nodeify, booleans())
 constant_any = one_of(constant_bool, constant_number)
