@@ -239,35 +239,35 @@ class TestUnaryOperators:
             assert x.evaluate(env) == 0
 
 
-# todo: add specific case tests for simplification rules
-class TestSimplify:
-    @settings(deadline=1000)
-    @given(env=environment('xyz'), expr=math_expression)
-    def test_same_answer(self, expr: Node, env: Environment) -> None:
-        try:
-            assert IsEqual(expr, expr.simplify()).evaluate(env)
-        except EvaluationError:
-            with raises(EvaluationError):
-                expr.evaluate(env)
-
-    @settings(deadline=1000)
-    @given(expr=math_expression)
-    def test_idempotence(self, expr: Node) -> None:
-        assert repr(a := expr.simplify()) == repr(a.simplify())
-
-    @settings(deadline=1000)
-    @given(env=environment('xyz', use_booleans=True), expr=bool_expression)
-    def test_same_answer_bool(self, expr: Node, env: Environment) -> None:
-        try:
-            assert expr.evaluate(env) == expr.simplify().evaluate(env)
-        except EvaluationError:
-            with raises(EvaluationError):
-                expr.evaluate(env)
-
-    @settings(deadline=1000)
-    @given(expr=bool_expression)
-    def test_idempotence_bool(self, expr: Node) -> None:
-        assert repr(a := expr.simplify()) == repr(a.simplify())
+# # todo: add specific case tests for simplification rules
+# class TestSimplify:
+#     @settings(deadline=1000)
+#     @given(env=environment('xyz'), expr=math_expression)
+#     def test_same_answer(self, expr: Node, env: Environment) -> None:
+#         try:
+#             assert IsEqual(expr, expr.simplify()).evaluate(env)
+#         except EvaluationError:
+#             with raises(EvaluationError):
+#                 expr.evaluate(env)
+#
+#     @settings(deadline=1000)
+#     @given(expr=math_expression)
+#     def test_idempotence(self, expr: Node) -> None:
+#         assert repr(a := expr.simplify()) == repr(a.simplify())
+#
+#     @settings(deadline=1000)
+#     @given(env=environment('xyz', use_booleans=True), expr=bool_expression)
+#     def test_same_answer_bool(self, expr: Node, env: Environment) -> None:
+#         try:
+#             assert expr.evaluate(env) == expr.simplify().evaluate(env)
+#         except EvaluationError:
+#             with raises(EvaluationError):
+#                 expr.evaluate(env)
+#
+#     @settings(deadline=1000)
+#     @given(expr=bool_expression)
+#     def test_idempotence_bool(self, expr: Node) -> None:
+#         assert repr(a := expr.simplify()) == repr(a.simplify())
 
 
 class TestDisplayMethods:
