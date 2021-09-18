@@ -8,8 +8,8 @@ from hypothesis import given
 from hypothesis.strategies import booleans, builds, deferred, dictionaries, floats, integers, one_of, \
     sampled_from, SearchStrategy
 from python_algebra.math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcTangent, Cosine, \
-    Derivative, Division, E, EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, \
-    LessThan, Logarithm, Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Pi, Piecewise, Product, Sine, \
+    Derivative, Division, E, EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, \
+    LessEqual, LessThan, Logarithm, Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Pi, Piecewise, Product, Sine, \
     Subtraction, Sum, Tangent, UnaryOperator, Variable, Environment, Xnor, Xor
 from pytest import fixture
 
