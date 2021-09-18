@@ -27,18 +27,15 @@ jobs:
         if [ -f Pipfile ]
         then
           pip install pipenv
-          pipenv lock
-          pipenv install --dev
+          pipenv update --dev
         fi
     - name: Lint with flake8
       timeout-minutes: 5
       run: |
         if [ -f Pipfile ]
         then
-          pipenv run flake8 src
-          pipenv run flake8 tests
+          pipenv run flake8 src tests
         else
-          flake8 src
-          flake8 test
+          flake8 src test
         fi
 

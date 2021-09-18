@@ -27,8 +27,7 @@ jobs:
         if [ -f Pipfile ]
         then
           pip install pipenv
-          pipenv lock
-          pipenv install --dev
+          pipenv update --dev
         fi
     - name: Test with pytest
       timeout-minutes: 10

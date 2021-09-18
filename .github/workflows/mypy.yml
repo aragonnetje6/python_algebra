@@ -27,8 +27,7 @@ jobs:
         if [ -f Pipfile ]
         then
           pip install pipenv
-          pipenv lock
-          pipenv install --dev
+          pipenv update --dev
         fi
     - name: Typecheck with mypy
       timeout-minutes: 10
