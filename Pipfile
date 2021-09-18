@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 
 [dev-packages]
+python-algebra = {editable = true, path = "."}
 hypothesis = "*"
 pytest = "*"
 mypy = "*"
