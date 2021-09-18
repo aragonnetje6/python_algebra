@@ -8,8 +8,8 @@ from hypothesis import given
 from hypothesis.strategies import booleans, builds, deferred, dictionaries, floats, integers, one_of, \
     sampled_from, SearchStrategy
 from python_algebra.math_tree import Absolute, And, ArbitraryOperator, ArcCosine, ArcSine, ArcTangent, Cosine, \
-    Derivative, Division, E, EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual,\
-    LessThan, Logarithm, Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Pi, Piecewise, Product, Sine,\
+    Derivative, Division, E, EvaluationError, Exponent, GreaterEqual, GreaterThan, Integer, Invert, IsEqual, LessEqual, \
+    LessThan, Logarithm, Nand, Negate, Node, Nodeify, Nor, Not, NotEqual, Or, Pi, Piecewise, Product, Sine, \
     Subtraction, Sum, Tangent, UnaryOperator, Variable, Environment, Xnor, Xor
 from pytest import fixture
 
@@ -61,18 +61,28 @@ constant_number = builds(Nodeify,
 constant_bool = builds(Nodeify, booleans())
 constant_any = one_of(constant_bool, constant_number)
 variable = builds(Variable, sampled_from('xyz'))
-func = lambda: (constant_number
-                | one_of(builds(E), builds(Pi))
-                | variable
-                | one_of(*[builds(operator, math_expression) for operator in unary_operators])
-                | one_of(*[builds(operator, math_expression, math_expression) for operator in binary_operators])
-                | one_of(*[builds(operator, math_expression, math_expression, math_expression)
-                           for operator in n_ary_operators]))
+
+
+def func():
+    return (constant_number
+            | one_of(builds(E), builds(Pi))
+            | variable
+            | one_of(*[builds(operator, math_expression) for operator in unary_operators])
+            | one_of(*[builds(operator, math_expression, math_expression) for operator in binary_operators])
+            | one_of(*[builds(operator, math_expression, math_expression, math_expression)
+                       for operator in n_ary_operators]))
+
+
 math_expression = deferred(func)  # type: SearchStrategy[Node]
-func2 = lambda: (constant_bool
-                 | variable
-                 | one_of(*[builds(operator, bool_expression) for operator in unary_logical_operators])
-                 | one_of(*[builds(operator, bool_expression, bool_expression) for operator in logical_operators]))
+
+
+def func2():
+    return (constant_bool
+            | variable
+            | one_of(*[builds(operator, bool_expression) for operator in unary_logical_operators])
+            | one_of(*[builds(operator, bool_expression, bool_expression) for operator in logical_operators]))
+
+
 bool_expression = deferred(func2)  # type: SearchStrategy[Node]
 
 
