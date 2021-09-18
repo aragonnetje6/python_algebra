@@ -11,6 +11,7 @@ hypothesis = "*"
 pytest = "*"
 mypy = "*"
 flake8 = "*"
+pipenv = "*"
 
 [requires]
 python_version = "3.9"
