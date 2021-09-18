@@ -7,47 +7,17 @@ on:
     branches: [ master ]
 
 jobs:
-  test-3_9:
+  test:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10.0-rc.2"]
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.9
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
-        python-version: 3.9
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        if [ -f requirements.txt ]
-        then
-          pip install -r requirements.txt
-          pip install pytest hypothesis mypy
-        fi
-        if [ -f Pipfile ]
-        then
-          pip install pipenv
-          pipenv update --dev
-        fi
-    - name: Typecheck with mypy
-      timeout-minutes: 10
-      run: |
-        if [ -f Pipfile ]
-        then
-          pipenv run mypy
-        else
-          mypy
-        fi
-
-  test-3_10:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v2
-      with:
-        python-version: "3.10.0-rc.2"
+        python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
