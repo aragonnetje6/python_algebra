@@ -26,4 +26,4 @@ jobs:
     - name: Typecheck with mypy
       timeout-minutes: 10
       run: |
-        mypy
+        pipenv run mypy
