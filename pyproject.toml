@@ -9,3 +9,6 @@ testpaths = [
 
 [tool.mypy]
 strict = true
+files = [
+    "src"
+]

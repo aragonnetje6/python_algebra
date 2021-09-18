@@ -35,8 +35,8 @@ jobs:
       run: |
         if [ -f Pipfile ]
         then
-          pipenv run python -m mypy --install-types --non-interactive --strict .
+          pipenv run mypy
         else
-          python -m mypy --install-types --non-interactive --strict .
+          mypy
         fi
 
