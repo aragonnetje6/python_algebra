@@ -6,10 +6,9 @@ name = "pypi"
 [packages]
 
 [dev-packages]
+python-algebra = {editable = true, path = "."}
 hypothesis = "*"
 pytest = "*"
 mypy = "*"
 flake8 = "*"
-
-[requires]
-python_version = "3.9"
+pipenv = "*"

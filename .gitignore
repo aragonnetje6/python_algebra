@@ -6,3 +6,6 @@ __pycache__
 output.html
 /.hypothesis/
 venv*
+Pipfile.lock
+reqlib-metadata
+src/python_algebra.egg-info
