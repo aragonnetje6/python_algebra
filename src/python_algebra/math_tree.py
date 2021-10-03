@@ -656,7 +656,7 @@ class Sum(ArbitraryOperator):
     wolfram_func = 'Plus'
     _parentheses_needed = '(ArbitraryLogicalOperator, ComparisonOperator)'
     commutative = True
-    left_distributive_over = []
+    left_distributive_over: list[type] = []
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -708,7 +708,7 @@ class Modulo(ArbitraryOperator):
     symbol = '%'
     wolfram_func = 'Mod'
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
-    left_distributive_over = []
+    left_distributive_over: list[type] = []
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -735,7 +735,7 @@ class BinaryOperator(Node, metaclass=ABCMeta):
     wolfram_func = ''
     left_associative = True
     commutative = False
-    left_distributive_over = []
+    left_distributive_over: list[type] = []
 
     def __init__(self, child1: Node, child2: Node) -> None:
         self.child1 = child1
@@ -891,7 +891,7 @@ class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
     __slots__ = ()
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
     commutative = True
-    left_distributive_over = []
+    left_distributive_over: list[type] = []
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -903,7 +903,7 @@ class And(ArbitraryLogicalOperator):
     __slots__ = ()
     symbol = '&'
     wolfram_func = 'And'
-    left_distributive_over = []
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -932,7 +932,7 @@ class Xor(ArbitraryLogicalOperator):
     __slots__ = ()
     symbol = '^'
     wolfram_func = 'Xor'
-    left_distributive_over = []
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -959,7 +959,7 @@ class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
     __slots__ = ()
     _parentheses_needed = '(ComparisonOperator, )'
-    left_distributive_over = []
+    left_distributive_over: list[type] = []
 
     def evaluate(self, env: Optional[Environment] = None) -> bool:
         """Evaluates the expression tree using the values from env, returns int or float"""
@@ -980,7 +980,7 @@ class IsEqual(ComparisonOperator):
     symbol = '=='
     wolfram_func = 'EqualTo'
     commutative = True
-    left_distributive_over = []
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -1001,7 +1001,7 @@ class GreaterThan(ComparisonOperator):
     __slots__ = ()
     symbol = '>'
     wolfram_func = 'Greater'
-    left_distributive_over = []
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -1021,7 +1021,7 @@ class LessThan(ComparisonOperator):
     __slots__ = ()
     symbol = '<'
     wolfram_func = 'Less'
-    left_distributive_over = []
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -1041,7 +1041,7 @@ class GreaterEqual(ComparisonOperator):
     __slots__ = ()
     symbol = '>='
     wolfram_func = 'GreaterEqual'
-    left_distributive_over = []
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -1061,7 +1061,7 @@ class LessEqual(ComparisonOperator):
     __slots__ = ()
     symbol = '<='
     wolfram_func = 'LessEqual'
-    left_distributive_over = []
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
