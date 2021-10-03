@@ -9,4 +9,5 @@ venv*
 Pipfile.lock
 reqlib-metadata
 src/python_algebra.egg-info
-dist
+dist!/tests/.hypothesis/
+!/dist/

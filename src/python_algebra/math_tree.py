@@ -83,11 +83,6 @@ class EvaluationError(Exception):
 
 class Node(metaclass=ABCMeta):
     """Abstract Base Class for any node in the expression tree"""
-    __slots__ = '_finished',
-
-    def __init__(self) -> None:
-        self._finished = True
-
     @abstractmethod
     def __repr__(self) -> str:
         pass
@@ -109,9 +104,6 @@ class Node(metaclass=ABCMeta):
             return int(value.real)
         else:
             return int(value)
-
-    def __eq__(self, other: Any) -> bool:
-        return self is other or repr(self.simplify()) == repr(Nodeify(other).simplify())
 
     def __hash__(self) -> int:
         return hash(repr(self))
@@ -233,12 +225,6 @@ class Node(metaclass=ABCMeta):
         except ValueError:
             return NotImplemented
 
-    def __setattr__(self, key: str, value: Any) -> None:
-        if not hasattr(self, '_finished') or not self._finished:
-            super().__setattr__(key, value)
-        else:
-            raise AttributeError(f'\'{self.__class__.__name__}\' object is read-only')
-
     @abstractmethod
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -258,10 +244,6 @@ class Node(metaclass=ABCMeta):
     @abstractmethod
     def mathml(self) -> str:
         """returns the MathML representation of the tree"""
-
-    @abstractmethod
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
 
     @abstractmethod
     def substitute(self, var: str, sub: Node) -> Node:
@@ -290,7 +272,6 @@ class Node(metaclass=ABCMeta):
 
 class Term(Node, metaclass=ABCMeta):
     """Abstract Base Class for any value (leaf node) in the expression tree"""
-    __slots__ = ()
 
     def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
@@ -299,7 +280,6 @@ class Term(Node, metaclass=ABCMeta):
 
 class Constant(Term, metaclass=ABCMeta):
     """constant term in expression tree"""
-    __slots__ = ()
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -309,14 +289,9 @@ class Constant(Term, metaclass=ABCMeta):
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        return Nodeify(self.evaluate())
-
 
 class Integer(Constant):
     """integer number in expression tree"""
-    __slots__ = ('value',)
 
     def __init__(self, value: int) -> None:
         self.value = value
@@ -346,7 +321,6 @@ class Integer(Constant):
 
 class Rational(Constant):
     """rational number in expression tree"""
-    __slots__ = ('denominator', 'numerator')
 
     @overload
     def __init__(self, value: int, value2: int) -> None:
@@ -391,7 +365,6 @@ class Rational(Constant):
 
 class Real(Constant):
     """real number in expression tree"""
-    __slots__ = ('value',)
 
     def __init__(self, value: float) -> None:
         self.value = value
@@ -421,7 +394,6 @@ class Real(Constant):
 
 class Complex(Constant):
     """real number in expression tree"""
-    __slots__ = ('value',)
 
     def __init__(self, value: complex) -> None:
         self.value = value
@@ -455,7 +427,6 @@ class Complex(Constant):
 
 class Pi(Constant):
     """mathematical constant in expression tree"""
-    __slots__ = ('value',)
 
     def __init__(self) -> None:
         self.value = pi
@@ -481,14 +452,9 @@ class Pi(Constant):
         """return wolfram language representation of the tree"""
         return 'Pi'
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        return self
-
 
 class E(Constant):
     """mathematical constant in expression tree"""
-    __slots__ = ('value',)
 
     def __init__(self) -> None:
         self.value = e
@@ -514,14 +480,9 @@ class E(Constant):
         """return wolfram language representation of the tree"""
         return 'E'
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        return self
-
 
 class Boolean(Constant):
     """real number in expression tree"""
-    __slots__ = ('value',)
 
     def __init__(self, value: bool) -> None:
         self.value = value
@@ -548,17 +509,11 @@ class Boolean(Constant):
         """return wolfram language representation of the tree"""
         return str(self.value)
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        return self
-
 
 class Variable(Term):
     """Named variable in expression tree"""
-    __slots__ = ('name',)
 
     def __init__(self, value: str) -> None:
-        assert isinstance(value, str)
         self.name = value
         super().__init__()
 
@@ -594,15 +549,6 @@ class Variable(Term):
                           mathml_tag('i',
                                      str(self.name)))
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        if env is None:
-            env = {}
-        if self.name in env.keys():
-            return Nodeify(env[self.name])
-        else:
-            return self
-
     def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         if self.name == var:
@@ -614,11 +560,17 @@ class Variable(Term):
         return self.name
 
 
+class Operator(Node, metaclass=ABCMeta):
+    """Abstract Base Class for all operators in the expression tree"""
+
+
 class ArbitraryOperator(Node, metaclass=ABCMeta):
     """Abstract Base Class for multi-input operator in expression tree"""
-    __slots__ = 'children',
     symbol = ''
     _parentheses_needed = '()'
+    left_associative = True
+    commutative = False
+    left_distributive_over: list[type] = []
 
     @property
     @abstractmethod
@@ -626,8 +578,6 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         """abstract property, returns function name for wolfram language"""
 
     def __init__(self, *args: Node) -> None:
-        assert len(args) > 1
-        assert all(isinstance(x, Node) for x in args)
         self.children = tuple(child for child in args)
         super().__init__()
 
@@ -668,45 +618,6 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
                                                             else mathml_tag('fenced', mathml_tag('row', child.mathml()))
                                                             for child in self.children))
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        try:
-            return Nodeify(self.evaluate(env)).simplify()
-        except EvaluationError:
-            pass
-        children = list(self.children)
-        old_repr = repr(children)
-        while True:
-            children = [child.simplify(env) for child in children]
-            # consolidate constants
-            constants: list[Node] = []
-            non_constants: list[Node] = []
-            for child in children:
-                if isinstance(child, (Integer, Rational, Real, Complex)):
-                    constants.append(child)
-                else:
-                    non_constants.append(child)
-            if len(constants) > 1:
-                children = non_constants + [self.__class__(*constants).simplify(env)]
-            else:
-                children = non_constants + constants
-            # operator specific parts
-            children = self._simplify(children, env)
-            # break out of loop
-            children = [child.simplify(env) for child in children]
-            children.sort(key=lambda x: x.infix())
-            if (new := repr(children)) == old_repr:
-                if len(children) > 1:
-                    out = self.__class__(*children)
-                    try:
-                        return Nodeify(out.evaluate(env))
-                    except EvaluationError:
-                        return out
-                else:
-                    return children[0]
-            else:
-                old_repr = new
-
     def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(*(child.substitute(var, sub) for child in self.children))
@@ -715,18 +626,18 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[' + ', '.join(child.wolfram() for child in self.children) + ']'
 
-    @staticmethod
-    @abstractmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
-        """Simplification rules for operator"""
+    @classmethod
+    def add_distributive_property(cls, operator: type) -> None:
+        cls.left_distributive_over.append(operator)
 
 
 class Sum(ArbitraryOperator):
     """Addition operator node"""
-    __slots__ = ()
     symbol = '+'
     wolfram_func = 'Plus'
     _parentheses_needed = '(ArbitraryLogicalOperator, ComparisonOperator)'
+    commutative = True
+    left_distributive_over: list[type] = []
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -737,82 +648,6 @@ class Sum(ArbitraryOperator):
         """calculation function for 2 elements"""
         return x + y
 
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
-        """returns a simplified version of the tree"""
-
-        def separate(arr: tuple[Node, ...]) -> tuple[Node, tuple[Node, ...]]:
-            """separates array into a constant and any non-constant parts"""
-            if any(isinstance(x, Constant) for x in arr):
-                constant = next(filter(lambda x: isinstance(x, Constant), arr))
-                non_constants = arr[:(k := arr.index(constant))] + arr[k + 1:]
-            else:
-                constant = Integer(1)
-                non_constants = arr
-            return constant, non_constants
-
-        if len(children) == 1:
-            return children
-        elif len(children) == 0:
-            return [Integer(0)]
-        for i, child in enumerate(children):
-            # eliminate zeroes
-            if isinstance(child, Constant):
-                if child.evaluate() == 0:
-                    del children[i]
-                    return children
-            # consolidate sums
-            elif isinstance(child, Sum):
-                del children[i]
-                return children + list(child.children)
-            # eliminate negations
-            elif isinstance(child, Negate):
-                if child.child in children:
-                    j = children.index(child.child)
-                    del children[max(i, j)], children[min(i, j)]
-                    if len(children) > 0:
-                        return children
-                    else:
-                        return [Integer(0)]
-                else:
-                    for j, child2 in enumerate(children):
-                        if isinstance(child2, Product):
-                            child2_constant, child2_variable_terms = separate(child2.children)
-                            if isinstance(child.child, Product):
-                                if repr(child.child.children) == repr(child2_variable_terms):
-                                    del children[max(i, j)], children[min(i, j)]
-                                    return children + [Product(child2_constant - 1, *child.child.children)]
-                                elif len(child2_variable_terms) == 1 and repr(child.child) == repr(
-                                        child2_variable_terms[0]):
-                                    del children[max(i, j)], children[min(i, j)]
-                                    return children + [Product(child2_constant - 1, child.child)]
-            # join like products
-            elif isinstance(child, Product):
-                constant1, non_constants1 = separate(child.children)
-                for j, child2 in enumerate(children):
-                    if i != j and isinstance(child2, Product):
-                        child2_constant, child2_variable_terms = separate(child2.children)
-                        if repr(non_constants1) == repr(child2_variable_terms):
-                            del children[max(j, i)], children[min(j, i)]
-                            return children + [Product(Sum(constant1, child2_constant), *non_constants1)]
-            # assimilate like terms into products
-            else:
-                for j, child2 in enumerate(children):
-                    if i == j:
-                        pass
-                    elif isinstance(child2, Product) and len(child2.children) == 2:
-                        a, b = child2.children
-                        if repr(a) == repr(child) and isinstance(b, Constant):
-                            del children[max(i, j)], children[min(i, j)]
-                            return children + [Product(b + 1, a).simplify()]
-                        elif isinstance(a, Constant) and repr(b) == repr(child):
-                            del children[max(i, j)], children[min(i, j)]
-                            return children + [Product(a + 1, b).simplify()]
-                    elif repr(child) == repr(child2):
-                        del children[max(i, j)], children[min(i, j)]
-                        return children + [Product(Integer(2), child).simplify()]
-        return children
-
 
 def Subtraction(*args: Node) -> Node:
     """Subtraction operator node"""
@@ -821,10 +656,11 @@ def Subtraction(*args: Node) -> Node:
 
 class Product(ArbitraryOperator):
     """Multiplication operator node"""
-    __slots__ = ()
     symbol = '*'
     wolfram_func = 'Times'
-    _parentheses_needed = '(Sum, Modulus, ArbitraryLogicalOperator, ComparisonOperator)'
+    _parentheses_needed = '(Sum, Modulo, ArbitraryLogicalOperator, ComparisonOperator)'
+    commutative = True
+    left_distributive_over = [Sum]
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -840,82 +676,25 @@ class Product(ArbitraryOperator):
         """calculation function for 2 elements"""
         return x * y
 
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
-        """returns a simplified version of the tree"""
-        if len(children) == 1:
-            return children
-        elif len(children) == 0:
-            return [Integer(0)]
-        for i, child in enumerate(children):
-            # eliminate ones and zeros
-            if isinstance(child, Constant):
-                if (ans := child.evaluate()) == 1:
-                    del children[i]
-                    return children
-                elif ans == 0:
-                    return [Integer(0)]
-            # consolidate child products
-            elif isinstance(child, Product):
-                del children[i]
-                return children + list(child.children)
-            # distribute over sums
-            elif isinstance(child, Sum):
-                del children[i]
-                return [Sum(*(Product(child2, *children) for child2 in child.children)).simplify(env)]
-            # consolidate exponents
-            elif isinstance(child, Exponent):
-                for j, child2 in enumerate(children):
-                    if i != j and isinstance(child2, Exponent) and repr(child.child1) == repr(child2.child1):
-                        del children[j], children[i]
-                        return children + [Exponent(child.child1, Sum(child.child2, child2.child2)).simplify(env)]
-            # remove inversions
-            elif isinstance(child, Invert):
-                if child.child in children:
-                    j = children.index(child.child)
-                    del children[max(i, j)], children[min(i, j)]
-                    if len(children) > 0:
-                        return children
-                    else:
-                        return [Integer(0)]
-                else:
-                    for j, child2 in enumerate(children):
-                        if isinstance(child2, Exponent) and repr(child2.child2) == repr(child):
-                            del children[max(i, j)], children[min(i, j)]
-                            return children + [Exponent(child, child2.child2 - 1)]
-            # put like terms into exponents
-            else:
-                for j, child2 in enumerate(children):
-                    if i == j:
-                        pass
-                    elif isinstance(child2, Exponent):
-                        if repr(child) == repr(child2.child1):
-                            del children[max(i, j)], children[min(i, j)]
-                            return children + [Exponent(child, child2.child2 + 1).simplify()]
-                    elif repr(child) == repr(child2):
-                        del children[max(i, j)], children[min(i, j)]
-                        return children + [Exponent(child, Integer(2)).simplify()]
-        return children
-
 
 def Division(*args: Node) -> Node:
     """Division operator node"""
     return Product(args[0], Invert(Product(*args[1:]) if len(args) > 2 else args[1]))
 
 
-class Modulus(ArbitraryOperator):
+class Modulo(ArbitraryOperator):
     """Modulo operator node"""
-    __slots__ = ()
     symbol = '%'
     wolfram_func = 'Mod'
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
+    left_distributive_over: list[type] = []
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         out = self.children[0].derivative(variable)
         for i, child in enumerate(self.children[1:]):
             out = Subtraction(out, Product(child.derivative(variable),
-                                           Floor(Division(Modulus(*self.children[:i + 1], Integer(1)), child))))
+                                           Floor(Division(Modulo(*self.children[:i + 1], Integer(1)), child))))
         return out
 
     @staticmethod
@@ -928,16 +707,13 @@ class Modulus(ArbitraryOperator):
         else:
             raise NotImplementedError('mod of complex numbers not implemented')
 
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
-        """returns a simplified version of the tree"""
-        return children
-
 
 class BinaryOperator(Node, metaclass=ABCMeta):
     """Abstract Base Class for 2-input operator in expression tree"""
-    __slots__ = 'child1', 'child2'
     wolfram_func = ''
+    left_associative = True
+    commutative = False
+    left_distributive_over: list[type] = []
 
     def __init__(self, child1: Node, child2: Node) -> None:
         self.child1 = child1
@@ -963,10 +739,11 @@ class BinaryOperator(Node, metaclass=ABCMeta):
 
 class Exponent(BinaryOperator):
     """Exponent operator node"""
-    __slots__ = ()
     symbol = '**'
     wolfram_func = 'Power'
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
+    left_associative = False
+    left_distributive_over = [Product]
 
     def __init__(self, child1: Node, child2: Optional[Node] = None):
         if child2 is None:
@@ -1021,45 +798,14 @@ class Exponent(BinaryOperator):
                 + (self.child2.infix() if isinstance(self.child2,
                                                      (Term, UnaryOperator)) else f"({self.child2.infix()})"))
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        child1 = self.child1.simplify(env)
-        child2 = self.child2.simplify(env)
-        try:
-            return Nodeify(self.__class__(child1, child2).evaluate(env)).simplify()
-        except EvaluationError:
-            pass
-        # special cases for powers
-        if isinstance(child2, Constant):
-            if (ans2 := child2.evaluate()) == 0:
-                return Integer(1)
-            elif ans2 == 1:
-                return child1
-            elif ans2 == -1:
-                return Invert(child1)
-        # special cases for bases
-        if isinstance(child1, Constant):
-            if (ans1 := child1.evaluate()) == 0:
-                return Integer(0)
-            elif ans1 == 1:
-                return Integer(1)
-        # distribute over products
-        elif isinstance(child1, Product):
-            return Product(*(Exponent(child, child2) for child in child1.children)).simplify(env)
-        # nested exponents multiply
-        elif isinstance(child1, Exponent):
-            return Exponent(child1.child1, Product(child1.child2, child2)).simplify(env)
-        elif isinstance(child1, Sum) and isinstance(child2, Integer) and child2.evaluate() > 0:
-            return Product(*([child1] * child2.evaluate())).simplify(env)
-        return self.__class__(child1, child2)
-
 
 class Logarithm(BinaryOperator):
     """Logarithm operator node, child 2 is base. default base is e"""
-    __slots__ = ()
     symbol = 'log'
     wolfram_func = 'Log'
     _parentheses_needed = '()'
+    commutative = False
+    left_distributive_over: list[type] = [Product]
 
     def __init__(self, child1: Node, child2: Optional[Node] = None):
         if child2 is None:
@@ -1115,25 +861,12 @@ class Logarithm(BinaryOperator):
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child2.wolfram()}, {self.child1.wolfram()}]'
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        child1 = self.child1.simplify(env)
-        child2 = self.child2.simplify(env)
-        try:
-            return Nodeify(self.__class__(child1, child2).evaluate(env)).simplify()
-        except EvaluationError:
-            pass
-        if isinstance(child1, Product):
-            return Sum(*(Logarithm(child, child2) for child in child1.children)).simplify(env)
-        elif isinstance(child1, Exponent):
-            return Product(child1.child2, Logarithm(child1.child1, child2)).simplify(env)
-        return self.__class__(child1, child2)
-
 
 class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
-    __slots__ = ()
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
+    commutative = True
+    left_distributive_over: list[type] = []
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -1142,93 +875,41 @@ class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
 
 class And(ArbitraryLogicalOperator):
     """logical AND operator node"""
-    __slots__ = ()
     symbol = '&'
     wolfram_func = 'And'
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
         return bool(x) & bool(y)
 
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
-        """returns a simplified version of the tree"""
-        for i, child in enumerate(children):
-            if isinstance(child, Constant):
-                if child.evaluate():
-                    del children[i]
-                    return children if len(children) else [Boolean(True)]
-                else:
-                    return [Boolean(False)]
-            elif isinstance(child, And):
-                del children[i]
-                return children + list(child.children)
-            elif isinstance(child, Not):
-                if child.child in children:
-                    return [Boolean(False)]
-        return children
-
 
 class Or(ArbitraryLogicalOperator):
     """logical OR operator node"""
-    __slots__ = ()
     symbol = '|'
     wolfram_func = 'Or'
+    left_distributive_over = [And]
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
         return bool(x) | bool(y)
 
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
-        """returns a simplified version of the tree"""
-        for i, child in enumerate(children):
-            if isinstance(child, Constant):
-                if not child.evaluate():
-                    del children[i]
-                    return children if len(children) else [Boolean(False)]
-                else:
-                    return [Boolean(True)]
-            elif isinstance(child, Or):
-                del children[i]
-                return children + list(child.children)
-            elif isinstance(child, Not):
-                if child.child in children:
-                    return [Boolean(True)]
-        return children
+
+And.add_distributive_property(Or)
 
 
 class Xor(ArbitraryLogicalOperator):
     """logical XOR operator node"""
-    __slots__ = ()
     symbol = '^'
     wolfram_func = 'Xor'
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
         """calculation function for 2 elements"""
         return bool(x) ^ bool(y)
-
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
-        """returns a simplified version of the tree"""
-        if len(children) > 1:
-            for i, child in enumerate(children):
-                if isinstance(child, Constant):
-                    if not child.evaluate():
-                        del children[i]
-                        return children if len(children) else [Boolean(False)]
-                    else:
-                        del children[i]
-                        if len(children) > 1:
-                            return [Not(Xor(*children)).simplify(env)]
-                        elif len(children) == 1:
-                            return [Not(children[0]).simplify(env)]
-                        else:
-                            return [Boolean(False)]
-        return children
 
 
 def Nand(*args: Node) -> Not:
@@ -1248,8 +929,8 @@ def Xnor(*args: Node) -> Not:
 
 class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
-    __slots__ = ()
     _parentheses_needed = '(ComparisonOperator, )'
+    left_distributive_over: list[type] = []
 
     def evaluate(self, env: Optional[Environment] = None) -> bool:
         """Evaluates the expression tree using the values from env, returns int or float"""
@@ -1263,17 +944,13 @@ class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
         return Integer(0)
 
-    @staticmethod
-    def _simplify(children: list[Node], env: Optional[Environment] = None) -> list[Node]:
-        """returns a simplified version of the tree"""
-        return children
-
 
 class IsEqual(ComparisonOperator):
     """Equality operator node"""
-    __slots__ = ()
     symbol = '=='
     wolfram_func = 'EqualTo'
+    commutative = True
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -1291,9 +968,9 @@ def NotEqual(*args: Node) -> Node:
 
 class GreaterThan(ComparisonOperator):
     """Greater-than operator node"""
-    __slots__ = ()
     symbol = '>'
     wolfram_func = 'Greater'
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -1310,9 +987,9 @@ class GreaterThan(ComparisonOperator):
 
 class LessThan(ComparisonOperator):
     """Less-than operator node"""
-    __slots__ = ()
     symbol = '<'
     wolfram_func = 'Less'
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -1329,9 +1006,9 @@ class LessThan(ComparisonOperator):
 
 class GreaterEqual(ComparisonOperator):
     """Greater-equal operator node"""
-    __slots__ = ()
     symbol = '>='
     wolfram_func = 'GreaterEqual'
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -1348,9 +1025,9 @@ class GreaterEqual(ComparisonOperator):
 
 class LessEqual(ComparisonOperator):
     """Less-equal operator node"""
-    __slots__ = ()
     symbol = '<='
     wolfram_func = 'LessEqual'
+    left_distributive_over: list[type] = []
 
     @staticmethod
     def _eval_func(x: ConstantType, y: ConstantType) -> bool:
@@ -1368,7 +1045,6 @@ class LessEqual(ComparisonOperator):
 
 class UnaryOperator(Node, metaclass=ABCMeta):
     """Abstract Base Class for single-input operator in expression tree"""
-    __slots__ = 'child',
     symbol = ''
     wolfram_func = ''
 
@@ -1399,19 +1075,6 @@ class UnaryOperator(Node, metaclass=ABCMeta):
                           mathml_tag('i', self.symbol)
                           + mathml_tag('fenced', self.child.mathml()))
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        try:
-            return Nodeify(self.evaluate(env)).simplify()
-        except EvaluationError:
-            pass
-        new = self.__class__(self.child.simplify(env))
-        try:
-            return Nodeify(new.evaluate(env))
-        except EvaluationError:
-            pass
-        return new
-
     def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
         return self.__class__(self.child.substitute(var, sub))
@@ -1423,7 +1086,6 @@ class UnaryOperator(Node, metaclass=ABCMeta):
 
 class Sine(UnaryOperator):
     """Sine operator node in radians"""
-    __slots__ = ()
     symbol = 'sin'
     wolfram_func = 'Sin'
 
@@ -1455,7 +1117,6 @@ class Sine(UnaryOperator):
 
 class Cosine(UnaryOperator):
     """Cosine operator node in radians"""
-    __slots__ = ()
     symbol = 'cos'
     wolfram_func = 'Cos'
 
@@ -1488,7 +1149,6 @@ class Cosine(UnaryOperator):
 
 class Tangent(UnaryOperator):
     """Tangent operator node in radians"""
-    __slots__ = ()
     symbol = 'tan'
     wolfram_func = 'Tan'
 
@@ -1519,7 +1179,6 @@ class Tangent(UnaryOperator):
 
 class ArcSine(UnaryOperator):
     """Arcsine operator node in radians"""
-    __slots__ = ()
     symbol = 'asin'
     wolfram_func = 'ArcSin'
 
@@ -1552,7 +1211,6 @@ class ArcSine(UnaryOperator):
 
 class ArcCosine(UnaryOperator):
     """Arccosine operator node in radians"""
-    __slots__ = ()
     symbol = 'acos'
     wolfram_func = 'ArcCos'
 
@@ -1588,7 +1246,6 @@ class ArcCosine(UnaryOperator):
 
 class ArcTangent(UnaryOperator):
     """Arctangent operator node in radians"""
-    __slots__ = ()
     symbol = 'atan'
     wolfram_func = 'ArcTan'
 
@@ -1618,7 +1275,6 @@ class ArcTangent(UnaryOperator):
 
 class Absolute(UnaryOperator):
     """Absolute operator node"""
-    __slots__ = ()
     symbol = 'abs'
     wolfram_func = 'Abs'
 
@@ -1648,20 +1304,9 @@ class Absolute(UnaryOperator):
                           + self.child.mathml()
                           + mathml_tag('o', '|'))
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(env)
-        if isinstance(simplified, self.__class__):
-            if isinstance(simplified.child, (Absolute, Negate)):
-                return self.__class__(simplified.child.child).simplify(env)
-            elif isinstance(simplified.child, Product):
-                return Product(*(self.__class__(x) for x in simplified.child.children)).simplify(env)
-        return simplified
-
 
 class Negate(UnaryOperator):
     """Unary negative operator"""
-    __slots__ = ()
     symbol = '-'
     wolfram_func = 'Minus'
     _parentheses_needed = '(ArbitraryOperator, Negate, Derivative, Piecewise, Factorial)'
@@ -1695,20 +1340,9 @@ class Negate(UnaryOperator):
                               mathml_tag('i', self.symbol)
                               + self.child.mathml())
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(env)
-        if isinstance(simplified, self.__class__):
-            if isinstance(simplified.child, Negate):
-                return simplified.child.child.simplify(env)
-            elif isinstance(simplified.child, Sum):
-                return Sum(*(self.__class__(x) for x in simplified.child.children)).simplify(env)
-        return simplified
-
 
 class Invert(UnaryOperator):
     """Unary inversion operator"""
-    __slots__ = ()
     symbol = '1/'
     wolfram_func = 'Divide'
     _parentheses_needed = '(ArbitraryOperator, Derivative, Piecewise, Factorial)'
@@ -1756,14 +1390,6 @@ class Invert(UnaryOperator):
                                                 mathml_tag('n', '1'))
                                      + self.child.mathml()))
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(env)
-        if isinstance(simplified, self.__class__):
-            if isinstance(simplified.child, Invert):
-                return simplified.child.child.simplify()
-        return simplified
-
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
         return f'Divide[1, {self.child.wolfram()}]'
@@ -1771,7 +1397,6 @@ class Invert(UnaryOperator):
 
 class Floor(UnaryOperator):
     """floor operator"""
-    __slots__ = ()
     symbol = 'floor'
     wolfram_func = 'Floor'
 
@@ -1797,14 +1422,6 @@ class Floor(UnaryOperator):
                           + self.child.mathml()
                           + mathml_tag('o', '⌋'))
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(env)
-        if isinstance(simplified, self.__class__):
-            if isinstance(simplified.child, (Floor, Ceiling)):
-                return simplified.child.child.simplify(env)
-        return simplified
-
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child.wolfram()}]'
@@ -1812,7 +1429,6 @@ class Floor(UnaryOperator):
 
 class Ceiling(UnaryOperator):
     """ceiling operator"""
-    __slots__ = ()
     symbol = 'ceil'
     wolfram_func = 'Ceiling'
 
@@ -1838,14 +1454,6 @@ class Ceiling(UnaryOperator):
                           + self.child.mathml()
                           + mathml_tag('o', '⌉'))
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(env)
-        if isinstance(simplified, self.__class__):
-            if isinstance(simplified.child, (Floor, Ceiling)):
-                return simplified.child.child.simplify(env)
-        return simplified
-
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child.wolfram()}]'
@@ -1853,7 +1461,6 @@ class Ceiling(UnaryOperator):
 
 class Factorial(UnaryOperator):
     """factorial operator"""
-    __slots__ = ()
     symbol = '!'
     wolfram_func = 'Factorial'
     _parentheses_needed = '(ArbitraryOperator, Negate, Invert, Derivative, Piecewise)'
@@ -1897,7 +1504,6 @@ class Factorial(UnaryOperator):
 
 class Not(UnaryOperator):
     """Logical not operator"""
-    __slots__ = ()
     symbol = '~'
     wolfram_func = 'Not'
 
@@ -1927,22 +1533,9 @@ class Not(UnaryOperator):
                               mathml_tag('i', self.symbol)
                               + self.child.mathml())
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        simplified = super().simplify(env)
-        if isinstance(simplified, self.__class__):
-            if isinstance(simplified.child, Not):
-                return simplified.child.child.simplify(env)
-            elif isinstance(simplified.child, And):
-                return Or(*(Not(child2) for child2 in simplified.child.children)).simplify(env)
-            elif isinstance(simplified.child, Or):
-                return And(*(Not(child2) for child2 in simplified.child.children)).simplify(env)
-        return simplified
-
 
 class Derivative(Node):
     """Derivative operation node"""
-    __slots__ = ('child', 'variable')
     wolfram_func = 'D'
     symbol = ''
 
@@ -1991,10 +1584,6 @@ class Derivative(Node):
                                                   + mathml_tag('i', self.variable)))
                           + mathml_tag('fenced', self.child.mathml()))
 
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-        return self.child.simplify(env).derivative(self.variable).simplify(env)
-
     def wolfram(self) -> str:
         """return wolfram language representation of the tree"""
         return f'{self.wolfram_func}[{self.child.wolfram()}, {self.variable}]'
@@ -2004,7 +1593,6 @@ class Piecewise(Node):
     """Piecewise function node"""
     wolfram_func = 'Piecewise'
     symbol = 'piecewise'
-    __slots__ = 'expressions', 'default'
 
     def __init__(self, expressions: tuple[tuple[Node, Node], ...], default: Optional[Node] = None) -> None:
         self.default = default if default is not None else Integer(0)
@@ -2064,21 +1652,6 @@ class Piecewise(Node):
                           mathml_tag('o', '{')
                           + mathml_tag('table',
                                        expression_part))
-
-    def simplify(self, env: Optional[Environment] = None) -> Node:
-        """returns a simplified version of the tree"""
-
-        def check_child(child: Node) -> bool:
-            """checks if node is always false"""
-            try:
-                return bool(child.evaluate(env))
-            except (EvaluationError, TypeError):
-                pass
-            return True
-
-        expressions = tuple(filter(lambda x: check_child(x[1]), self.expressions))
-        return self.__class__(tuple((x.simplify(env), y.simplify(env)) for x, y in expressions),
-                              self.default.simplify(env))
 
     def substitute(self, var: str, sub: Node) -> Node:
         """substitute a variable with an expression inside this tree, returns the resulting tree"""
