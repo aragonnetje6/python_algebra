@@ -668,7 +668,7 @@ class Product(ArbitraryOperator):
     """Multiplication operator node"""
     symbol = '*'
     wolfram_func = 'Times'
-    _parentheses_needed = '(Sum, Modulus, ArbitraryLogicalOperator, ComparisonOperator)'
+    _parentheses_needed = '(Sum, Modulo, ArbitraryLogicalOperator, ComparisonOperator)'
     commutative = True
     left_distributive_over = [Sum]
 
