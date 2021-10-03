@@ -83,7 +83,6 @@ class EvaluationError(Exception):
 
 class Node(metaclass=ABCMeta):
     """Abstract Base Class for any node in the expression tree"""
-    __slots__ = '_finished',
 
     def __init__(self) -> None:
         self._finished = True
@@ -283,7 +282,6 @@ class Node(metaclass=ABCMeta):
 
 class Term(Node, metaclass=ABCMeta):
     """Abstract Base Class for any value (leaf node) in the expression tree"""
-    __slots__ = ()
 
     def list_nodes(self) -> list[Node]:
         """returns a list of all nodes in the tree"""
@@ -292,7 +290,6 @@ class Term(Node, metaclass=ABCMeta):
 
 class Constant(Term, metaclass=ABCMeta):
     """constant term in expression tree"""
-    __slots__ = ()
 
     def derivative(self, variable: str) -> Node:
         """returns an expression tree representing the (partial) derivative to the passed variable of this tree"""
@@ -305,7 +302,6 @@ class Constant(Term, metaclass=ABCMeta):
 
 class Integer(Constant):
     """integer number in expression tree"""
-    __slots__ = ('value',)
 
     def __init__(self, value: int) -> None:
         self.value = value
@@ -335,7 +331,6 @@ class Integer(Constant):
 
 class Rational(Constant):
     """rational number in expression tree"""
-    __slots__ = ('denominator', 'numerator')
 
     @overload
     def __init__(self, value: int, value2: int) -> None:
@@ -380,7 +375,6 @@ class Rational(Constant):
 
 class Real(Constant):
     """real number in expression tree"""
-    __slots__ = ('value',)
 
     def __init__(self, value: float) -> None:
         self.value = value
@@ -410,7 +404,6 @@ class Real(Constant):
 
 class Complex(Constant):
     """real number in expression tree"""
-    __slots__ = ('value',)
 
     def __init__(self, value: complex) -> None:
         self.value = value
@@ -444,7 +437,6 @@ class Complex(Constant):
 
 class Pi(Constant):
     """mathematical constant in expression tree"""
-    __slots__ = ('value',)
 
     def __init__(self) -> None:
         self.value = pi
@@ -473,7 +465,6 @@ class Pi(Constant):
 
 class E(Constant):
     """mathematical constant in expression tree"""
-    __slots__ = ('value',)
 
     def __init__(self) -> None:
         self.value = e
@@ -502,7 +493,6 @@ class E(Constant):
 
 class Boolean(Constant):
     """real number in expression tree"""
-    __slots__ = ('value',)
 
     def __init__(self, value: bool) -> None:
         self.value = value
@@ -532,7 +522,6 @@ class Boolean(Constant):
 
 class Variable(Term):
     """Named variable in expression tree"""
-    __slots__ = ('name',)
 
     def __init__(self, value: str) -> None:
         self.name = value
@@ -581,9 +570,12 @@ class Variable(Term):
         return self.name
 
 
+class Operator(Node, metaclass=ABCMeta):
+    """Abstract Base Class for all operators in the expression tree"""
+
+
 class ArbitraryOperator(Node, metaclass=ABCMeta):
     """Abstract Base Class for multi-input operator in expression tree"""
-    __slots__ = 'children',
     symbol = ''
     _parentheses_needed = '()'
     left_associative = True
@@ -651,7 +643,6 @@ class ArbitraryOperator(Node, metaclass=ABCMeta):
 
 class Sum(ArbitraryOperator):
     """Addition operator node"""
-    __slots__ = ()
     symbol = '+'
     wolfram_func = 'Plus'
     _parentheses_needed = '(ArbitraryLogicalOperator, ComparisonOperator)'
@@ -675,7 +666,6 @@ def Subtraction(*args: Node) -> Node:
 
 class Product(ArbitraryOperator):
     """Multiplication operator node"""
-    __slots__ = ()
     symbol = '*'
     wolfram_func = 'Times'
     _parentheses_needed = '(Sum, Modulus, ArbitraryLogicalOperator, ComparisonOperator)'
@@ -704,7 +694,6 @@ def Division(*args: Node) -> Node:
 
 class Modulo(ArbitraryOperator):
     """Modulo operator node"""
-    __slots__ = ()
     symbol = '%'
     wolfram_func = 'Mod'
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
@@ -731,7 +720,6 @@ class Modulo(ArbitraryOperator):
 
 class BinaryOperator(Node, metaclass=ABCMeta):
     """Abstract Base Class for 2-input operator in expression tree"""
-    __slots__ = 'child1', 'child2'
     wolfram_func = ''
     left_associative = True
     commutative = False
@@ -761,7 +749,6 @@ class BinaryOperator(Node, metaclass=ABCMeta):
 
 class Exponent(BinaryOperator):
     """Exponent operator node"""
-    __slots__ = ()
     symbol = '**'
     wolfram_func = 'Power'
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
@@ -824,7 +811,6 @@ class Exponent(BinaryOperator):
 
 class Logarithm(BinaryOperator):
     """Logarithm operator node, child 2 is base. default base is e"""
-    __slots__ = ()
     symbol = 'log'
     wolfram_func = 'Log'
     _parentheses_needed = '()'
@@ -888,7 +874,6 @@ class Logarithm(BinaryOperator):
 
 class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
-    __slots__ = ()
     _parentheses_needed = '(ArbitraryOperator, Derivative)'
     commutative = True
     left_distributive_over: list[type] = []
@@ -900,7 +885,6 @@ class ArbitraryLogicalOperator(ArbitraryOperator, metaclass=ABCMeta):
 
 class And(ArbitraryLogicalOperator):
     """logical AND operator node"""
-    __slots__ = ()
     symbol = '&'
     wolfram_func = 'And'
     left_distributive_over: list[type] = []
@@ -913,7 +897,6 @@ class And(ArbitraryLogicalOperator):
 
 class Or(ArbitraryLogicalOperator):
     """logical OR operator node"""
-    __slots__ = ()
     symbol = '|'
     wolfram_func = 'Or'
     left_distributive_over = [And]
@@ -929,7 +912,6 @@ And.add_distributive_property(Or)
 
 class Xor(ArbitraryLogicalOperator):
     """logical XOR operator node"""
-    __slots__ = ()
     symbol = '^'
     wolfram_func = 'Xor'
     left_distributive_over: list[type] = []
@@ -957,7 +939,6 @@ def Xnor(*args: Node) -> Not:
 
 class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
     """Abstract base class for comparison operators"""
-    __slots__ = ()
     _parentheses_needed = '(ComparisonOperator, )'
     left_distributive_over: list[type] = []
 
@@ -976,7 +957,6 @@ class ComparisonOperator(ArbitraryOperator, metaclass=ABCMeta):
 
 class IsEqual(ComparisonOperator):
     """Equality operator node"""
-    __slots__ = ()
     symbol = '=='
     wolfram_func = 'EqualTo'
     commutative = True
@@ -998,7 +978,6 @@ def NotEqual(*args: Node) -> Node:
 
 class GreaterThan(ComparisonOperator):
     """Greater-than operator node"""
-    __slots__ = ()
     symbol = '>'
     wolfram_func = 'Greater'
     left_distributive_over: list[type] = []
@@ -1018,7 +997,6 @@ class GreaterThan(ComparisonOperator):
 
 class LessThan(ComparisonOperator):
     """Less-than operator node"""
-    __slots__ = ()
     symbol = '<'
     wolfram_func = 'Less'
     left_distributive_over: list[type] = []
@@ -1038,7 +1016,6 @@ class LessThan(ComparisonOperator):
 
 class GreaterEqual(ComparisonOperator):
     """Greater-equal operator node"""
-    __slots__ = ()
     symbol = '>='
     wolfram_func = 'GreaterEqual'
     left_distributive_over: list[type] = []
@@ -1058,7 +1035,6 @@ class GreaterEqual(ComparisonOperator):
 
 class LessEqual(ComparisonOperator):
     """Less-equal operator node"""
-    __slots__ = ()
     symbol = '<='
     wolfram_func = 'LessEqual'
     left_distributive_over: list[type] = []
@@ -1079,7 +1055,6 @@ class LessEqual(ComparisonOperator):
 
 class UnaryOperator(Node, metaclass=ABCMeta):
     """Abstract Base Class for single-input operator in expression tree"""
-    __slots__ = 'child',
     symbol = ''
     wolfram_func = ''
 
@@ -1121,7 +1096,6 @@ class UnaryOperator(Node, metaclass=ABCMeta):
 
 class Sine(UnaryOperator):
     """Sine operator node in radians"""
-    __slots__ = ()
     symbol = 'sin'
     wolfram_func = 'Sin'
 
@@ -1153,7 +1127,6 @@ class Sine(UnaryOperator):
 
 class Cosine(UnaryOperator):
     """Cosine operator node in radians"""
-    __slots__ = ()
     symbol = 'cos'
     wolfram_func = 'Cos'
 
@@ -1186,7 +1159,6 @@ class Cosine(UnaryOperator):
 
 class Tangent(UnaryOperator):
     """Tangent operator node in radians"""
-    __slots__ = ()
     symbol = 'tan'
     wolfram_func = 'Tan'
 
@@ -1217,7 +1189,6 @@ class Tangent(UnaryOperator):
 
 class ArcSine(UnaryOperator):
     """Arcsine operator node in radians"""
-    __slots__ = ()
     symbol = 'asin'
     wolfram_func = 'ArcSin'
 
@@ -1250,7 +1221,6 @@ class ArcSine(UnaryOperator):
 
 class ArcCosine(UnaryOperator):
     """Arccosine operator node in radians"""
-    __slots__ = ()
     symbol = 'acos'
     wolfram_func = 'ArcCos'
 
@@ -1286,7 +1256,6 @@ class ArcCosine(UnaryOperator):
 
 class ArcTangent(UnaryOperator):
     """Arctangent operator node in radians"""
-    __slots__ = ()
     symbol = 'atan'
     wolfram_func = 'ArcTan'
 
@@ -1316,7 +1285,6 @@ class ArcTangent(UnaryOperator):
 
 class Absolute(UnaryOperator):
     """Absolute operator node"""
-    __slots__ = ()
     symbol = 'abs'
     wolfram_func = 'Abs'
 
@@ -1349,7 +1317,6 @@ class Absolute(UnaryOperator):
 
 class Negate(UnaryOperator):
     """Unary negative operator"""
-    __slots__ = ()
     symbol = '-'
     wolfram_func = 'Minus'
     _parentheses_needed = '(ArbitraryOperator, Negate, Derivative, Piecewise, Factorial)'
@@ -1386,7 +1353,6 @@ class Negate(UnaryOperator):
 
 class Invert(UnaryOperator):
     """Unary inversion operator"""
-    __slots__ = ()
     symbol = '1/'
     wolfram_func = 'Divide'
     _parentheses_needed = '(ArbitraryOperator, Derivative, Piecewise, Factorial)'
@@ -1441,7 +1407,6 @@ class Invert(UnaryOperator):
 
 class Floor(UnaryOperator):
     """floor operator"""
-    __slots__ = ()
     symbol = 'floor'
     wolfram_func = 'Floor'
 
@@ -1474,7 +1439,6 @@ class Floor(UnaryOperator):
 
 class Ceiling(UnaryOperator):
     """ceiling operator"""
-    __slots__ = ()
     symbol = 'ceil'
     wolfram_func = 'Ceiling'
 
@@ -1507,7 +1471,6 @@ class Ceiling(UnaryOperator):
 
 class Factorial(UnaryOperator):
     """factorial operator"""
-    __slots__ = ()
     symbol = '!'
     wolfram_func = 'Factorial'
     _parentheses_needed = '(ArbitraryOperator, Negate, Invert, Derivative, Piecewise)'
@@ -1551,7 +1514,6 @@ class Factorial(UnaryOperator):
 
 class Not(UnaryOperator):
     """Logical not operator"""
-    __slots__ = ()
     symbol = '~'
     wolfram_func = 'Not'
 
@@ -1584,7 +1546,6 @@ class Not(UnaryOperator):
 
 class Derivative(Node):
     """Derivative operation node"""
-    __slots__ = ('child', 'variable')
     wolfram_func = 'D'
     symbol = ''
 
@@ -1642,7 +1603,6 @@ class Piecewise(Node):
     """Piecewise function node"""
     wolfram_func = 'Piecewise'
     symbol = 'piecewise'
-    __slots__ = 'expressions', 'default'
 
     def __init__(self, expressions: tuple[tuple[Node, Node], ...], default: Optional[Node] = None) -> None:
         self.default = default if default is not None else Integer(0)
