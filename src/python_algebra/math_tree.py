@@ -83,10 +83,6 @@ class EvaluationError(Exception):
 
 class Node(metaclass=ABCMeta):
     """Abstract Base Class for any node in the expression tree"""
-
-    def __init__(self) -> None:
-        self._finished = True
-
     @abstractmethod
     def __repr__(self) -> str:
         pass
@@ -228,12 +224,6 @@ class Node(metaclass=ABCMeta):
             return Xor(Nodeify(other), self)
         except ValueError:
             return NotImplemented
-
-    def __setattr__(self, key: str, value: Any) -> None:
-        if not hasattr(self, '_finished') or not self._finished:
-            super().__setattr__(key, value)
-        else:
-            raise AttributeError(f'\'{self.__class__.__name__}\' object is read-only')
 
     @abstractmethod
     def derivative(self, variable: str) -> Node:
